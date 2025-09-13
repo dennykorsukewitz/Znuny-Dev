@@ -1,0 +1,28 @@
+# Znuny Development Environment
+# Keep these directories empty in git - they will be populated by setup scripts
+
+# Framework repositories (cloned by setup-repos)
+frameworks/
+
+# Package repositories (cloned by setup-repos)
+packages/
+
+# Developer tools (cloned by setup-repos)
+tools/
+
+# Environment files
+.env
+docker/env/user-*.env
+
+# Docker volumes
+docker/volumes/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db

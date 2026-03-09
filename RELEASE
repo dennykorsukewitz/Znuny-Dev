@@ -1,0 +1,6 @@
+# Znuny Development Environment Release Information
+
+VERSION=0.0.1
+BUILD_DATE="2026-03-09 22:43:24"
+BUILD_COMMIT=7284383
+BUILD_BRANCH=init

@@ -1,0 +1,64 @@
+# Znuny Framework Instance – Shared Mode (MySQL)
+# Includes shared DB container; first instance start creates DB + network, further instances only add their app.
+
+services:
+  znuny-mysql:
+    image: mysql:8.0
+    container_name: znuny-mysql
+    ports:
+      - "3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+      - MYSQL_CHARSET=utf8mb4
+      - MYSQL_COLLATION=utf8mb4_unicode_ci
+    volumes:
+      - znuny-mysql-data:/var/lib/mysql
+    networks:
+      - znuny-network
+    restart: unless-stopped
+
+  znuny-${FRAMEWORK_SLUG}-instance:
+    build:
+      context: ../..
+      dockerfile: dev/docker/Dockerfile
+    image: znuny-${FRAMEWORK_SLUG}-instance
+    container_name: znuny-${FRAMEWORK_SLUG}-instance
+    ports:
+      - "${FRAMEWORK_PORT}:80"
+    volumes:
+      - {{FRAMEWORKS_DIR}}/${FRAMEWORK_NAME}:/opt/znuny:rw
+      - {{PACKAGES_DIR}}:/opt/packages:rw
+      - {{TOOLS_DIR}}:/opt/tools:rw
+      - ${FRAMEWORK_SLUG}-data:/var/lib/znuny
+      - {{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/var/log/apache2:rw
+      - {{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/opt/znuny/var/log:rw
+      - {{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/opt/znuny/var/fred:rw
+      - {{CONFIGS_DIR}}:/etc/znuny/configs:ro
+      - {{FRAMEWORK_CONFIGS_DIR}}:/opt/framework-config:ro
+    env_file:
+      - ./${FRAMEWORK_NAME}.env
+    environment:
+      - BASE_PORT=${BASE_PORT:-10000}
+      - DB_TYPE=${DB_TYPE:-mysql}
+      - DB_HOST=${DB_HOST:-znuny-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-${FRAMEWORK_NAME}}
+      - DB_USER=${DB_USER:-${FRAMEWORK_NAME}}
+      - DB_PASSWORD=${DB_PASSWORD:-${FRAMEWORK_NAME}_password}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+      - ZNUNY_PORT=${FRAMEWORK_PORT}
+      - FRAMEWORK_NAME=${FRAMEWORK_NAME}
+    networks:
+      - znuny-network
+    restart: unless-stopped
+
+volumes:
+  znuny-mysql-data:
+    driver: local
+  ${FRAMEWORK_SLUG}-data:
+    driver: local
+
+networks:
+  znuny-network:
+    name: znuny-network
+    driver: bridge

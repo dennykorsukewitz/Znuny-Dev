@@ -1,0 +1,13 @@
+# Ignore test results and temporary files
+*.log
+*.tmp
+test-results/
+coverage/
+
+# Ignore temporary test data
+data/tmp/
+data/*.tmp
+
+# Keep example/sample files
+!data/sample*.env
+!data/mock-frameworks/

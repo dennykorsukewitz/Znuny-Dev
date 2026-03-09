@@ -2,17 +2,28 @@
 # Keep these directories empty in git - they will be populated by setup scripts
 
 # Framework repositories (cloned by setup-repos)
-frameworks/
+# Keep directories but ignore all content except .gitkeep
+!frameworks/.gitkeep
+frameworks/*
 
 # Package repositories (cloned by setup-repos)
-packages/
+# Keep directories but ignore all content except .gitkeep
+!packages/.gitkeep
+packages/*
 
 # Developer tools (cloned by setup-repos)
-tools/
+# Keep directories but ignore all content except .gitkeep
+!tools/.gitkeep
+tools/*
+
+# Instances (at project root, same level as dev/)
+# Keep directories but ignore all content except .gitkeep
+!instances/.gitkeep
+instances/*
 
 # Environment files
 .env
-docker/env/user-*.env
+!dev/docker/.env
 
 # Docker volumes
 docker/volumes/
@@ -26,3 +37,6 @@ logs/
 *.temp
 .DS_Store
 Thumbs.db
+
+# Backup files
+*.bak

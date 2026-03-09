@@ -1,0 +1,48 @@
+---
+name: UnitTest
+
+# Controls when the action will run.
+on:
+  push:
+    # branches: ["dev", "dev-update"]
+    branches: ['dev', 'init']
+  # pull_request:
+  workflow_dispatch:
+
+jobs:
+  UnitTest:
+    strategy:
+      matrix:
+        os: [ubuntu-24.04]
+        # os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Make scripts executable
+      run: |
+        chmod +x znuny-dev.sh
+        chmod +x dev/scripts/*.sh
+        chmod +x dev/test/run.sh
+        chmod +x dev/test/utils/*.sh
+        chmod +x dev/test/tests/*.sh
+        chmod +x dev/test/tests/instance/*.sh
+        chmod +x dev/test/tests/docker/*.sh
+
+    - name: Setup test environment
+      run: |
+        # Create required directories
+        mkdir -p frameworks instances compose packages tools
+
+        # Setup minimal environment
+        cp dev/templates/env/global.env.template .env
+
+        # Set test mode (skips instance-create: git clone + zd create --start need Docker)
+        echo "CI_MODE=true" >> .env
+        export CI_MODE=true
+
+    - name: Run tests
+      run: ./dev/test/run.sh --verbose
+      env:
+        CI_MODE: true

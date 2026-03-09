@@ -1,0 +1,133 @@
+repository:
+  # The name of the repository. Changing this will rename the repository
+  name: Znuny-Dev
+
+  # A short description of the repository that will show up on GitHub
+  description: A comprehensive Docker-based multi-instance development environment for Znuny that enables working on multiple framework instances simultaneously.
+
+  # A URL with more information about the repository
+  homepage: https://dennykorsukewitz.github.io/Znuny-Dev/
+
+  # A comma-separated list of topics to set on the repository
+  topics: znuny, docker, docker-compose, development-environment, multi-instance, mysql, postgresql, mariadb, oracle, bash, automation, testing, ci-cd
+
+  # Either `true` to make the repository private, or `false` to make it public.
+  private: true
+
+  # Either `true` to enable issues for this repository, `false` to disable them.
+  has_issues: true
+
+  # Either `true` to enable projects for this repository, or `false` to disable them.
+  # If projects are disabled for the organization, passing `true` will cause an API error.
+  has_projects: false
+
+  # Either `true` to enable the wiki for this repository, `false` to disable it.
+  has_wiki: false
+
+  # Either `true` to enable downloads for this repository, `false` to disable them.
+  has_downloads: true
+
+  # Updates the default branch for this repository.
+  default_branch: dev
+
+  # Either `true` to allow squash-merging pull requests, or `false` to prevent
+  # squash-merging.
+  allow_squash_merge: true
+
+  # Either `true` to allow merging pull requests with a merge commit, or `false`
+  # to prevent merging pull requests with merge commits.
+  allow_merge_commit: false
+
+  # Either `true` to allow rebase-merging pull requests, or `false` to prevent
+  # rebase-merging.
+  allow_rebase_merge: false
+
+  # Either `true` to enable automatic deletion of branches on merge, or `false` to disable
+  delete_branch_on_merge: true
+
+  # Either `true` to enable automated security fixes, or `false` to disable
+  # automated security fixes.
+  enable_automated_security_fixes: true
+
+  # Either `true` to enable vulnerability alerts, or `false` to disable
+  # vulnerability alerts.
+  enable_vulnerability_alerts: true
+
+# Labels: define labels for Issues and Pull Requests
+labels:
+
+  - name: Docker
+    color: '#0db7ed'
+    description: Docker related changes
+
+  - name: Scripts
+    color: '#89e051'
+    description: Bash scripts and automation
+
+  - name: Bug
+    color: '#FF0000'
+    description: An issue with the system.
+
+  - name: Documentation
+    color: '#EB9419'
+    description: Improvements or additions to documentation.
+
+  - name: Feature
+    color: '#428BCA'
+    description: New functionality.
+
+  - name: Duplicate
+    color: '#cfd3d7'
+    description: This issue or pull request already exists.
+
+  - name: Framework
+    color: '#AA0033'
+    description: Framework.
+
+  - name: Refactoring
+    color: '#7F8C8D'
+    description: Refactoring is needed.
+
+  - name: WontFix
+    color: '#000000'
+    description: This will not be worked on.
+
+  - name: Unit Test
+    color: '#2ea7b2'
+    description: Unit Test.
+
+  - name: Clarification
+    color: '#3399FF'
+    description: Clarification of the current situation.
+
+  - name: Verified
+    color: '#b8e550'
+    description: This issue or pull request was verified.
+
+  - name: Verification
+    color: '#e8dd45'
+    description: This issue or pull request needs a verification.
+
+  - name: Progress
+    color: '#AD8D43'
+    description: This is in Progress.
+
+  - name: CI/CD
+    color: '#2088FF'
+    description: Continuous Integration and Deployment
+
+  - name: Dependencies
+    color: '#0366d6'
+    description: Pull requests that update a dependency file
+
+  - name: Testing
+    color: '#17becf'
+    description: Testing related changes
+
+  - name: Enhancement
+    color: '#84b6eb'
+    description: New feature or request
+
+  - name: Help Wanted
+    color: '#008672'
+    description: Extra attention is needed

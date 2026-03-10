@@ -38,5 +38,8 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Editor / IDE
+.cursor/
+
 # Backup files
 *.bak

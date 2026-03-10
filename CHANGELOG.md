@@ -2,16 +2,9 @@
 
 All notable changes to the Znuny Development Environment will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
 
 ### Added
-- Initial development environment setup
-- Docker-based development infrastructure
-- Multi-framework instance support
-- Development tools integration
 
 ### Changed
 
@@ -23,32 +16,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## [1.0.0] - 2024-01-XX
+## [1.0.0] - 2026-XX-XX
 
 ### Added
-- Complete Znuny development environment automation
-- `znuny-dev.sh` main management script
-- Setup commands: `setup-all`, `setup-status`, `setup-env`
-- Instance management: create, start, stop, restart, status, logs
+- Complete Znuny development environment automation via `znuny-dev.sh`
+- Setup commands: `setup-all`, `setup-status`, `setup-env`, `setup-remove`, framework, tools, packages, Docker Compose generation
+- Instance management: create, remove, start, stop, restart, build, status, logs (framework and container)
+- Console command execution and shell access to containers
+- Global `zd` alias for common tasks (cache rebuild, unit tests, translations, ModuleTools)
+- ModuleTools integration: link/unlink packages, dbinstall/codeinstall, Fred link
 - Framework repository cloning and configuration
-- Development tools setup (Fred, ZnunyCodePolicy, module-tools)
-- Docker Compose file generation
-- Environment configuration management
-- Interactive setup with user prompts
-- Backup and restore functionality
-- Comprehensive status reporting
-- Console command execution
-- Shell access to containers
-
-### Changed
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
+- Development tools: Fred, ZnunyCodePolicy, module-tools
+- Interactive setup with user prompts, environment configuration management
+- Backup and restore functionality, comprehensive status reporting
+- Built-in help, examples, and version commands
 
 ---
 

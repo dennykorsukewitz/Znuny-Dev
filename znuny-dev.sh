@@ -29,6 +29,9 @@ fi
 if [ -f "$ZNUNY_DEV_DIR/dev/scripts/usage.sh" ]; then
     source "$ZNUNY_DEV_DIR/dev/scripts/usage.sh"
 fi
+if [ -f "$ZNUNY_DEV_DIR/dev/scripts/version.sh" ]; then
+    source "$ZNUNY_DEV_DIR/dev/scripts/version.sh"
+fi
 
 # Function to setup everything
 setup_all() {
@@ -300,76 +303,6 @@ remove_env() {
     "$SCRIPTS_DIR/env.sh" remove-env
 }
 
-# Function to show version information
-show_version() {
-    local release_file="$ZNUNY_DEV_DIR/RELEASE"
-    local current_version=""
-    local latest_version=""
-
-    print_header "Znuny Development Environment"
-
-    # Load version information from RELEASE file
-    if [ -f "$release_file" ]; then
-        source "$release_file"
-        current_version="${VERSION:-1.0.0}"
-        print_table "Version" "$current_version"
-        print_table "Build Date" "${BUILD_DATE:-Unknown}"
-        print_table "Build Commit" "${BUILD_COMMIT:-Unknown}"
-        print_table "Build Branch" "${BUILD_BRANCH:-Unknown}"
-    else
-        current_version="1.0.0"
-        print_table "Version" "$current_version"
-        print_table "Build Date: Unknown"
-        print_table "Build Commit" "Unknown"
-        print_table "Build Branch" "Unknown"
-    fi
-
-    echo ""
-    print_header "Docker Environment"
-
-    print_table "Docker Version" "$(docker --version 2>/dev/null || echo 'Not installed')"
-    local compose_cmd
-    compose_cmd=$(get_compose_cmd 2>/dev/null) || compose_cmd="docker compose"
-    print_table "Docker Compose Version" "$($compose_cmd version --short 2>/dev/null || $compose_cmd --version 2>/dev/null || echo 'Not installed')"
-
-
-    echo ""
-    print_header "Version Check"
-
-    # Get latest version and latest commit: --repo (GitHub) or --path (local origin). Returns two lines: version, commit.
-    get_latest_result=$(get_latest_version --path "$ZNUNY_DEV_DIR" 2>/dev/null)
-
-    latest_version="undef"
-    latest_commit="undef"
-
-    if [ -n "$get_latest_result" ]; then
-        latest_version=$(echo "$get_latest_result" | sed -n '1p')
-        latest_commit=$(echo "$get_latest_result" | sed -n '2p')
-    fi
-
-    print_table "Latest version (remote)" "${latest_version}"
-    print_table "Latest commit (remote)" "${latest_commit}"
-    echo ""
-
-    if [ "$latest_version" != "undef" ]; then
-        local higher
-        higher=$(printf '%s\n%s\n' "$current_version" "$latest_version" | sort -V 2>/dev/null | tail -1)
-        if [ "$current_version" = "$latest_version" ]; then
-            print_success "Up to date (latest: $latest_version)"
-        elif [ "$higher" = "$latest_version" ]; then
-            print_warning "New version available: $latest_version (current: $current_version)"
-        else
-            print_success "Up to date (latest: $latest_version)"
-        fi
-    elif [ "$latest_commit" != "undef" ] && [ -n "${BUILD_COMMIT:-}" ]; then
-        if [ "${BUILD_COMMIT:0:7}" = "$latest_commit" ] || [ "$BUILD_COMMIT" = "$latest_commit" ]; then
-            print_success "Up to date with remote (commit: $latest_commit)"
-        else
-            print_warning "Remote has different commit: $latest_commit (current: ${BUILD_COMMIT:0:7})"
-        fi
-    fi
-}
-
 # Main function
 main() {
     # Check if global .env exists, if not restrict available commands
@@ -390,11 +323,17 @@ main() {
         esac
     fi
 
+    # First start of day: check for new version and show message if available (skip when user runs 'zd version')
+    if [ "$1" != "version" ] && [ "$1" != "--version" ]; then
+        check_version
+    fi
+
     # Parse command line arguments
     if [ $# -eq 0 ]; then
         show_usage
         exit 0
     fi
+
 
     # # Get INSTANCE_URL from instance.env file
     # local instance_url=$(get_instance_url "$2" 2>/dev/null)
@@ -593,7 +532,7 @@ main() {
             show_usage_dev
             ;;
         version|--version)
-            show_version
+            show_versions
             ;;
         *)
             print_error "Unknown command: $1"

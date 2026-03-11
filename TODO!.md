@@ -1,8 +1,0 @@
-# TODO
-
-- [ ] ZnunyCodePolicy
-- [ ]
-
-# Features
-
-- [ ] Dashboard

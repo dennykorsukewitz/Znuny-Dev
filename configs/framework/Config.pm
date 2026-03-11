@@ -1,3 +1,18 @@
+
+    $Self->{'SecureMode'}                        = 1;
+    $Self->{'SystemID'}                          = '42';
+    $Self->{'SessionName'}                       = '{{FRAMEWORK}}';
+    $Self->{'ProductName'}                       = '{{FRAMEWORK}}';
+    $Self->{'ScriptAlias'}                       = '{{FRAMEWORK}}/';
+    $Self->{'Frontend::WebPath'}                 = '/{{FRAMEWORK}}-web/';
+    $Self->{'CheckEmailAddresses'}               = 0;
+    $Self->{'CheckMXRecord'}                     = 0;
+    $Self->{'Organization'}                      = '';
+    $Self->{'LogModule'}                         = 'Kernel::System::Log::File';
+    $Self->{'LogModule::LogFile'}                = '{{FRAMEWORK_DIR}}{{FRAMEWORK}}/var/log/znuny.log';
+
+    $Self->{'FQDN'}                              = 'localhost';
+    $Self->{'Port'}                              = '{{PORT}}';
     $Self->{'DefaultLanguage'}                   = 'de';
     $Self->{'DefaultCharset'}                    = 'utf-8';
     $Self->{'AdminEmail'}                        = 'root\@localhost';
@@ -8,7 +23,7 @@
 
     # Fred
     $Self->{'Fred::BackgroundColor'} = '#006ea5';
-    $Self->{'Fred::SystemName'}      = '$SystemName';
+    $Self->{'Fred::SystemName'}      = '{{FRAMEWORK}}';
     $Self->{'Fred::ConsoleOpacity'}  = '0.7';
     $Self->{'Fred::ConsoleWidth'}    = '30%';
 

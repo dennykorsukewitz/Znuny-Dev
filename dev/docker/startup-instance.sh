@@ -164,26 +164,6 @@ update_config_database() {
     log "Database configuration updated successfully"
 }
 
-# Function to enable secure mode
-enable_secure_mode() {
-    if [ -f "$FRAMEWORK_DIR/Kernel/Config.pm" ]; then
-        log "Enabling secure mode in Config.pm..."
-
-        # Check if SecureMode line exists
-        if grep -q "SecureMode" "$FRAMEWORK_DIR/Kernel/Config.pm"; then
-            # Update existing SecureMode line
-            sed -i "s/\$Self->{SecureMode} = '[^']*';/\$Self->{SecureMode} = '1';/g" "$FRAMEWORK_DIR/Kernel/Config.pm"
-            log "SecureMode updated to enabled"
-        else
-            # Add SecureMode line before the return statement
-            sed -i "/return 1;/i\\    # Enable secure mode to prevent web installer access\\n    \$Self->{SecureMode} = '1';" "$FRAMEWORK_DIR/Kernel/Config.pm"
-            log "SecureMode added and enabled"
-        fi
-    else
-        log "WARNING: Config.pm not found, cannot enable secure mode"
-    fi
-}
-
 # Replace in Kernel/Config.pm only the default placeholder lines between
 #   the opening block "# insert your own config settings \"here\" ... # ---" and
 #   the next "# ---------------------------------------------------- #" (before "# data inserted by installer").
@@ -207,9 +187,16 @@ update_config_custom() {
         return 0
     fi
 
+    # Replace placeholders in snippet: {{FRAMEWORK_DIR}}{{FRAMEWORK}} (first), {{FRAMEWORK}}, {{PORT}} with actual values
+    local snippet_processed
+    snippet_processed="$(mktemp)"
+    trap "rm -f '$snippet_processed'" RETURN
+    local instance_port="${INSTANCE_PORT:-10000}"
+    sed 's|{{FRAMEWORK_DIR}}{{FRAMEWORK}}|'"$FRAMEWORK_DIR"'|g; s|{{FRAMEWORK}}|'"$FRAMEWORK"'|g; s|{{PORT}}|'"$instance_port"'|g' "$snippet_file" > "$snippet_processed"
+
     local tmp_file
     tmp_file="$(mktemp)"
-    if ! awk -v snippet="$snippet_file" '
+    if ! awk -v snippet="$snippet_processed" '
         /insert your own config settings/ {
             print
             while ((getline) > 0) {
@@ -419,10 +406,6 @@ setup_framework_config() {
     # Always update database configuration with environment variables
     log "Updating database configuration with environment variables..."
     update_config_database
-
-    # Always enable secure mode
-    log "Enabling secure mode..."
-    enable_secure_mode
 
     # Update optional custom config snippet from configs/framework/Config.pm (project root)
     if [ -f /opt/framework-config/Config.pm ]; then

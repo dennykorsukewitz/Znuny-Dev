@@ -216,6 +216,8 @@ clone_repository() {
         depth_arg="--depth 1"
     fi
     if git clone --branch "$branch" $depth_arg "$repo_source" "$target_dir"; then
+        # Allow fetching all branches (clone only sets fetch for the checked-out branch)
+        git -C "$target_dir" config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
         print_success "Repository cloned successfully"
     else
         print_error "Failed to clone repository"

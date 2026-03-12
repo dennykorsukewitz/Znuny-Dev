@@ -92,7 +92,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install additional CPAN modules
-RUN cpanm --notest --force Jq Data::UUID && \
+RUN cpanm --notest --force Jq Data::UUID Ref::Util && \
     apt-get purge -y uuid-dev build-essential && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*

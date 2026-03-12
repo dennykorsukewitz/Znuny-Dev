@@ -380,13 +380,10 @@ EOF
     log "Znuny user setup completed"
 }
 
-# Git: /opt/znuny is a bind mount (different owner) – mark safe so git does not warn
+# Git: /opt/znuny is a bind mount (different owner) – mark safe so git does not warn.
+# Use --system so /etc/gitconfig is used; avoids creating .gitconfig in the framework (e.g. when HOME is /opt/znuny).
 setup_git_safe_directory() {
-    for user in www-data znuny; do
-        if id "$user" &>/dev/null; then
-            su -s /bin/bash -c "git config --global --add safe.directory /opt/znuny" "$user" 2>/dev/null || true
-        fi
-    done
+    git config --system --add safe.directory /opt/znuny 2>/dev/null || true
 }
 
 # Function to setup Znuny configuration

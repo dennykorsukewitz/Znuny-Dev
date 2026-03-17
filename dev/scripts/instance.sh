@@ -169,6 +169,14 @@ show_usage_remove() {
     print_command "  remove <framework|all> [--force] [--keep-framework]"
 }
 
+show_usage_after_link() {
+    local framework="$1"
+    local package="$2"
+    echo ""
+    print_subheader "After linking a package, you can use the following commands:"
+    print_command "  zd install $framework $package" "Package Install (dbinstall, codeinstall)"
+}
+
 # ========================================
 # List Functions
 # ========================================
@@ -1531,6 +1539,7 @@ main() {
             execute_console_command "$framework" Maint::Config::Rebuild --cleanup
             execute_console_command "$framework" Maint::Cache::Delete
             execute_console_command "$framework" Maint::Loader::CacheCleanup
+            show_usage_after_link "$framework" "${@:3}"
             ;;
         unlink)
             execute_module_tools_command "$framework" Module::File::Unlink "/opt/packages/${@:3}" "/opt/znuny"

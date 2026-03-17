@@ -69,8 +69,8 @@ show_usage() {
     # ModuleTools Commands
     # ========================================
     print_subheader "ModuleTools Commands:"
-    print_command "$ZD_CMD link <framework> <package>"            "Module::File::Link"
-    print_command "$ZD_CMD unlink <framework> <package>"          "Module::File::Unlink"
+    print_command "$ZD_CMD link <framework> <package> [package ...]"   "Module::File::Link (mehrere Pakete möglich)"
+    print_command "$ZD_CMD unlink <framework> <package> [package ...]" "Module::File::Unlink (mehrere Pakete möglich)"
     print_command "$ZD_CMD rmlinks <framework>"                   "Module::File::Unlink --all"
     echo ""
     print_command "$ZD_CMD install <framework> <package>"         "Package Install (dbinstall, codeinstall)"

@@ -341,8 +341,9 @@ link() {
     local framework="$1"
     shift
     local packages=("$@")
-
-    execute_module_tools_command "$framework" Module::File::Link "/opt/packages/$*" "/opt/znuny"
+    for pkg in "${packages[@]}"; do
+        execute_module_tools_command "$framework" Module::File::Link "/opt/packages/$pkg" "/opt/znuny"
+    done
     execute_console_command "$framework" Maint::Config::Rebuild --cleanup
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
@@ -358,11 +359,11 @@ link() {
     fi
     if [ ${#packages[@]} -gt 0 ]; then
         if [ ${#packages[@]} -eq 1 ]; then
-            if confirm "Soll 'zd install $framework ${packages[0]}' jetzt ausgeführt werden?" "y"; then
+            if confirm "Run 'zd install $framework ${packages[0]}' now?" "y"; then
                 install "$framework" "${packages[0]}"
             fi
         else
-            if confirm "Soll für alle verlinkten Pakete 'zd install $framework <paket>' ausgeführt werden?" "y"; then
+            if confirm "Run 'zd install $framework <package>' for all linked packages?" "y"; then
                 for pkg in "${packages[@]}"; do
                     install "$framework" "$pkg"
                 done
@@ -374,7 +375,32 @@ link() {
 unlink() {
     local framework="$1"
     shift
-    execute_module_tools_command "$framework" Module::File::Unlink "/opt/packages/$*" "/opt/znuny"
+    local packages=("$@")
+    echo ""
+    print_subheader "Uninstall must be run before unlinking (dbuninstall, codeuninstall)."
+    if [ ${#packages[@]} -eq 1 ]; then
+        print_command "  zd uninstall $framework ${packages[0]}" "Package Uninstall"
+    else
+        for pkg in "${packages[@]}"; do
+            print_command "  zd uninstall $framework $pkg" "Package Uninstall"
+        done
+    fi
+    if [ ${#packages[@]} -gt 0 ]; then
+        if [ ${#packages[@]} -eq 1 ]; then
+            if confirm "Run 'zd uninstall $framework ${packages[0]}' now (before unlink)?" "y"; then
+                uninstall "$framework" "${packages[0]}"
+            fi
+        else
+            if confirm "Run 'zd uninstall $framework <package>' for all packages before unlink?" "y"; then
+                for pkg in "${packages[@]}"; do
+                    uninstall "$framework" "$pkg"
+                done
+            fi
+        fi
+    fi
+    for pkg in "${packages[@]}"; do
+        execute_module_tools_command "$framework" Module::File::Unlink "/opt/packages/$pkg" "/opt/znuny"
+    done
     execute_console_command "$framework" Maint::Config::Rebuild --cleanup
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup

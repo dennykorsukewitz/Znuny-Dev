@@ -169,14 +169,6 @@ show_usage_remove() {
     print_command "  remove <framework|all> [--force] [--keep-framework]"
 }
 
-show_usage_after_link() {
-    local framework="$1"
-    local package="$2"
-    echo ""
-    print_subheader "After linking a package, you can use the following commands:"
-    print_command "  zd install $framework $package" "Package Install (dbinstall, codeinstall)"
-}
-
 # ========================================
 # List Functions
 # ========================================
@@ -203,6 +195,303 @@ show_all_frameworks() {
 
         print_list_item "$framework: port $port ($status)"
     done
+}
+
+# ========================================
+# Command Functions
+# ========================================
+
+# Case handlers (snake_case of case name); dispatch to existing instance functions
+create() {
+    if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+        show_usage_create
+        exit 1
+    fi
+    create_instance "$@"
+}
+
+remove() {
+    local framework="$1"
+    shift
+    if [ "$framework" = "all" ]; then
+        remove_instances "$@"
+    elif [ -n "$framework" ]; then
+        remove_instance "$framework" "$@"
+    else
+        print_error "Framework name is required for remove command"
+        echo "Available frameworks:"
+        local available_frameworks=($(get_available_frameworks))
+        print_list "${available_frameworks[@]}"
+        echo ""
+        print_status "Use 'remove all' to remove all instances or 'remove <framework>' for a specific framework"
+        exit 1
+    fi
+}
+
+setup_compose() {
+    create_all_compose_files
+}
+
+start() {
+    local framework="$1"
+    shift
+    if [ "$framework" = "all" ]; then
+        start_all_instances
+    elif [ -n "$framework" ]; then
+        start_instance "$framework"
+    else
+        print_error "Framework name is required for start command"
+        echo "Available frameworks:"
+        local available_frameworks=($(get_available_frameworks))
+        print_list "${available_frameworks[@]}"
+        echo ""
+        print_status "Use 'start all' to start all instances or 'start <framework>' for specific framework"
+        exit 1
+    fi
+}
+
+stop() {
+    local framework="$1"
+    shift
+    if [ "$framework" = "all" ]; then
+        stop_all_instances
+    elif [ -n "$framework" ]; then
+        stop_instance "$framework"
+    else
+        print_error "Framework name is required for stop command"
+        echo "Available frameworks:"
+        local available_frameworks=($(get_available_frameworks))
+        print_list "${available_frameworks[@]}"
+        echo ""
+        print_status "Use 'stop all' to stop all instances or 'stop <framework>' for specific framework"
+        exit 1
+    fi
+}
+
+restart() {
+    local framework="$1"
+    shift
+    if [ "$framework" = "all" ]; then
+        restart_all_instances
+    elif [ -n "$framework" ]; then
+        restart_instance "$framework"
+    else
+        print_error "Framework name is required for restart command"
+        echo "Available frameworks:"
+        local available_frameworks=($(get_available_frameworks))
+        print_list "${available_frameworks[@]}"
+        echo ""
+        print_status "Use 'restart all' to restart all instances or 'restart <framework>' for specific framework"
+        exit 1
+    fi
+}
+
+build() {
+    local framework="$1"
+    shift
+    if [ "$framework" = "all" ]; then
+        build_instances "$@"
+    elif [ -n "$framework" ]; then
+        build_instance "$framework" "$@"
+    else
+        print_error "Framework name is required for build command"
+        echo "Available frameworks:"
+        local available_frameworks=($(get_available_frameworks))
+        print_list "${available_frameworks[@]}"
+        echo ""
+        print_status "Use 'build all' to build all instances or 'build <framework>' for specific framework"
+        exit 1
+    fi
+}
+
+delete_rebuild() {
+    local framework="$1"
+    execute_console_command "$framework" Maint::Cache::Delete
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+}
+
+rebuild() {
+    local framework="$1"
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+}
+
+delete() {
+    local framework="$1"
+    execute_console_command "$framework" Maint::Cache::Delete || return $?
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+}
+
+unittest() {
+    local framework="$1"
+    shift
+    execute_console_command "$framework" "Dev::UnitTest::Run --verbose --test $*"
+}
+
+translate() {
+    local framework="$1"
+    execute_console_command "$framework" Maint::Cache::Delete || return $?
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+    execute_console_command "$framework" Maint::Config::Sync
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    execute_console_command "$framework" Dev::Tools::TranslationsUpdate --generate-po
+}
+
+link() {
+    local framework="$1"
+    shift
+    local packages=("$@")
+
+    execute_module_tools_command "$framework" Module::File::Link "/opt/packages/$*" "/opt/znuny"
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    execute_console_command "$framework" Maint::Cache::Delete
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+
+    echo ""
+    print_subheader "After linking a package, you can use the following commands:"
+    if [ ${#packages[@]} -eq 1 ]; then
+        print_command "  zd install $framework ${packages[0]}" "Package Install (dbinstall, codeinstall)"
+    else
+        for pkg in "${packages[@]}"; do
+            print_command "  zd install $framework $pkg" "Package Install (dbinstall, codeinstall)"
+        done
+    fi
+    if [ ${#packages[@]} -gt 0 ]; then
+        if [ ${#packages[@]} -eq 1 ]; then
+            if confirm "Soll 'zd install $framework ${packages[0]}' jetzt ausgeführt werden?" "y"; then
+                install "$framework" "${packages[0]}"
+            fi
+        else
+            if confirm "Soll für alle verlinkten Pakete 'zd install $framework <paket>' ausgeführt werden?" "y"; then
+                for pkg in "${packages[@]}"; do
+                    install "$framework" "$pkg"
+                done
+            fi
+        fi
+    fi
+}
+
+unlink() {
+    local framework="$1"
+    shift
+    execute_module_tools_command "$framework" Module::File::Unlink "/opt/packages/$*" "/opt/znuny"
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    execute_console_command "$framework" Maint::Cache::Delete
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+}
+
+rmlink() {
+    local framework="$1"
+    execute_module_tools_command "$framework" Module::File::Unlink --all "/opt/znuny"
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    execute_console_command "$framework" Maint::Cache::Delete
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+}
+
+install() {
+    local framework="$1"
+    local module="$2"
+    execute_module_tools_command "$framework" Module::Database::Install "/opt/znuny/${module}.sopm"
+    execute_module_tools_command "$framework" Module::Code::Install "/opt/znuny/${module}.sopm"
+}
+
+uninstall() {
+    local framework="$1"
+    local module="$2"
+    execute_module_tools_command "$framework" Module::Database::Uninstall "/opt/znuny/${module}.sopm"
+    execute_module_tools_command "$framework" Module::Code::Uninstall "/opt/znuny/${module}.sopm"
+}
+
+dbinstall() {
+    local framework="$1"
+    local module="$2"
+    execute_module_tools_command "$framework" Module::Database::Install "/opt/znuny/${module}.sopm"
+}
+
+dbupgrade() {
+    local framework="$1"
+    local module="$2"
+    execute_module_tools_command "$framework" Module::Database::Upgrade "/opt/znuny/${module}.sopm"
+}
+
+dbuninstall() {
+    local framework="$1"
+    local module="$2"
+    execute_module_tools_command "$framework" Module::Database::Uninstall "/opt/znuny/${module}.sopm"
+}
+
+codeinstall() {
+    local framework="$1"
+    local module="$2"
+    execute_module_tools_command "$framework" Module::Code::Install "/opt/znuny/${module}.sopm"
+}
+
+codereinstall() {
+    local framework="$1"
+    local module="$2"
+    execute_module_tools_command "$framework" Module::Code::Reinstall "/opt/znuny/${module}.sopm"
+}
+
+codeuninstall() {
+    local framework="$1"
+    local module="$2"
+    execute_module_tools_command "$framework" Module::Code::Uninstall "/opt/znuny/${module}.sopm"
+}
+
+codeupgrade() {
+    local framework="$1"
+    local module="$2"
+    execute_module_tools_command "$framework" Module::Code::Upgrade "/opt/znuny/${module}.sopm"
+}
+
+module_tools() {
+    local framework="$1"
+    shift
+    execute_module_tools_command "$framework" "$@"
+}
+
+link_fred() {
+    local framework="$1"
+    execute_module_tools_command "$framework" Module::File::Link "/opt/tools/Fred" "/opt/znuny"
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    execute_console_command "$framework" Maint::Cache::Delete
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+}
+
+unlink_fred() {
+    local framework="$1"
+    execute_module_tools_command "$framework" Module::File::Unlink "/opt/tools/Fred" "/opt/znuny"
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    execute_console_command "$framework" Maint::Cache::Delete
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+}
+
+shell() {
+    local framework="$1"
+    shift
+    execute_shell_command "$framework" "$@"
+}
+
+console() {
+    local framework="$1"
+    shift
+    execute_console_command "$framework" "$@"
+}
+
+log() {
+    local framework="$1"
+    local name="${2:-access.log}"
+    show_framework_log "$framework" "$name"
+}
+
+container_log() {
+    local framework="$1"
+    local lines="$2"
+    if [ -n "$framework" ]; then
+        show_container_log "$framework" "${lines:-50}"
+    else
+        show_all_container_log "${lines:-}"
+    fi
 }
 
 # ========================================
@@ -1403,28 +1692,11 @@ main() {
         # ========================================
 
         create)
-            # Handle create command early (no Docker check needed for initial setup)
-            if [ "${2:-}" = "--help" ] || [ "${2:-}" = "-h" ]; then
-                show_usage_create
-                exit 1
-            fi
-            create_instance "${@:2}"
+            create "${@:2}"
             exit 0
             ;;
         remove)
-            if [ "$framework" = "all" ]; then
-                remove_instances "${@:3}"
-            elif [ -n "$framework" ]; then
-                remove_instance "$framework" "${@:3}"
-            else
-                print_error "Framework name is required for remove command"
-                echo "Available frameworks:"
-                local available_frameworks=($(get_available_frameworks))
-                print_list "${available_frameworks[@]}"
-                echo ""
-                print_status "Use 'remove all' to remove all instances or 'remove <framework>' for a specific framework"
-                exit 1
-            fi
+            remove "$framework" "${@:3}"
             ;;
         remove-instances)
             remove_instances "${@:2}"
@@ -1435,7 +1707,7 @@ main() {
             exit 0
             ;;
         setup-compose)
-            create_all_compose_files
+            setup_compose
             exit 0
             ;;
         # ========================================
@@ -1443,186 +1715,103 @@ main() {
         # ========================================
 
         start)
-            if [ "$framework" = "all" ]; then
-                start_all_instances
-            elif [ -n "$framework" ]; then
-                start_instance "$framework"
-            else
-                print_error "Framework name is required for start command"
-
-                echo "Available frameworks:"
-                local available_frameworks=($(get_available_frameworks))
-                print_list "${available_frameworks[@]}"
-                echo ""
-                print_status "Use 'start all' to start all instances or 'start <framework>' for specific framework"
-                exit 1
-            fi
+            start "$framework" "${@:3}"
             ;;
         stop)
-            if [ "$framework" = "all" ]; then
-                stop_all_instances
-            elif [ -n "$framework" ]; then
-                stop_instance "$framework"
-            else
-                print_error "Framework name is required for stop command"
-
-                echo "Available frameworks:"
-                local available_frameworks=($(get_available_frameworks))
-                print_list "${available_frameworks[@]}"
-                echo ""
-                print_status "Use 'stop all' to stop all instances or 'stop <framework>' for specific framework"
-                exit 1
-            fi
+            stop "$framework" "${@:3}"
             ;;
         restart)
-            if [ "$framework" = "all" ]; then
-                restart_all_instances
-            elif [ -n "$framework" ]; then
-                restart_instance "$framework"
-            else
-                print_error "Framework name is required for restart command"
-
-                echo "Available frameworks:"
-                local available_frameworks=($(get_available_frameworks))
-                print_list "${available_frameworks[@]}"
-                echo ""
-                print_status "Use 'restart all' to restart all instances or 'restart <framework>' for specific framework"
-                exit 1
-            fi
+            restart "$framework" "${@:3}"
             ;;
         build)
-            if [ "$framework" = "all" ]; then
-                build_instances "${@:3}"
-            elif [ -n "$framework" ]; then
-                build_instance "$framework" "${@:3}"
-            else
-                print_error "Framework name is required for build command"
-                echo "Available frameworks:"
-                local available_frameworks=($(get_available_frameworks))
-                print_list "${available_frameworks[@]}"
-                echo ""
-                print_status "Use 'build all' to build all instances or 'build <framework>' for specific framework"
-                exit 1
-            fi
+            build "$framework" "${@:3}"
             ;;
 
         # ========================================
         # Common Commands
         # ========================================
         delete-rebuild|delreb)
-            execute_console_command "$framework" Maint::Cache::Delete
-            execute_console_command "$framework" Maint::Loader::CacheCleanup
-            execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+            delete_rebuild "$framework"
             ;;
         rebuild|reb)
-            execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+            rebuild "$framework"
             ;;
         delete|del)
-            execute_console_command "$framework" Maint::Cache::Delete || return $?
-            execute_console_command "$framework" Maint::Loader::CacheCleanup
+            delete "$framework"
             ;;
         unittest|unit)
-            execute_console_command "$framework" "Dev::UnitTest::Run --verbose --test ${*:4}"
+            unittest "$framework" "${@:4}"
             ;;
         translate)
-            execute_console_command "$framework" Maint::Cache::Delete || return $?
-            execute_console_command "$framework" Maint::Loader::CacheCleanup
-            execute_console_command "$framework" Maint::Config::Sync
-            execute_console_command "$framework" Maint::Config::Rebuild --cleanup
-            execute_console_command "$framework" Dev::Tools::TranslationsUpdate --generate-po
+            translate "$framework"
             ;;
         # ========================================
         # ModuleTools Commands (via /opt/tools/module-tools/bin/znuny.ModuleTools.pl in container)
         # ========================================
         link)
-            execute_module_tools_command "$framework" Module::File::Link "/opt/packages/${@:3}" "/opt/znuny"
-            execute_console_command "$framework" Maint::Config::Rebuild --cleanup
-            execute_console_command "$framework" Maint::Cache::Delete
-            execute_console_command "$framework" Maint::Loader::CacheCleanup
-            show_usage_after_link "$framework" "${@:3}"
+            link "$framework" "${@:3}"
             ;;
         unlink)
-            execute_module_tools_command "$framework" Module::File::Unlink "/opt/packages/${@:3}" "/opt/znuny"
-            execute_console_command "$framework" Maint::Config::Rebuild --cleanup
-            execute_console_command "$framework" Maint::Cache::Delete
-            execute_console_command "$framework" Maint::Loader::CacheCleanup
+            unlink "$framework" "${@:3}"
             ;;
         rmlink|rmlinks)
-            execute_module_tools_command "$framework" Module::File::Unlink --all "/opt/znuny"
-            execute_console_command "$framework" Maint::Config::Rebuild --cleanup
-            execute_console_command "$framework" Maint::Cache::Delete
-            execute_console_command "$framework" Maint::Loader::CacheCleanup
+            rmlink "$framework"
             ;;
         install)
-            execute_module_tools_command "$framework" Module::Database::Install "/opt/znuny/${@:3}.sopm"
-            execute_module_tools_command "$framework" Module::Code::Install "/opt/znuny/${@:3}.sopm"
+            install "$framework" "${3:-}"
             ;;
         uninstall)
-            execute_module_tools_command "$framework" Module::Database::Uninstall "/opt/znuny/${@:3}.sopm"
-            execute_module_tools_command "$framework" Module::Code::Uninstall "/opt/znuny/${@:3}.sopm"
+            uninstall "$framework" "${3:-}"
             ;;
         dbinstall)
-            execute_module_tools_command "$framework" Module::Database::Install "/opt/znuny/${@:3}.sopm"
+            dbinstall "$framework" "${3:-}"
             ;;
         dbupgrade)
-            execute_module_tools_command "$framework" Module::Database::Upgrade "/opt/znuny/${@:3}.sopm"
+            dbupgrade "$framework" "${3:-}"
             ;;
         dbuninstall)
-            execute_module_tools_command "$framework" Module::Database::Uninstall "/opt/znuny/${@:3}.sopm"
+            dbuninstall "$framework" "${3:-}"
             ;;
         codeinstall)
-            execute_module_tools_command "$framework" Module::Code::Install "/opt/znuny/${@:3}.sopm"
+            codeinstall "$framework" "${3:-}"
             ;;
         codereinstall)
-            execute_module_tools_command "$framework" Module::Code::Reinstall "/opt/znuny/${@:3}.sopm"
+            codereinstall "$framework" "${3:-}"
             ;;
         codeuninstall)
-            execute_module_tools_command "$framework" Module::Code::Uninstall "/opt/znuny/${@:3}.sopm"
+            codeuninstall "$framework" "${3:-}"
             ;;
         codeupgrade)
-            execute_module_tools_command "$framework" Module::Code::Upgrade "/opt/znuny/${@:3}.sopm"
+            codeupgrade "$framework" "${3:-}"
             ;;
         module-tools|mt)
-            execute_module_tools_command "$framework" "${@:3}"
-        ;;
+            module_tools "$framework" "${@:3}"
+            ;;
 
         # ========================================
         # Fred Commands
         # ========================================
         link-fred)
-            execute_module_tools_command "$framework" Module::File::Link "/opt/tools/Fred" "/opt/znuny"
-            execute_console_command "$framework" Maint::Config::Rebuild --cleanup
-            execute_console_command "$framework" Maint::Cache::Delete
-            execute_console_command "$framework" Maint::Loader::CacheCleanup
+            link_fred "$framework"
             ;;
         unlink-fred)
-            execute_module_tools_command "$framework" Module::File::Unlink "/opt/tools/Fred" "/opt/znuny"
-            execute_console_command "$framework" Maint::Config::Rebuild --cleanup
-            execute_console_command "$framework" Maint::Cache::Delete
-            execute_console_command "$framework" Maint::Loader::CacheCleanup
+            unlink_fred "$framework"
             ;;
 
         # ========================================
         # Console and Shell Operations
         # ========================================
         shell)
-            execute_shell_command "$framework" "${@:3}"
+            shell "$framework" "${@:3}"
             ;;
-
         console)
-            execute_console_command "$framework" "${@:3}"
+            console "$framework" "${@:3}"
             ;;
         log)
-            # Framework log from instance volume (instances/<framework>/logs/*)
-            show_framework_log "$framework" "${3:-access.log}"
+            log "$framework" "${3:-access.log}"
             ;;
         container-log)
-            # Docker container log (stdout/stderr)
-            if [ -n "$framework" ]; then
-                show_container_log "$framework" "${3:-50}"
-            else
-                show_all_container_log "${3:-}"
-            fi
+            container_log "$framework" "${3:-50}"
             ;;
         show-usage-create)
             show_usage_create

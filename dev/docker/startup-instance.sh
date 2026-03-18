@@ -309,8 +309,8 @@ alias grep='grep --color=auto'
 alias fgrep='fgrep --color=auto'
 alias egrep='egrep --color=auto'
 
-# Znuny specific aliases
-alias znuny-console='cd /opt/znuny && bin/znuny.Console.pl'
+# Znuny specific aliases (6.x: otrs.Console.pl, 7.x: znuny.Console.pl)
+znuny-console() { cd /opt/znuny && if [ -f bin/znuny.Console.pl ]; then exec perl bin/znuny.Console.pl "$@"; else exec perl bin/otrs.Console.pl "$@"; fi; }
 alias znuny-logs='tail -f /opt/znuny/var/log/znuny.log'
 alias znuny-config='vim /opt/znuny/Kernel/Config.pm'
 alias znuny-help='znuny-welcome'
@@ -432,7 +432,7 @@ setup_framework_permissions() {
 rebuild_framework_config() {
     log "Rebuilding Znuny configuration..."
 
-    su -s /bin/bash -c "perl '$FRAMEWORK_DIR/bin/znuny.Console.pl' Maint::Config::Rebuild" "$FRAMEWORK_USER"
+    su -s /bin/bash -c "perl '$CONSOLE_PL' Maint::Config::Rebuild" "$FRAMEWORK_USER"
 
     log "Znuny configuration rebuilt successfully"
 }
@@ -441,7 +441,7 @@ rebuild_framework_config() {
 set_initial_password() {
     log "Setting initial password for root user..."
 
-    su -s /bin/bash -c "perl '$FRAMEWORK_DIR/bin/znuny.Console.pl' Admin::User::SetPassword root@localhost root" "$FRAMEWORK_USER"
+    su -s /bin/bash -c "perl '$CONSOLE_PL' Admin::User::SetPassword root@localhost root" "$FRAMEWORK_USER"
 
     log "Initial password set successfully"
 }
@@ -460,8 +460,8 @@ initialize_database() {
     if [ -f "/opt/znuny/scripts/database/znuny-schema.xml" ]; then
         log "Creating database schema..."
         cd /opt/znuny
-        perl bin/znuny.Console.pl Maint::Database::Check || true
-        perl bin/znuny.Console.pl Maint::Database::Check::Tables || true
+        perl "$CONSOLE_PL" Maint::Database::Check || true
+        perl "$CONSOLE_PL" Maint::Database::Check::Tables || true
     fi
 
     # Mark database as initialized
@@ -612,6 +612,13 @@ main() {
         ln -sf /opt/znuny /opt/otrs
         log "Symlink /opt/otrs -> /opt/znuny created (6.x compatibility)"
     fi
+
+    # 6.x has bin/otrs.Console.pl only – choose console script for this run (no symlink in git)
+    CONSOLE_PL="$FRAMEWORK_DIR/bin/znuny.Console.pl"
+    if [ ! -f "$CONSOLE_PL" ] && [ -f "$FRAMEWORK_DIR/bin/otrs.Console.pl" ]; then
+        CONSOLE_PL="$FRAMEWORK_DIR/bin/otrs.Console.pl"
+    fi
+    export CONSOLE_PL
 
     # Set default database configuration if not provided
     DB_TYPE="${DB_TYPE:-mysql}"

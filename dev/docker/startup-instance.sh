@@ -523,8 +523,13 @@ setup_apache_config() {
     if [ -f "$FRAMEWORK_DIR/scripts/apache2-httpd.include.conf" ]; then
         log "Using Znuny's Apache configuration..."
 
-        # Copy and adapt: replace /opt/otrs with /opt/znuny (Znuny 6.x may still ship OTRS paths)
-        sed "s|/opt/otrs|$FRAMEWORK_DIR|g" "$FRAMEWORK_DIR/scripts/apache2-httpd.include.conf" > "/etc/apache2/conf-available/zzz_znuny.conf"
+        # Only adapt URL paths: /otrs/ -> /znuny/ (install paths stay /opt/otrs, resolved via symlink)
+        sed -e "s|/otrs/|/znuny/|g" \
+           -e "s|/otrs-web/|/znuny-web/|g" \
+           -e "s|<Location /otrs>|<Location /znuny>|g" \
+           -e "s|<Location /otrs |<Location /znuny |g" \
+           "$FRAMEWORK_DIR/scripts/apache2-httpd.include.conf" > "/etc/apache2/conf-available/zzz_znuny.conf"
+
         a2enconf "zzz_znuny"
 
         # Add redirect for root
@@ -601,6 +606,12 @@ main() {
 
     # Detect framework
     detect_framework
+
+    # Znuny 6.x ships /opt/otrs paths; symlink so they resolve without changing framework config
+    if [ "$FRAMEWORK_DIR" = "/opt/znuny" ] && [ ! -e /opt/otrs ]; then
+        ln -sf /opt/znuny /opt/otrs
+        log "Symlink /opt/otrs -> /opt/znuny created (6.x compatibility)"
+    fi
 
     # Set default database configuration if not provided
     DB_TYPE="${DB_TYPE:-mysql}"

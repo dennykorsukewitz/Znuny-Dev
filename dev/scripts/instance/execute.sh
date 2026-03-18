@@ -34,7 +34,8 @@ execute_console_command() {
 
     local container_name
     container_name=$(get_instance_container_name "$framework")
-    if docker exec -t "$container_name" su -s /bin/bash -c "cd /opt/znuny && perl bin/znuny.Console.pl $*" znuny; then
+    # 6.x has bin/otrs.Console.pl only; 7.x has bin/znuny.Console.pl – choose inside container
+    if docker exec -t "$container_name" su -s /bin/bash -c "cd /opt/znuny && CONSOLE_PL=bin/znuny.Console.pl; [ -f bin/otrs.Console.pl ] && [ ! -f bin/znuny.Console.pl ] && CONSOLE_PL=bin/otrs.Console.pl; exec perl \$CONSOLE_PL $*" znuny; then
         return 0
     else
         print_error "Failed to execute command"

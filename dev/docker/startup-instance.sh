@@ -613,12 +613,6 @@ main() {
         log "Symlink /opt/otrs -> /opt/znuny created (6.x compatibility)"
     fi
 
-    # 6.x has bin/otrs.Console.pl; symlink so bin/znuny.Console.pl works for zd console / CONSOLE_CMD
-    if [ ! -f "$FRAMEWORK_DIR/bin/znuny.Console.pl" ] && [ -f "$FRAMEWORK_DIR/bin/otrs.Console.pl" ]; then
-        ln -sf otrs.Console.pl "$FRAMEWORK_DIR/bin/znuny.Console.pl"
-        log "Symlink bin/znuny.Console.pl -> otrs.Console.pl created (6.x compatibility)"
-    fi
-
     # Set default database configuration if not provided
     DB_TYPE="${DB_TYPE:-mysql}"
     DB_HOST="${DB_HOST:-mysql}"

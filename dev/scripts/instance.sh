@@ -339,7 +339,7 @@ translate() {
 
 contributors() {
     local framework="$1"
-    execute_console_command "$framework" Dev::Code::ContributorsListUpdate
+    execute_console_command "$framework" Dev::Code::ContributorsListUpdate --generate
 }
 
 link() {

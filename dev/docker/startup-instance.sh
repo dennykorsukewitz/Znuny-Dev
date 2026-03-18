@@ -514,12 +514,17 @@ setup_code_policy() {
 setup_apache_config() {
     log "Setting up Apache configuration for Znuny..."
 
+    # Suppress AH00558: set ServerName globally if not already set
+    if ! grep -q '^ServerName ' /etc/apache2/apache2.conf 2>/dev/null; then
+        echo "ServerName localhost" >> /etc/apache2/apache2.conf
+    fi
+
     # Check if Znuny is mounted and has the Apache configuration
     if [ -f "$FRAMEWORK_DIR/scripts/apache2-httpd.include.conf" ]; then
         log "Using Znuny's Apache configuration..."
 
-        # Link Znuny's Apache configuration
-        ln -sf "$FRAMEWORK_DIR/scripts/apache2-httpd.include.conf" "/etc/apache2/conf-available/zzz_znuny.conf"
+        # Copy and adapt: replace /opt/otrs with /opt/znuny (Znuny 6.x may still ship OTRS paths)
+        sed "s|/opt/otrs|$FRAMEWORK_DIR|g" "$FRAMEWORK_DIR/scripts/apache2-httpd.include.conf" > "/etc/apache2/conf-available/zzz_znuny.conf"
         a2enconf "zzz_znuny"
 
         # Add redirect for root

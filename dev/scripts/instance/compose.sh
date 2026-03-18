@@ -395,7 +395,8 @@ docker_compose() {
 
     case "$action" in
         up)
-            $compose_cmd -p znuny -f "$compose_basename" up -d
+            # --build: build image if missing (avoids "pull access denied" for local image names)
+            $compose_cmd -p znuny -f "$compose_basename" up -d --build
             ;;
         down)
             $compose_cmd -p znuny -f "$compose_basename" down -v

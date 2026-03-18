@@ -456,6 +456,9 @@ main() {
         translate|translate)
             "$SCRIPTS_DIR/instance.sh" translate "${@:2}"
             ;;
+        contributors)
+            "$SCRIPTS_DIR/instance.sh" contributors "${@:2}"
+            ;;
 
         # ========================================
         # ModuleTools Commands

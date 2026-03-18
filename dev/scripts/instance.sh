@@ -337,6 +337,11 @@ translate() {
     execute_console_command "$framework" Dev::Tools::TranslationsUpdate --generate-po
 }
 
+contributors() {
+    local framework="$1"
+    execute_console_command "$framework" Dev::Code::ContributorsListUpdate
+}
+
 link() {
     local framework="$1"
     shift
@@ -1770,6 +1775,9 @@ main() {
             ;;
         translate)
             translate "$framework"
+            ;;
+        contributors)
+            contributors "$framework"
             ;;
         # ========================================
         # ModuleTools Commands (via /opt/tools/module-tools/bin/znuny.ModuleTools.pl in container)

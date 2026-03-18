@@ -63,6 +63,7 @@ show_usage() {
     print_command "$ZD_CMD del <framework>"                    "Maint::Cache::Delete + Maint::Loader::CacheCleanup"
     print_command "$ZD_CMD unit <framework>"                   "Dev::UnitTest::Run --verbose --test"
     print_command "$ZD_CMD translate <framework>"              "Maint::Config::Sync + Maint::Config::Rebuild --cleanup + Dev::Tools::TranslationsUpdate --generate-po"
+    print_command "$ZD_CMD contributors <framework>"          "Dev::Code::ContributorsListUpdate"
     echo ""
 
     # ========================================
@@ -183,6 +184,7 @@ show_usage_examples() {
     print_command "$ZD_CMD del dev" ""
     print_command "$ZD_CMD unit dev" ""
     print_command "$ZD_CMD translate dev" ""
+    print_command "$ZD_CMD contributors dev" ""
     echo ""
 
     print_subheader "Fred Example:"

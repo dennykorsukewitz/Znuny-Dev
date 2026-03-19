@@ -4,7 +4,7 @@
 #
 # What is tested (all create parameters and key combinations from instance.sh create_instance):
 # ------------------------------------------------------------------------------------------
-# 1. minimal create          – base options only (mariadb, db-name/user/password, --no-start-prompt); env + compose created
+# 1. minimal create          – base options only (mariadb, db-name/user/password); env + compose created
 # 2. --port                  – INSTANCE_PORT in .env (e.g. 9090)
 # 3. --db-type mysql         – DB_TYPE=mysql and mysql compose
 # 4. --db-type postgresql    – DB_TYPE=postgresql and postgresql compose
@@ -27,8 +27,8 @@ cd "$(dirname "$0")/../../../.."
 ROOT="$(pwd)"
 ZD="${ZD_CMD:-./znuny-dev.sh}"
 FRAMEWORK="createtest"
-# Non-interactive: always pass DB params and --no-start-prompt
-BASE_OPTS=(--db-type mariadb --db-name ct --db-user ct --db-password ct --no-start-prompt)
+# Non-interactive: always pass DB params (default: no start prompt)
+BASE_OPTS=(--db-type mariadb --db-name ct --db-user ct --db-password ct)
 INSTANCES_DIR="${INSTANCES_DIR:-$ROOT/instances}"
 FRAMEWORKS_DIR="${FRAMEWORKS_DIR:-$ROOT/frameworks}"
 ENV_FILE="$INSTANCES_DIR/$FRAMEWORK/$FRAMEWORK.env"

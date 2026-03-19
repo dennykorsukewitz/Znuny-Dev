@@ -73,7 +73,8 @@ show_usage() {
     print_command "    --script-alias <path>                # Script alias e.g. /prod/ (default: /dev/)"
     print_command "    --instance-mode <shared|dedicated>   # shared (default) or dedicated"
     print_command "    --start                              # Start instance immediately after creation"
-    print_command "    --no-start-prompt                    # Do not ask to start (for scripting)"
+    print_command "    --start-prompt                       # Ask to start instance (interactive)"
+    print_command "    --random-data                        # Run RandomDataInsert after start (no prompt)"
     print_command "  start <framework>                      # Start framework instance(s) or all instances"
     print_command "  stop <framework>                       # Stop framework instance(s) or all instances"
     print_command "  restart <framework>                    # Restart framework instance(s) or all instances"
@@ -143,7 +144,8 @@ show_usage_create() {
     print_command "    --script-alias <path>                # Script alias e.g. /prod/ (default: /dev/)"
     print_command "    --instance-mode <shared|dedicated>   # shared (default) or dedicated"
     print_command "    --start                              # Start instance immediately after creation"
-    print_command "    --no-start-prompt                    # Do not ask to start (for scripting)"
+    print_command "    --start-prompt                       # Ask to start instance (interactive)"
+    print_command "    --random-data                        # Run RandomDataInsert after start (no prompt)"
     print_command "  list                                   # List available frameworks"
     print_command "  help                                   # Show this help message"
     echo ""
@@ -529,6 +531,63 @@ container_log() {
 # Create Instance Functions
 # ========================================
 
+# Run Dev::Tools::Database::RandomDataInsert in framework instance
+# Uses config from configs/framework/RandomDataInsert.conf
+run_random_data_insert() {
+    local framework="$1"
+
+    if [ -z "$framework" ]; then
+        print_error "Framework name is required for run_random_data_insert"
+        return 1
+    fi
+
+    local config_dir="${ZNUNY_DEV_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}/configs/framework"
+    local config_file="$config_dir/RandomDataInsert.conf"
+
+    # Default values (from user's specification)
+    local generate_tickets=10
+    local articles_per_ticket=10
+    local generate_users=5
+    local generate_customer_users=6
+    local generate_customer_companies=2
+    local generate_groups=3
+    local generate_queues=5
+
+    if [ -f "$config_file" ]; then
+        while IFS= read -r line; do
+            [[ "$line" =~ ^#.*$ ]] && continue
+            [[ -z "$line" ]] && continue
+            if [[ "$line" =~ ^([A-Za-z0-9_]+)=(.*)$ ]]; then
+                local key="${BASH_REMATCH[1]}"
+                local value="${BASH_REMATCH[2]}"
+                case "$key" in
+                    GENERATE_TICKETS) generate_tickets="${value:-10}" ;;
+                    ARTICLES_PER_TICKET) articles_per_ticket="${value:-10}" ;;
+                    GENERATE_USERS) generate_users="${value:-5}" ;;
+                    GENERATE_CUSTOMER_USERS) generate_customer_users="${value:-6}" ;;
+                    GENERATE_CUSTOMER_COMPANIES) generate_customer_companies="${value:-2}" ;;
+                    GENERATE_GROUPS) generate_groups="${value:-3}" ;;
+                    GENERATE_QUEUES) generate_queues="${value:-5}" ;;
+                esac
+            fi
+        done < "$config_file"
+    fi
+
+    print_status "Running Dev::Tools::Database::RandomDataInsert in $framework..."
+    if execute_console_command "$framework" "Dev::Tools::Database::RandomDataInsert" \
+        "--generate-tickets" "$generate_tickets" \
+        "--articles-per-ticket" "$articles_per_ticket" \
+        "--generate-users" "$generate_users" \
+        "--generate-customer-users" "$generate_customer_users" \
+        "--generate-customer-companies" "$generate_customer_companies" \
+        "--generate-groups" "$generate_groups" \
+        "--generate-queues" "$generate_queues"; then
+        print_success "RandomDataInsert completed successfully."
+    else
+        print_warning "RandomDataInsert failed or module not available."
+    fi
+}
+
 # Function to create framework instance with smart logic
 create_instance() {
 
@@ -573,8 +632,9 @@ create_instance() {
     local fqdn=""
     local script_alias=""
     local auto_start=false
-    local no_start_prompt=false
+    local start_prompt=true
     local instance_mode="shared"
+    local random_data=false
 
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
@@ -623,8 +683,12 @@ create_instance() {
                 auto_start=true
                 shift
                 ;;
-            --no-start-prompt)
-                no_start_prompt=true
+            --start-prompt)
+                start_prompt=$2 || true
+                shift 2
+                ;;
+            --random-data)
+                random_data=true
                 shift
                 ;;
             --instance-mode)
@@ -777,14 +841,24 @@ create_instance() {
     print_success "Framework instance '$framework' created successfully!"
 
     # Ask if user wants to start the instance or start automatically if --start flag was used
-    # Skip prompt when --no-start-prompt (e.g. called from setup-all; Step 6 will ask instead)
-    if [ "$no_start_prompt" = true ]; then
+    # Skip prompt unless --start-prompt (e.g. setup-all skips; Step 6 will ask instead)
+    if [ "$start_prompt" = false ]; then
         return 0
     fi
 
+    local run_random_data_insert_requested="$random_data"
+
     if [ "$auto_start" = true ]; then
+        if [ "$run_random_data_insert_requested" = false ]; then
+            if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "n"; then
+                run_random_data_insert_requested=true
+            fi
+        fi
         print_status "Starting framework instance automatically..."
         start_instance "$framework"
+        if [ "$run_random_data_insert_requested" = true ]; then
+            run_random_data_insert "$framework"
+        fi
     else
         echo ""
         print_status "Next steps:"
@@ -794,8 +868,16 @@ create_instance() {
 
         echo ""
         if confirm "Do you want to start the framework instance now?" "y"; then
+            if [ "$run_random_data_insert_requested" = false ]; then
+                if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "n"; then
+                    run_random_data_insert_requested=true
+                fi
+            fi
             print_status "Starting framework instance..."
             start_instance "$framework"
+            if [ "$run_random_data_insert_requested" = true ]; then
+                run_random_data_insert "$framework"
+            fi
         else
             print_status "Framework instance created but not started. Use 'instance-start $framework' to start it later."
         fi

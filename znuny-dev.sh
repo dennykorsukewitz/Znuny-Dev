@@ -148,7 +148,7 @@ setup_all() {
                     fi
                 fi
 
-                "$SCRIPTS_DIR/instance.sh" create "$framework_name" --url "$REPO_SOURCE_ZNUNY" --no-start-prompt
+                "$SCRIPTS_DIR/instance.sh" create "$framework_name" --url "$REPO_SOURCE_ZNUNY"
                 "$SCRIPTS_DIR/env.sh" --set-var "SETUP_FRAMEWORK_INSTANCE" "true"
                 step5_completed=true
                 step5_framework_name="$framework_name"

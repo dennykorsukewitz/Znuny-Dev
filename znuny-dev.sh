@@ -434,8 +434,8 @@ main() {
         instance-console|console)
             "$SCRIPTS_DIR/instance.sh" console "${@:2}"
             ;;
-        instance-random-data|random-data)
-            "$SCRIPTS_DIR/instance.sh" random-data "${@:2}"
+        instance-random-data-insert|random-data-insert)
+            "$SCRIPTS_DIR/instance.sh" random-data-insert "${@:2}"
             ;;
         instance-help)
             "$SCRIPTS_DIR/instance.sh" help

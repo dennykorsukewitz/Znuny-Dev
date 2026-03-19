@@ -45,7 +45,7 @@ show_usage() {
     echo ""
     print_command "shell <framework> [options]"        "Start shell session in framework container (default: as znuny user)"
     print_command "console <framework> <cmd>"          "Execute console command on framework"
-    print_command "random-data <framework>"            "Insert random data (RandomDataInsert) into instance"
+    print_command "random-data-insert <framework> [options]"   "Insert random data (RandomDataInsert); options: --generate-tickets, --articles-per-ticket, etc."
     print_command "log <framework> [log_file]"         "Show framework log from container filesystem"
     print_command "container-log [framework] [lines]"  "Show Docker container log (stdout/stderr)"
     echo ""
@@ -65,7 +65,7 @@ show_usage() {
     print_command "$ZD_CMD unit <framework>"                   "Dev::UnitTest::Run --verbose --test"
     print_command "$ZD_CMD translate <framework>"              "Maint::Config::Sync + Maint::Config::Rebuild --cleanup + Dev::Tools::TranslationsUpdate --generate-po"
     print_command "$ZD_CMD contributors <framework>"          "Dev::Code::ContributorsListUpdate"
-    print_command "$ZD_CMD random-data <framework>"            "Dev::Tools::Database::RandomDataInsert"
+    print_command "$ZD_CMD random-data-insert <framework>"            "Dev::Tools::Database::RandomDataInsert"
     echo ""
 
     # ========================================
@@ -187,7 +187,7 @@ show_usage_examples() {
     print_command "$ZD_CMD unit dev" ""
     print_command "$ZD_CMD translate dev" ""
     print_command "$ZD_CMD contributors dev" ""
-    print_command "$ZD_CMD random-data dev" ""
+    print_command "$ZD_CMD random-data-insert dev" ""
     echo ""
 
     print_subheader "Fred Example:"

@@ -74,7 +74,7 @@ show_usage() {
     print_command "    --instance-mode <shared|dedicated>   # shared (default) or dedicated"
     print_command "    --start                              # Start instance immediately after creation"
     print_command "    --start-prompt                       # Ask to start instance (interactive)"
-    print_command "    --random-data                        # Run RandomDataInsert after start (no prompt)"
+    print_command "    --random-data-insert                        # Run RandomDataInsert after start (no prompt)"
     print_command "  start <framework>                      # Start framework instance(s) or all instances"
     print_command "  stop <framework>                       # Stop framework instance(s) or all instances"
     print_command "  restart <framework>                    # Restart framework instance(s) or all instances"
@@ -83,7 +83,14 @@ show_usage() {
     print_command "  log <framework> [log_file]             # Show framework log from container filesystem"
     print_command "  container-log [framework] [lines]      # Show Docker container log (stdout/stderr)"
     print_command "  console <framework> <cmd>              # Execute console command"
-    print_command "  random-data <framework>                # Insert random data (RandomDataInsert) into instance"
+    print_command "  random-data-insert <framework> [options]       # Insert random data (RandomDataInsert) into instance"
+    print_command "    --generate-tickets <n>               # Number of tickets (default: 10)"
+    print_command "    --articles-per-ticket <n>            # Articles per ticket (default: 10)"
+    print_command "    --generate-users <n>                 # Number of users (default: 5)"
+    print_command "    --generate-customer-users <n>        # Number of customer users (default: 6)"
+    print_command "    --generate-customer-companies <n>   # Number of customer companies (default: 2)"
+    print_command "    --generate-groups <n>               # Number of groups (default: 3)"
+    print_command "    --generate-queues <n>                # Number of queues (default: 5)"
     print_command "  shell <framework> [options]            # Start shell session (default: as znuny user)"
     print_command "    --root                               # Start as root user instead of znuny user"
     print_command "  remove <framework|all> [options]       # Remove a framework instance or all instances"
@@ -120,7 +127,8 @@ show_usage() {
     print_command "  ./instance.sh container-log            # Show all Docker container log"
     print_command "  ./instance.sh container-log dev 100    # Show Docker container log for 'dev'"
     print_command "  ./instance.sh console dev db:check"
-    print_command "  ./instance.sh random-data dev          # Insert random data into dev instance"
+    print_command "  ./instance.sh random-data-insert dev          # Insert random data (from config)"
+    print_command "  ./instance.sh random-data-insert dev --generate-tickets 20 --articles-per-ticket 5"
     print_command "  ./instance.sh shell dev                # Start zsh shell as znuny user"
     print_command "  ./instance.sh shell dev --root         # Start zsh shell as root user"
     print_command "  ./instance.sh shell dev /bin/bash      # Start bash shell as znuny user"
@@ -147,7 +155,7 @@ show_usage_create() {
     print_command "    --instance-mode <shared|dedicated>   # shared (default) or dedicated"
     print_command "    --start                              # Start instance immediately after creation"
     print_command "    --start-prompt                       # Ask to start instance (interactive)"
-    print_command "    --random-data                        # Run RandomDataInsert after start (no prompt)"
+    print_command "    --random-data-insert                        # Run RandomDataInsert after start (no prompt)"
     print_command "  list                                   # List available frameworks"
     print_command "  help                                   # Show this help message"
     echo ""
@@ -161,6 +169,33 @@ show_usage_create() {
     print_command "    --db-name prod_db --db-user prod_user --db-password secret123 \\"
     print_command "    --script-alias /prod/ \\"
     print_command "    --start"
+}
+
+show_usage_random_data_insert() {
+    print_header "Random Data Insert"
+    print_header "=================="
+    echo ""
+    echo "Usage: ${ZD_CMD:-./znuny-dev.sh} random-data-insert <framework> [options]"
+    echo ""
+    print_subheader "Description:"
+    echo "  Inserts random test data into a Znuny instance via Dev::Tools::Database::RandomDataInsert."
+    echo "  Uses config from configs/framework/RandomDataInsert.conf unless options are passed."
+    echo ""
+    print_subheader "Options:"
+    print_command "  --generate-tickets <n>                 # Number of tickets (default: 10)"
+    print_command "  --articles-per-ticket <n>              # Articles per ticket (default: 10)"
+    print_command "  --generate-users <n>                  # Number of users (default: 5)"
+    print_command "  --generate-customer-users <n>         # Number of customer users (default: 6)"
+    print_command "  --generate-customer-companies <n>     # Number of customer companies (default: 2)"
+    print_command "  --generate-groups <n>                 # Number of groups (default: 3)"
+    print_command "  --generate-queues <n>                 # Number of queues (default: 5)"
+    print_command "  --help, -h                            # Show this help message"
+    echo ""
+    print_subheader "Examples:"
+    print_command "  ${ZD_CMD:-./znuny-dev.sh} random-data-insert dev"
+    print_command "  ${ZD_CMD:-./znuny-dev.sh} random-data-insert dev --generate-tickets 20 --articles-per-ticket 5"
+    print_command "  ${ZD_CMD:-./znuny-dev.sh} random-data-insert dev --generate-tickets 2 --generate-users 3"
+    echo ""
 }
 
 show_usage_remove() {
@@ -534,56 +569,131 @@ container_log() {
 # ========================================
 
 # Run Dev::Tools::Database::RandomDataInsert in framework instance
-# Uses config from configs/framework/RandomDataInsert.conf
+# Uses config from configs/framework/RandomDataInsert.conf unless params passed via --generate-tickets etc.
 random_data_insert() {
     local framework="$1"
+    shift
+
+    if [ "$framework" = "--help" ] || [ "$framework" = "-h" ]; then
+        show_usage_random_data_insert
+        return 0
+    fi
 
     if [ -z "$framework" ]; then
         print_error "Framework name is required for random_data_insert"
         return 1
     fi
 
-    local config_dir="${ZNUNY_DEV_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}/configs/framework"
-    local config_file="$config_dir/RandomDataInsert.conf"
+    # Default values
+    local generate_tickets=""
+    local articles_per_ticket=""
+    local generate_users=""
+    local generate_customer_users=""
+    local generate_customer_companies=""
+    local generate_groups=""
+    local generate_queues=""
+    local use_config=true
 
-    # Default values (from user's specification)
-    local generate_tickets=10
-    local articles_per_ticket=10
-    local generate_users=5
-    local generate_customer_users=6
-    local generate_customer_companies=2
-    local generate_groups=3
-    local generate_queues=5
+    # Parse command line arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --help|-h)
+                show_usage_random_data_insert
+                return 0
+                ;;
+            --generate-tickets)
+                generate_tickets="$2"
+                use_config=false
+                shift 2
+                ;;
+            --articles-per-ticket)
+                articles_per_ticket="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-users)
+                generate_users="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-customer-users)
+                generate_customer_users="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-customer-companies)
+                generate_customer_companies="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-groups)
+                generate_groups="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-queues)
+                generate_queues="$2"
+                use_config=false
+                shift 2
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
 
-    if [ -f "$config_file" ]; then
-        while IFS= read -r line; do
-            [[ "$line" =~ ^#.*$ ]] && continue
-            [[ -z "$line" ]] && continue
-            if [[ "$line" =~ ^([A-Za-z0-9_]+)=(.*)$ ]]; then
-                local key="${BASH_REMATCH[1]}"
-                local value="${BASH_REMATCH[2]}"
-                case "$key" in
-                    GENERATE_TICKETS) generate_tickets="${value:-10}" ;;
-                    ARTICLES_PER_TICKET) articles_per_ticket="${value:-10}" ;;
-                    GENERATE_USERS) generate_users="${value:-5}" ;;
-                    GENERATE_CUSTOMER_USERS) generate_customer_users="${value:-6}" ;;
-                    GENERATE_CUSTOMER_COMPANIES) generate_customer_companies="${value:-2}" ;;
-                    GENERATE_GROUPS) generate_groups="${value:-3}" ;;
-                    GENERATE_QUEUES) generate_queues="${value:-5}" ;;
-                esac
-            fi
-        done < "$config_file"
+
+    # Load from config if no params were passed via command line
+    if [ "$use_config" = true ]; then
+        local config_dir="${ZNUNY_DEV_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}/configs/framework"
+        local config_file="$config_dir/RandomDataInsert.conf"
+
+        generate_tickets=10
+        articles_per_ticket=10
+        generate_users=5
+        generate_customer_users=6
+        generate_customer_companies=2
+        generate_groups=3
+        generate_queues=5
+
+        if [ -f "$config_file" ]; then
+            while IFS= read -r line; do
+                [[ "$line" =~ ^#.*$ ]] && continue
+                [[ -z "$line" ]] && continue
+                if [[ "$line" =~ ^([A-Za-z0-9_]+)=(.*)$ ]]; then
+                    local key="${BASH_REMATCH[1]}"
+                    local value="${BASH_REMATCH[2]}"
+                    case "$key" in
+                        GENERATE_TICKETS) generate_tickets="${value:-10}" ;;
+                        ARTICLES_PER_TICKET) articles_per_ticket="${value:-10}" ;;
+                        GENERATE_USERS) generate_users="${value:-5}" ;;
+                        GENERATE_CUSTOMER_USERS) generate_customer_users="${value:-6}" ;;
+                        GENERATE_CUSTOMER_COMPANIES) generate_customer_companies="${value:-2}" ;;
+                        GENERATE_GROUPS) generate_groups="${value:-3}" ;;
+                        GENERATE_QUEUES) generate_queues="${value:-5}" ;;
+                    esac
+                fi
+            done < "$config_file"
+        fi
     fi
 
+    # Build args - only include params that are set
+    # Note: Dev::Tools::Database::RandomDataInsert requires --generate-tickets; use 0 when not set
+    local random_data_args=("Dev::Tools::Database::RandomDataInsert")
+    if [ -n "$generate_tickets" ]; then
+        random_data_args+=("--generate-tickets" "$generate_tickets")
+    else
+        random_data_args+=("--generate-tickets" "0")
+    fi
+    [ -n "$articles_per_ticket" ] && random_data_args+=("--articles-per-ticket" "$articles_per_ticket")
+    [ -n "$generate_users" ] && random_data_args+=("--generate-users" "$generate_users")
+    [ -n "$generate_customer_users" ] && random_data_args+=("--generate-customer-users" "$generate_customer_users")
+    [ -n "$generate_customer_companies" ] && random_data_args+=("--generate-customer-companies" "$generate_customer_companies")
+    [ -n "$generate_groups" ] && random_data_args+=("--generate-groups" "$generate_groups")
+    [ -n "$generate_queues" ] && random_data_args+=("--generate-queues" "$generate_queues")
+
     print_status "Running Dev::Tools::Database::RandomDataInsert in $framework..."
-    if execute_console_command "$framework" "Dev::Tools::Database::RandomDataInsert" \
-        "--generate-tickets" "$generate_tickets" \
-        "--articles-per-ticket" "$articles_per_ticket" \
-        "--generate-users" "$generate_users" \
-        "--generate-customer-users" "$generate_customer_users" \
-        "--generate-customer-companies" "$generate_customer_companies" \
-        "--generate-groups" "$generate_groups" \
-        "--generate-queues" "$generate_queues"; then
+    if execute_console_command "$framework" "${random_data_args[@]}"; then
         print_success "RandomDataInsert completed successfully."
     else
         print_warning "RandomDataInsert failed or module not available."
@@ -689,7 +799,7 @@ create_instance() {
                 start_prompt=$2 || true
                 shift 2
                 ;;
-            --random-data)
+            --random-data-insert)
                 random_data=true
                 shift
                 ;;
@@ -848,17 +958,17 @@ create_instance() {
         return 0
     fi
 
-    local run_random_data_insert_requested="$random_data"
+    local random_data_insert_requested="$random_data"
 
     if [ "$auto_start" = true ]; then
-        if [ "$run_random_data_insert_requested" = false ]; then
+        if [ "$random_data_insert_requested" = false ]; then
             if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "n"; then
-                run_random_data_insert_requested=true
+                random_data_insert_requested=true
             fi
         fi
         print_status "Starting framework instance automatically..."
         start_instance "$framework"
-        if [ "$run_random_data_insert_requested" = true ]; then
+        if [ "$random_data_insert_requested" = true ]; then
             random_data_insert "$framework"
         fi
     else
@@ -870,14 +980,14 @@ create_instance() {
 
         echo ""
         if confirm "Do you want to start the framework instance now?" "y"; then
-            if [ "$run_random_data_insert_requested" = false ]; then
+            if [ "$random_data_insert_requested" = false ]; then
                 if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "n"; then
-                    run_random_data_insert_requested=true
+                    random_data_insert_requested=true
                 fi
             fi
             print_status "Starting framework instance..."
             start_instance "$framework"
-            if [ "$run_random_data_insert_requested" = true ]; then
+            if [ "$random_data_insert_requested" = true ]; then
                 random_data_insert "$framework"
             fi
         else
@@ -1863,8 +1973,12 @@ main() {
         contributors)
             contributors "$framework"
             ;;
-        random-data)
-            random_data_insert "$framework"
+        random-data-insert)
+            if [ "${2:-}" = "--help" ] || [ "${2:-}" = "-h" ]; then
+                show_usage_random_data_insert
+                exit 0
+            fi
+            random_data_insert "$framework" "${@:3}"
             ;;
         # ========================================
         # ModuleTools Commands (via /opt/tools/module-tools/bin/znuny.ModuleTools.pl in container)

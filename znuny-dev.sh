@@ -317,7 +317,7 @@ main() {
                 show_usage_setup
                 echo ""
                 print_error "Global environment file not found: $env_file"
-                print_status "Please run '$ZD_CMD setup-all' first to initialize the environment"
+                print_status "Please run './znuny-dev.sh setup-all' first to initialize the environment"
                 exit 1
                 ;;
         esac

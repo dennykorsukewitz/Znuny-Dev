@@ -53,16 +53,12 @@ chmod -R +x dev/scripts
 chmod +x znuny-dev.sh
 
 # Setup complete environment
-zd setup-all
+./znuny-dev.sh setup-all (zd setup-all)
 ```
 
 ## 🎯 Usage
 
 All operations go through the main script `zd`. Run commands from the project root; if the `zd` alias is not set (e.g. before `setup-all`), use `./znuny-dev.sh` instead. An optional instance name (e.g. `my_instance`) applies the command to that instance.
-
-### Overview
-
-
 
 ### Framework Instances
 

@@ -65,6 +65,7 @@ show_usage() {
     print_command "$ZD_CMD unit <framework>"                   "Dev::UnitTest::Run --verbose --test"
     print_command "$ZD_CMD translate <framework>"              "Maint::Config::Sync + Maint::Config::Rebuild --cleanup + Dev::Tools::TranslationsUpdate --generate-po"
     print_command "$ZD_CMD contributors <framework>"          "Dev::Code::ContributorsListUpdate"
+    print_command "$ZD_CMD random-data <framework>"            "Dev::Tools::Database::RandomDataInsert"
     echo ""
 
     # ========================================

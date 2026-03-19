@@ -83,6 +83,7 @@ show_usage() {
     print_command "  log <framework> [log_file]             # Show framework log from container filesystem"
     print_command "  container-log [framework] [lines]      # Show Docker container log (stdout/stderr)"
     print_command "  console <framework> <cmd>              # Execute console command"
+    print_command "  random-data <framework>                # Insert random data (RandomDataInsert) into instance"
     print_command "  shell <framework> [options]            # Start shell session (default: as znuny user)"
     print_command "    --root                               # Start as root user instead of znuny user"
     print_command "  remove <framework|all> [options]       # Remove a framework instance or all instances"
@@ -119,6 +120,7 @@ show_usage() {
     print_command "  ./instance.sh container-log            # Show all Docker container log"
     print_command "  ./instance.sh container-log dev 100    # Show Docker container log for 'dev'"
     print_command "  ./instance.sh console dev db:check"
+    print_command "  ./instance.sh random-data dev          # Insert random data into dev instance"
     print_command "  ./instance.sh shell dev                # Start zsh shell as znuny user"
     print_command "  ./instance.sh shell dev --root         # Start zsh shell as root user"
     print_command "  ./instance.sh shell dev /bin/bash      # Start bash shell as znuny user"
@@ -533,11 +535,11 @@ container_log() {
 
 # Run Dev::Tools::Database::RandomDataInsert in framework instance
 # Uses config from configs/framework/RandomDataInsert.conf
-run_random_data_insert() {
+random_data_insert() {
     local framework="$1"
 
     if [ -z "$framework" ]; then
-        print_error "Framework name is required for run_random_data_insert"
+        print_error "Framework name is required for random_data_insert"
         return 1
     fi
 
@@ -857,7 +859,7 @@ create_instance() {
         print_status "Starting framework instance automatically..."
         start_instance "$framework"
         if [ "$run_random_data_insert_requested" = true ]; then
-            run_random_data_insert "$framework"
+            random_data_insert "$framework"
         fi
     else
         echo ""
@@ -876,7 +878,7 @@ create_instance() {
             print_status "Starting framework instance..."
             start_instance "$framework"
             if [ "$run_random_data_insert_requested" = true ]; then
-                run_random_data_insert "$framework"
+                random_data_insert "$framework"
             fi
         else
             print_status "Framework instance created but not started. Use 'instance-start $framework' to start it later."
@@ -1860,6 +1862,9 @@ main() {
             ;;
         contributors)
             contributors "$framework"
+            ;;
+        random-data)
+            random_data_insert "$framework"
             ;;
         # ========================================
         # ModuleTools Commands (via /opt/tools/module-tools/bin/znuny.ModuleTools.pl in container)

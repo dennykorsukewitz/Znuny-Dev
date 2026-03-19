@@ -317,7 +317,7 @@ main() {
                 show_usage_setup
                 echo ""
                 print_error "Global environment file not found: $env_file"
-                print_status "Please run './znuny-dev.sh setup-all' first to initialize the environment"
+                print_status "Please run '$ZD_CMD setup-all / ./znuny-dev.sh setup-all' first to initialize the environment"
                 exit 1
                 ;;
         esac
@@ -433,6 +433,9 @@ main() {
             ;;
         instance-console|console)
             "$SCRIPTS_DIR/instance.sh" console "${@:2}"
+            ;;
+        instance-random-data|random-data)
+            "$SCRIPTS_DIR/instance.sh" random-data "${@:2}"
             ;;
         instance-help)
             "$SCRIPTS_DIR/instance.sh" help

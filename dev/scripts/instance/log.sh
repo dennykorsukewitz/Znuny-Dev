@@ -73,7 +73,7 @@ show_all_container_log() {
 }
 
 # Function to show framework log from instance volume (instances/<framework>/logs/)
-# log_file: filename (e.g. access.log, error.log, STDERR.log) or path under instances/<framework>/logs/
+# log_file: filename (e.g. access.log, error.log) or path under instances/<framework>/logs/
 show_framework_log() {
     local framework="$1"
     local log_file="${2:-access.log}"
@@ -86,7 +86,7 @@ show_framework_log() {
         print_list "${available_frameworks[@]}"
         echo ""
         echo "Usage:"
-        print_command "${ZD_CMD:-./znuny-dev.sh} log <framework> [log_file]" "access.log|error.log|STDERR.log|znuny.log (default: error.log)"
+        print_command "${ZD_CMD:-./znuny-dev.sh} log <framework> [log_file]" "znuny.log|access.log|error.log|dev/Fred/STDERR.log (default: error.log)"
         print_status "  "
         return 1
     fi

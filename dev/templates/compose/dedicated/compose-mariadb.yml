@@ -23,7 +23,6 @@ services:
       - ${FRAMEWORK_SLUG}-data:/var/lib/znuny
       - {{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/var/log/apache2:rw
       - {{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/opt/znuny/var/log:rw
-      - {{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/opt/znuny/var/fred:rw
       - {{CONFIGS_DIR}}:/etc/znuny/configs:ro
       - {{FRAMEWORK_CONFIGS_DIR}}:/opt/framework-config:ro
     env_file:

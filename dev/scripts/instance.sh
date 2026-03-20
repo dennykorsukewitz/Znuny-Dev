@@ -941,7 +941,7 @@ create_instance() {
     # Create instance directory and logs subdir
     ensure_directory "$instance_dir"
     ensure_directory "$instance_dir/logs"
-    touch "$instance_dir/logs/access.log" "$instance_dir/logs/error.log" "$instance_dir/logs/STDERR.log" 2>/dev/null || true
+    touch "$instance_dir/logs/access.log" "$instance_dir/logs/error.log" 2>/dev/null || true
 
     # Create instance (pass optional --port, --fqdn, --script-alias)
     create_env_file "$framework" "$repo_url" "$branch" "$db_type" "$db_name" "$db_user" "$db_password" "$db_port" "$instance_mode" "$instance_port" "$fqdn" "$script_alias"
@@ -962,7 +962,7 @@ create_instance() {
 
     if [ "$auto_start" = true ]; then
         if [ "$random_data_insert_requested" = false ]; then
-            if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "n"; then
+            if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "y"; then
                 random_data_insert_requested=true
             fi
         fi
@@ -981,7 +981,7 @@ create_instance() {
         echo ""
         if confirm "Do you want to start the framework instance now?" "y"; then
             if [ "$random_data_insert_requested" = false ]; then
-                if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "n"; then
+                if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "y"; then
                     random_data_insert_requested=true
                 fi
             fi

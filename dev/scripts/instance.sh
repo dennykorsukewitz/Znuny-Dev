@@ -970,7 +970,9 @@ create_instance() {
         start_instance "$framework"
         if [ "$random_data_insert_requested" = true ]; then
             random_data_insert "$framework"
+            print_status "Access URL: http://localhost:$(get_instance_port "$framework")"
         fi
+
     else
         echo ""
         print_status "Next steps:"
@@ -989,6 +991,7 @@ create_instance() {
             start_instance "$framework"
             if [ "$random_data_insert_requested" = true ]; then
                 random_data_insert "$framework"
+                print_status "Access URL: http://localhost:$(get_instance_port "$framework")"
             fi
         else
             print_status "Framework instance created but not started. Use 'instance-start $framework' to start it later."
@@ -1337,7 +1340,6 @@ start_instance() {
     # Start the framework using docker-compose
     if docker_compose "$framework" "up"; then
         local port=$(get_instance_port "$framework")
-
         print_success "Framework '$framework' started successfully!"
 
         # Wait for the service to be ready
@@ -1538,7 +1540,6 @@ restart_instance() {
 
         # Wait for the service to be ready
         wait_for_url "http://localhost:$port" "$framework"
-
         print_status "Access URL: http://localhost:$port"
     else
         print_error "Failed to restart framework '$framework'"

@@ -353,17 +353,17 @@ fi
 
 printf "  %-25s %s\n" "📦 Framework:" "$(basename "$FRAMEWORK_DIR")"
 printf "  %-25s %s\n" "🔖 Version:" "$version_info"
-printf "  %-29s %s\n" "🗄️  Database:"  "$database_info"
+printf "  %-25s %s\n" "🗄️  Database:"  "$database_info"
 printf "  %-25s %s\n" "🏠 Directory:" "/opt/znuny"
 echo " "
 printf "  %-25s %s\n" "👤 User:" "znuny"
 printf "  %-25s %s\n" "🐚 Shell:" "$(getent passwd znuny 2>/dev/null | cut -d: -f7 || echo '/usr/bin/zsh')"
 echo ""
 printf "  %-25s %s\n" "🛠️  Available Commands:" "znuny-console, znuny-logs, znuny-config"
-printf "  %-23s %s\n" "   znuny-console" "- Znuny console commands"
-printf "  %-23s %s\n" "   znuny-logs" "- View Znuny logs"
-printf "  %-23s %s\n" "   znuny-config" "- Edit Znuny configuration"
-printf "  %-23s %s\n" "   znuny-help" "- Show Welcome message and available commands"
+printf "  %-23s %s\n" "    znuny-console" "- Znuny console commands"
+printf "  %-23s %s\n" "    znuny-logs" "- View Znuny logs"
+printf "  %-23s %s\n" "    znuny-config" "- Edit Znuny configuration"
+printf "  %-23s %s\n" "    znuny-help" "- Show Welcome message and available commands"
 echo ""
 echo "                                                                                "
 printf "  %-25s %s\n" "🌐 Web Interface:" "http://localhost:${INSTANCE_PORT:-10000}"
@@ -501,8 +501,9 @@ setup_code_policy() {
         # Make ZnunyCodePolicy scripts executable (ignore errors if files don't exist)
         chmod +x /opt/tools/ZnunyCodePolicy/*.pl 2>/dev/null || true
 
-        # Create symlink for easy access (ignore errors if file doesn't exist)
-        ln -sf /opt/tools/ZnunyCodePolicy/bin/znuny.CodePolicy.pl /usr/local/bin/znuny.CodePolicy.pl 2>/dev/null || true
+        cpanm -i Algorithm::Diff Code::TidyAll Perl::Critic Perl::Tidy Pod::POM XML::Parser Text::PO::Gettext 2>/dev/null || true
+
+        /opt/tools/ZnunyCodePolicy/bin/znuny.CodePolicy.pl --install-eslint
 
         log "ZnunyCodePolicy setup completed!"
     else
@@ -687,7 +688,7 @@ main() {
 
     # Setup development tools (module-tools: cpanfile deps + symlinks)
     setup_module_tools
-    # setup_code_policy
+    setup_code_policy
 
     # Setup Apache configuration for framework
     setup_apache_config

@@ -89,10 +89,13 @@ RUN apt-get update && apt-get install -y \
     uuid-dev \
     cron \
     zsh \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
 
-# Install additional CPAN modules
+# Install additional CPAN modules (incl. ZnunyCodePolicy deps; before purge of build-essential)
 RUN cpanm --notest --force Jq Data::UUID Ref::Util && \
+    cpanm --notest Algorithm::Diff Code::TidyAll Perl::Critic Perl::Tidy Pod::POM XML::Parser Text::PO::Gettext && \
     apt-get purge -y uuid-dev build-essential && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*

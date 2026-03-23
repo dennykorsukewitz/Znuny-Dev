@@ -6,7 +6,7 @@ services:
     image: mariadb:10.11
     container_name: znuny-mariadb
     ports:
-      - "3306:3306"
+      - "3307:3306"
     environment:
       - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-root}
       - MYSQL_CHARSET=utf8mb4
@@ -43,7 +43,7 @@ services:
       - DB_PORT=${DB_PORT:-3306}
       - DB_NAME=${DB_NAME:-${FRAMEWORK_NAME}}
       - DB_USER=${DB_USER:-${FRAMEWORK_NAME}}
-      - DB_PASSWORD=${DB_PASSWORD:-${FRAMEWORK_NAME}_password}
+      - DB_PASSWORD=${DB_PASSWORD:-${FRAMEWORK_NAME}}
       - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-root}
       - ZNUNY_PORT=${FRAMEWORK_PORT}
       - FRAMEWORK_NAME=${FRAMEWORK_NAME}

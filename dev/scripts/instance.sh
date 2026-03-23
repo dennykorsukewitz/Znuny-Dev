@@ -1122,7 +1122,17 @@ create_instance_variables() {
 
     # Get configuration from user if not provided via parameters
     if [ -z "$db_type" ]; then
-        read_input "db_type" "Database type (mysql|postgresql|mariadb)" "mariadb"
+        echo "Select database type:"
+        print_list_item "1) mariadb"
+        print_list_item "2) mysql"
+        print_list_item "3) postgresql"
+        read_input "db_type" "Enter number or type (1-3)" "1"
+        case "$db_type" in
+            1|mariadb) db_type="mariadb" ;;
+            2|mysql) db_type="mysql" ;;
+            3|postgresql) db_type="postgresql" ;;
+            *) db_type="mariadb" ;;
+        esac
     fi
     if [ -z "$db_name" ]; then
         read_input "db_name" "Database name" "$framework"

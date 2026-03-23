@@ -47,6 +47,8 @@ services:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
       - ZNUNY_PORT=${FRAMEWORK_PORT}
       - FRAMEWORK_NAME=${FRAMEWORK_NAME}
+    depends_on:
+      - znuny-mysql
     networks:
       - znuny-network
     restart: unless-stopped

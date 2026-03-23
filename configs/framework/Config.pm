@@ -22,13 +22,13 @@
     $Self->{'SwitchToCustomer'}                  = 1;
 
     # Fred
-    $Self->{'Fred'}->{'Active'} = '1';
+    $Self->{'Fred'}->{'Active'}          = '1';
     $Self->{'Fred'}->{'BackgroundColor'} = '#006ea5';
     $Self->{'Fred'}->{'SystemName'}      = '{{FRAMEWORK}}';
     $Self->{'Fred'}->{'ConsoleOpacity'}  = '0.7';
     $Self->{'Fred'}->{'ConsoleWidth'}    = '30%';
-    $Self->{'Fred'}->{'ConsoleHeight'}    = '200px';
-    $Self->{'Fred'}->{'LogPath'}     = '/var/log/';
+    $Self->{'Fred'}->{'ConsoleHeight'}   = '200px';
+    $Self->{'Fred'}->{'LogPath'}         = 'var/log/';
 
     # Misc
     $Self->{'Loader::Enabled::CSS'}  = 0;

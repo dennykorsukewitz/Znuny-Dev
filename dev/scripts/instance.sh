@@ -1131,7 +1131,7 @@ create_instance_variables() {
         read_input "db_user" "Database user" "$framework"
     fi
     if [ -z "$db_password" ]; then
-        read_password "db_password" "Database password"
+        read_password "db_password" "Database password" "$framework"
     fi
 
     # For shared mode: one shared DB container per type (znuny-mariadb etc.). For dedicated: own DB per instance.

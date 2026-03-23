@@ -113,10 +113,16 @@ read_input() {
 read_password() {
     local var_name="$1"
     local prompt="$2"
+    local default="$3"
 
-    printf "${MAGENTA}[ENTER] %s: " "$prompt"
-    read -s password
-    echo
+    if [ -n "$default" ]; then
+        printf "${MAGENTA}[ENTER] %s [%s]: " "$prompt" "$default"
+        read -s password
+        password="${password:-$default}"
+    else
+        printf "${MAGENTA}[ENTER] %s: " "$prompt"
+        read -s password
+    fi
     eval "$var_name=\"$password\""
 }
 

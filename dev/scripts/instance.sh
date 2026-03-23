@@ -970,6 +970,8 @@ create_instance() {
         start_instance "$framework"
         if [ "$random_data_insert_requested" = true ]; then
             random_data_insert "$framework"
+            db_url=$(get_db_connection_url "$framework" 2>/dev/null)
+            [ -n "$db_url" ] && print_status "Database URL: $db_url"
             print_status "Access URL: http://localhost:$(get_instance_port "$framework")"
         fi
 
@@ -978,7 +980,9 @@ create_instance() {
         print_status "Next steps:"
         print_list_item "1. Review environment configuration: $INSTANCES_DIR_REL/$framework/$framework.env"
         print_list_item "2. Start the framework: ${ZD_CMD:-./znuny-dev.sh} instance-start $framework"
-        print_list_item "3. Access the framework at: http://localhost:$(get_instance_port "$framework")"
+        db_url=$(get_db_connection_url "$framework" 2>/dev/null)
+        [ -n "$db_url" ] && print_list_item "3. Database URL (Beekeeper etc.): $db_url"
+        print_list_item "$([ -n "$db_url" ] && echo "4" || echo "3"). Access the framework at: http://localhost:$(get_instance_port "$framework")"
 
         echo ""
         if confirm "Do you want to start the framework instance now?" "y"; then
@@ -991,6 +995,8 @@ create_instance() {
             start_instance "$framework"
             if [ "$random_data_insert_requested" = true ]; then
                 random_data_insert "$framework"
+                db_url=$(get_db_connection_url "$framework" 2>/dev/null)
+                [ -n "$db_url" ] && print_status "Database URL: $db_url"
                 print_status "Access URL: http://localhost:$(get_instance_port "$framework")"
             fi
         else
@@ -1354,6 +1360,8 @@ start_instance() {
 
         # Wait for the service to be ready
         wait_for_url "http://localhost:$port" "$framework"
+        db_url=$(get_db_connection_url "$framework" 2>/dev/null)
+        [ -n "$db_url" ] && print_status "Database URL: $db_url"
         print_status "Access URL: http://localhost:$port"
     else
         print_error "Failed to start framework '$framework'"
@@ -1550,6 +1558,8 @@ restart_instance() {
 
         # Wait for the service to be ready
         wait_for_url "http://localhost:$port" "$framework"
+        db_url=$(get_db_connection_url "$framework" 2>/dev/null)
+        [ -n "$db_url" ] && print_status "Database URL: $db_url"
         print_status "Access URL: http://localhost:$port"
     else
         print_error "Failed to restart framework '$framework'"

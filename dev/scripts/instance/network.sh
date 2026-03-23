@@ -32,6 +32,61 @@ get_instance_port() {
     fi
 }
 
+# Function to get external database port from compose (host-mapped port for tools like Beekeeper)
+get_external_db_port() {
+    local framework="$1"
+    local compose_file
+    compose_file="$(get_compose_file "$framework")"
+    [ -n "$compose_file" ] || return 1
+    [ -f "$compose_file" ] || return 1
+
+    local db_type
+    db_type=$(grep "^DB_TYPE=" "$INSTANCES_DIR/$framework/$framework.env" 2>/dev/null | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+    case "$db_type" in
+        mysql|mariadb)
+            grep -oE '"[0-9]+:3306"' "$compose_file" | head -1 | tr -d '"' | cut -d: -f1
+            ;;
+        postgresql|postgres)
+            grep -oE '"[0-9]+:5432"' "$compose_file" | head -1 | tr -d '"' | cut -d: -f1
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
+# Function to get database connection URL for external tools (Beekeeper Studio, etc.)
+get_db_connection_url() {
+    local framework="$1"
+    local instance_env_file="$INSTANCES_DIR/$framework/$framework.env"
+    [ -f "$instance_env_file" ] || return 1
+
+    local db_type db_user db_password db_name external_port scheme
+    db_type=$(grep "^DB_TYPE=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    db_user=$(grep "^DB_USER=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    db_password=$(grep "^DB_PASSWORD=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    db_name=$(grep "^DB_NAME=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+    external_port=$(get_external_db_port "$framework")
+
+    [ -n "$db_type" ] || return 1
+    [ -n "$external_port" ] || return 1
+
+    case "$db_type" in
+        mysql|mariadb)
+            scheme="mysql"
+            ;;
+        postgresql|postgres)
+            scheme="postgres"
+            ;;
+        *)
+            echo ""
+            return 1
+            ;;
+    esac
+
+    echo "${scheme}://${db_user}:${db_password}@127.0.0.1:${external_port}/${db_name}"
+}
+
 # Function to get database port for a framework
 get_database_port() {
     local framework="$1"

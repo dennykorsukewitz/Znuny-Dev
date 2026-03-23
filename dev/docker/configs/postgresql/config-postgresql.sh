@@ -17,8 +17,19 @@ fi
 
 # Database connection parameters
 DB_HOST="${DB_HOST:-postgresql}"
-DB_USER="${DB_USER:-znuny}"  # PostgreSQL default user
+DB_USER="${DB_USER:-znuny}"  # Instance DB user (created if not exists)
 DB_PASSWORD="${DB_PASSWORD:-znuny}"
+
+# For shared DB: use postgres superuser (never fall back to POSTGRES_PASSWORD - that may be instance user's password)
+POSTGRES_ROOT_PASSWORD="${POSTGRES_ROOT_PASSWORD:-postgres_shared}"
+if [ -n "$POSTGRES_ROOT_PASSWORD" ]; then
+    BOOTSTRAP_USER="postgres"
+    BOOTSTRAP_PASSWORD="$POSTGRES_ROOT_PASSWORD"
+    log "Using postgres superuser for initial setup (shared DB mode)"
+else
+    BOOTSTRAP_USER="$DB_USER"
+    BOOTSTRAP_PASSWORD="$DB_PASSWORD"
+fi
 
 log "Configuring PostgreSQL database: $FRAMEWORK_DATABASE"
 
@@ -37,12 +48,12 @@ log "  Schema: $SCHEMA_FILE"
 log "  Initial Insert: $INITIAL_INSERT_FILE"
 log "  Post Schema: $SCHEMA_POST_FILE"
 
-# Wait for PostgreSQL to be ready
+# Wait for PostgreSQL to be ready (use bootstrap credentials)
 log "Waiting for PostgreSQL to be ready..."
 max_attempts=30
 attempt=1
 while [ $attempt -le $max_attempts ]; do
-    if PGPASSWORD="$DB_PASSWORD" psql -h"$DB_HOST" -U"$DB_USER" -d"$FRAMEWORK_DATABASE" -c "SELECT 1;" >/dev/null 2>&1; then
+    if PGPASSWORD="$BOOTSTRAP_PASSWORD" psql -h"$DB_HOST" -U"$BOOTSTRAP_USER" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
         log "PostgreSQL is ready!"
         break
     fi
@@ -54,6 +65,37 @@ done
 if [ $attempt -gt $max_attempts ]; then
     log "ERROR: PostgreSQL not available after $max_attempts attempts!"
     exit 1
+fi
+
+# When using postgres superuser: create database and role for shared DB mode
+if [ "$BOOTSTRAP_USER" = "postgres" ]; then
+    log "Creating database and role for shared DB..."
+    # Escape single quotes in password for SQL: ' -> ''
+    DB_PASSWORD_ESCAPED="${DB_PASSWORD//\'/\'\'}"
+    PGPASSWORD="$BOOTSTRAP_PASSWORD" psql -h"$DB_HOST" -U"$BOOTSTRAP_USER" -d postgres -v ON_ERROR_STOP=1 << EOF
+-- Create role if not exists (PostgreSQL 9.5+)
+DO \$\$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$DB_USER') THEN
+        CREATE ROLE "$DB_USER" WITH LOGIN PASSWORD '$DB_PASSWORD_ESCAPED';
+    ELSE
+        ALTER ROLE "$DB_USER" WITH PASSWORD '$DB_PASSWORD_ESCAPED';
+    END IF;
+END
+\$\$;
+EOF
+    if [ $? -ne 0 ]; then
+        log "ERROR: Failed to create role"
+        exit 1
+    fi
+    # Create database (may fail if exists - that's ok on restart)
+    PGPASSWORD="$BOOTSTRAP_PASSWORD" psql -h"$DB_HOST" -U"$BOOTSTRAP_USER" -d postgres -v ON_ERROR_STOP=1 -c "CREATE DATABASE \"$FRAMEWORK_DATABASE\" OWNER \"$DB_USER\" ENCODING 'UTF8' TEMPLATE template0;" 2>/dev/null || true
+    # Verify database exists
+    if ! PGPASSWORD="$DB_PASSWORD" psql -h"$DB_HOST" -U"$DB_USER" -d"$FRAMEWORK_DATABASE" -c "SELECT 1;" >/dev/null 2>&1; then
+        log "ERROR: Database or role setup failed - cannot connect as $DB_USER"
+        exit 1
+    fi
+    log "Database and role created successfully"
 fi
 
 # Import schema
@@ -84,9 +126,11 @@ fi
 # Update Config.pm with PostgreSQL DSN
 log "Updating Config.pm with PostgreSQL DSN..."
 if [ -f "$FRAMEWORK_DIR/Kernel/Config.pm" ]; then
-    sed -i "s~\$Self->{DatabaseHost}.*~\$Self->{DatabaseHost}  = \"$DB_HOST\";~g" "$FRAMEWORK_DIR/Kernel/Config.pm"
-    sed -i "s~\$Self->{DatabaseUser}.*~\$Self->{DatabaseUser}  = \"$DB_USER\";~g" "$FRAMEWORK_DIR/Kernel/Config.pm"
-    sed -i "s~DBDSN~DBI:Pg:database=\$Self->{Database};host=\$Self->{DatabaseHost}~g" "$FRAMEWORK_DIR/Kernel/Config.pm"
+    # Only replace the DatabaseHost assignment line (not occurrences inside DSN string)
+    sed -i "s/^\s*\$Self->{DatabaseHost}\s*=\s*[^;]*;/\$Self->{DatabaseHost}  = \"$DB_HOST\";/" "$FRAMEWORK_DIR/Kernel/Config.pm"
+    sed -i "s/^\s*\$Self->{DatabaseUser}\s*=\s*[^;]*;/\$Self->{DatabaseUser}  = \"$DB_USER\";/" "$FRAMEWORK_DIR/Kernel/Config.pm"
+    # Replace MySQL DSN with PostgreSQL DSN
+    sed -i "s|\$Self->{DatabaseDSN} = \"DBI:mysql:[^\"]*\";|\$Self->{DatabaseDSN} = \"DBI:Pg:dbname=\$Self->{Database};host=\$Self->{DatabaseHost};\";|" "$FRAMEWORK_DIR/Kernel/Config.pm"
     log "Config.pm updated successfully"
 else
     log "WARNING: Config.pm not found, skipping DSN update"

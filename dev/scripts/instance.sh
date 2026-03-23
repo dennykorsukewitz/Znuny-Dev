@@ -1649,9 +1649,9 @@ remove_database() {
             fi
             ;;
         postgresql|postgres)
-            local pg_pass="${POSTGRES_PASSWORD:-}"
+            local pg_pass="${POSTGRES_ROOT_PASSWORD:-${POSTGRES_PASSWORD:-}}"
             if [ -z "$pg_pass" ] && [ -n "${ZNUNY_DEV_DIR:-}" ] && [ -f "$ZNUNY_DEV_DIR/.env" ]; then
-                pg_pass=$(grep "^POSTGRES_PASSWORD=" "$ZNUNY_DEV_DIR/.env" 2>/dev/null | cut -d'=' -f2- | tr -d '"')
+                pg_pass=$(grep -E "^POSTGRES_ROOT_PASSWORD=|^POSTGRES_PASSWORD=" "$ZNUNY_DEV_DIR/.env" 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d '"')
             fi
             [ -z "$pg_pass" ] && pg_pass="postgres_shared"
             print_status "Dropping database '$db_name' from shared PostgreSQL..."

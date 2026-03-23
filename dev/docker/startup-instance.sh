@@ -53,6 +53,16 @@ wait_for_database() {
         fi
     fi
 
+    # For PostgreSQL: use postgres superuser (app role is created by config-postgresql.sh)
+    local pg_user="$DB_USER"
+    local pg_pass="$DB_PASSWORD"
+    if [ "$db_type" = "postgresql" ] || [ "$db_type" = "postgres" ]; then
+        if [ -n "${POSTGRES_ROOT_PASSWORD:-$POSTGRES_PASSWORD}" ]; then
+            pg_user="postgres"
+            pg_pass="${POSTGRES_ROOT_PASSWORD:-$POSTGRES_PASSWORD}"
+        fi
+    fi
+
     while [ $attempt -le $max_attempts ]; do
         case $db_type in
             mysql|mariadb)
@@ -62,7 +72,7 @@ wait_for_database() {
                 fi
                 ;;
             postgresql|postgres)
-                if PGPASSWORD="$DB_PASSWORD" psql -h"$db_host" -p"$db_port" -U"$DB_USER" -d"$DB_NAME" -c "SELECT 1;" >/dev/null 2>&1; then
+                if PGPASSWORD="$pg_pass" psql -h"$db_host" -p"$db_port" -U"$pg_user" -d postgres -c "SELECT 1;" >/dev/null 2>&1; then
                     log "PostgreSQL database is ready!"
                     return 0
                 fi
@@ -127,6 +137,7 @@ configure_database() {
     export DB_HOST="${DB_HOST:-localhost}"
     export DB_USER="${DB_USER:-root}"
     export DB_PASSWORD="${DB_PASSWORD:-znuny}"
+    export POSTGRES_ROOT_PASSWORD="${POSTGRES_ROOT_PASSWORD:-postgres_shared}"
 
     if [ "$MYSQL" -eq 1 ]; then
         log "Configuring MySQL database with UTF8MB4 support..."
@@ -158,8 +169,12 @@ update_config_database() {
     # Update database password
     sed -i "s/\$Self->{DatabasePw} = '[^']*';/\$Self->{DatabasePw} = '$DB_PASSWORD';/g" "$FRAMEWORK_DIR/Kernel/Config.pm"
 
-    # Update database DSN
-    sed -i "s/\$Self->{DatabaseDSN} = \"[^\"]*\";/\$Self->{DatabaseDSN} = \"DBI:mysql:database=\$Self->{Database};host=\$Self->{DatabaseHost};\";/g" "$FRAMEWORK_DIR/Kernel/Config.pm"
+    # Update database DSN (MySQL or PostgreSQL based on DB_TYPE)
+    if [ "$DB_TYPE" = "postgresql" ] || [ "$DB_TYPE" = "postgres" ]; then
+        sed -i "s/\$Self->{DatabaseDSN} = \"[^\"]*\";/\$Self->{DatabaseDSN} = \"DBI:Pg:dbname=\$Self->{Database};host=\$Self->{DatabaseHost};\";/g" "$FRAMEWORK_DIR/Kernel/Config.pm"
+    else
+        sed -i "s/\$Self->{DatabaseDSN} = \"[^\"]*\";/\$Self->{DatabaseDSN} = \"DBI:mysql:database=\$Self->{Database};host=\$Self->{DatabaseHost};\";/g" "$FRAMEWORK_DIR/Kernel/Config.pm"
+    fi
 
     log "Database configuration updated successfully"
 }

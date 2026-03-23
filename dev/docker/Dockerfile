@@ -95,7 +95,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install additional CPAN modules (incl. ZnunyCodePolicy deps; before purge of build-essential)
 RUN cpanm --notest --force Jq Data::UUID Ref::Util && \
-    cpanm --notest Algorithm::Diff Code::TidyAll Perl::Critic Perl::Tidy Pod::POM XML::Parser Text::PO::Gettext && \
+    cpanm --notest Algorithm::Diff Code::TidyAll Perl::Critic Perl::Tidy Pod::POM XML::Parser && \
     apt-get purge -y uuid-dev build-essential && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*

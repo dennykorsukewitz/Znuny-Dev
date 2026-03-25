@@ -7,8 +7,7 @@ on:
 
 jobs:
   Lint:
-    # uses: dennykorsukewitz/dennykorsukewitz/.github/workflows/reusable.lint.yml@dev
-    uses: dennykorsukewitz/Znuny-Dev/.github/workflows/reusable.lint.yml@private-dk-github-ci
+    uses: dennykorsukewitz/dennykorsukewitz/.github/workflows/reusable.lint.yml@dev
     with:
       # znuny-dev: only enable validators for Bash, YAML, Markdown, Dockerfile, GitHub Actions, .env, JSON, Perl
       VALIDATE_ANSIBLE: false

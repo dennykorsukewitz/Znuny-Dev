@@ -96,6 +96,7 @@ show_usage() {
     print_command "  remove <framework|all> [options]       # Remove a framework instance or all instances"
     print_command "    --force                              # Force removal without confirmation"
     print_command "    --keep-framework                     # Keep framework directory, only remove instance config"
+    print_command "  sync-indices                           # Rebuild USED_FRAMEWORK_INDICES from instances/* (fixes stale .env)"
     print_command "  list                                   # List available frameworks"
     print_command "  help                                   # Show this help message"
     echo ""
@@ -214,8 +215,8 @@ show_usage_remove() {
 
 # Function to list frameworks
 show_all_frameworks() {
-    local frameworks=($(get_available_frameworks))
-
+    local frameworks=()
+    read_lines_to_array frameworks < <(get_available_frameworks)
     if [ ${#frameworks[@]} -eq 0 ]; then
         print_warning "No frameworks found"
         return 1
@@ -223,8 +224,10 @@ show_all_frameworks() {
 
     print_subheader "Available frameworks:"
     for framework in "${frameworks[@]}"; do
-        local port=$(get_instance_port "$framework")
-        local container_name=$(get_instance_container_name "$framework")
+        local port
+        port=$(get_instance_port "$framework")
+        local container_name
+        container_name=$(get_instance_container_name "$framework")
 
         if docker ps --format "{{.Names}}" | grep -q "$container_name"; then
             local status="Running"
@@ -259,7 +262,8 @@ remove() {
     else
         print_error "Framework name is required for remove command"
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         print_status "Use 'remove all' to remove all instances or 'remove <framework>' for a specific framework"
@@ -281,7 +285,8 @@ start() {
     else
         print_error "Framework name is required for start command"
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         print_status "Use 'start all' to start all instances or 'start <framework>' for specific framework"
@@ -299,7 +304,8 @@ stop() {
     else
         print_error "Framework name is required for stop command"
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         print_status "Use 'stop all' to stop all instances or 'stop <framework>' for specific framework"
@@ -317,7 +323,8 @@ restart() {
     else
         print_error "Framework name is required for restart command"
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         print_status "Use 'restart all' to restart all instances or 'restart <framework>' for specific framework"
@@ -335,7 +342,8 @@ build() {
     else
         print_error "Framework name is required for build command"
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         print_status "Use 'build all' to build all instances or 'build <framework>' for specific framework"
@@ -703,8 +711,9 @@ random_data_insert() {
 # Function to create framework instance with smart logic
 create_instance() {
 
-    local frameworks=($(get_available_frameworks))
+    local frameworks=()
 
+    read_lines_to_array frameworks < <(get_available_frameworks)
     # Check if framework is available
     if [ ${#frameworks[@]} -eq 0 ]; then
         print_error "No frameworks found"
@@ -722,7 +731,8 @@ create_instance() {
         print_error "Framework name is required"
 
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         show_usage_create
@@ -835,14 +845,16 @@ create_instance() {
         fi
         # If no branch found, use default branches
         if [ -z "$branch" ]; then
-            local available_branches=($(get_available_branches "$repo_url"))
-            if [[ " ${available_branches[@]} " =~ " dev " ]]; then
+            local available_branches=()
+            read_lines_to_array available_branches < <(get_available_branches "$repo_url")
+            local branches_space=" ${available_branches[*]} "
+            if [[ "$branches_space" =~ " dev " ]]; then
                 branch="dev"
-            elif [[ " ${available_branches[@]} " =~ " main " ]]; then
+            elif [[ "$branches_space" =~ " main " ]]; then
                 branch="main"
-            elif [[ " ${available_branches[@]} " =~ " master " ]]; then
+            elif [[ "$branches_space" =~ " master " ]]; then
                 branch="master"
-            elif [[ " ${available_branches[@]} " =~ " develop " ]]; then
+            elif [[ "$branches_space" =~ " develop " ]]; then
                 branch="develop"
             else
                 branch="dev"
@@ -877,7 +889,9 @@ create_instance() {
 
         print_status "Please enter the branch name and directory name to create the framework directory and then it will run 'create instance' again with the new branch and directory name and all other arguments..."
 
-        # Ask user for branch and directory name
+        # Ask user for branch and directory name (initialized for shellcheck; set by read_input)
+        branch=""
+        directory=""
         read_input "branch"    "Enter branch name    (default: dev)" "dev"
         read_input "directory" "Enter directory name (default: $framework)" "$framework"
         setup_framework "$branch" "$directory"
@@ -904,9 +918,10 @@ create_instance() {
         echo ""
 
         while true; do
+            choice=""
             read_input "choice" "Please choose (1/2/3)" ""
             echo ""
-            case $choice in
+            case "$choice" in
                 1)
                     print_subheader "Keep existing framework and recreate instance (Docker containers, volumes, env file)..."
 
@@ -1060,7 +1075,7 @@ create_env_file() {
             -e "s|{{COMPOSE_CMD}}|docker-compose -p znuny -f $compose_file_full_path|g" \
             "$template_file" > "$env_file.tmp"
 
-        # Handle multi-line DB_SPECIFIC_CONFIG replacement
+        # Handle multi-line DB_SPECIFIC_CONFIG replacement (comment marker in template)
         if [ -n "$db_specific_config" ]; then
             sed -e "/{{DB_SPECIFIC_CONFIG}}/r /dev/stdin" -e "/{{DB_SPECIFIC_CONFIG}}/d" "$env_file.tmp" <<< "$db_specific_config" > "$env_file"
         else
@@ -1105,8 +1120,7 @@ create_instance_variables() {
     framework_index=$(get_instance_index "$framework")
     if [ -z "$framework_index" ] || [ "$framework_index" = "0" ]; then
         # No index assigned yet, find and reserve a new one
-        framework_index=$(find_next_available_instance_index)
-        if [ $? -eq 0 ]; then
+        if framework_index=$(find_next_available_instance_index); then
             set_instance_index_used "$framework_index"
         else
             print_error "Failed to find available framework index"
@@ -1287,7 +1301,8 @@ start_instance() {
 
         echo ""
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         echo "Usage:"
@@ -1298,7 +1313,8 @@ start_instance() {
     # Check compose file exists, generate if missing
     check_compose_file "$framework" || return 1
 
-    local compose_file="$(get_compose_file "$framework")"
+    local compose_file
+    compose_file=$(get_compose_file "$framework")
 
     # Check if instance exists
     if ! check_instance_exists "$framework"; then
@@ -1329,7 +1345,8 @@ start_instance() {
         print_error "Framework '$framework' not found"
 
         echo "Available frameworks:"
-        local frameworks=($(get_available_frameworks))
+        local frameworks=()
+        read_lines_to_array frameworks < <(get_available_frameworks)
         print_list "${frameworks[@]}"
 
         print_status "Expected directory: $FRAMEWORKS_DIR/$framework"
@@ -1355,7 +1372,8 @@ start_instance() {
 
     # Start the framework using docker-compose
     if docker_compose "$framework" "up"; then
-        local port=$(get_instance_port "$framework")
+        local port
+        port=$(get_instance_port "$framework")
         print_success "Framework '$framework' started successfully!"
 
         # Wait for the service to be ready
@@ -1381,9 +1399,9 @@ start_all_instances() {
     print_status "Starting all Znuny instances..."
 
     # Create networks for all available frameworks
-    local available_frameworks=($(get_available_frameworks))
-
-    for framework in $available_frameworks; do
+    local available_frameworks=()
+    read_lines_to_array available_frameworks < <(get_available_frameworks)
+    for framework in "${available_frameworks[@]}"; do
         # Start instance only if instance exists
         if ! check_instance_exists "$framework"; then
             print_error "Instance '$framework' does not exist, skipping..."
@@ -1418,7 +1436,8 @@ stop_instance() {
         print_error "Framework name is required"
 
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo "Usage: "
         print_command "${ZD_CMD:-./znuny-dev.sh} stop <framework7all>"
@@ -1445,10 +1464,10 @@ stop_all_instances() {
     print_status "Stopping all Znuny instances..."
 
     # Get all available frameworks
-    local available_frameworks=($(get_available_frameworks))
-
+    local available_frameworks=()
+    read_lines_to_array available_frameworks < <(get_available_frameworks)
     # Stop all instances
-    for framework in $available_frameworks; do
+    for framework in "${available_frameworks[@]}"; do
         stop_instance "$framework"
     done
 
@@ -1467,7 +1486,8 @@ build_instance() {
     if [ -z "$framework" ]; then
         print_error "Framework name is required"
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         echo "Usage: ${ZD_CMD:-./znuny-dev.sh} build <framework|all> [--no-cache]"
@@ -1500,8 +1520,8 @@ build_instances() {
     check_docker
 
     print_status "Building Docker images for all Znuny instances..."
-    local available_frameworks=($(get_available_frameworks))
-
+    local available_frameworks=()
+    read_lines_to_array available_frameworks < <(get_available_frameworks)
     for framework in "${available_frameworks[@]}"; do
         # Skip if no instance exists
         if ! check_instance_exists "$framework"; then
@@ -1523,7 +1543,8 @@ restart_instance() {
         print_error "Framework name is required"
 
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         echo "Usage:"
@@ -1553,7 +1574,8 @@ restart_instance() {
     print_status "Restarting framework instance: $framework"
 
     if docker_compose "$framework" "restart"; then
-        local port=$(get_instance_port "$framework")
+        local port
+        port=$(get_instance_port "$framework")
         print_success "Framework '$framework' restarted successfully!"
 
         # Wait for the service to be ready
@@ -1603,7 +1625,9 @@ remove_composes() {
     local count=0
     local instance
     for instance in $(get_available_instances); do
-        local f="$INSTANCES_DIR/$instance/compose-$(get_framework_slug "$instance").yml"
+        local instance_slug
+        instance_slug=$(get_framework_slug "$instance")
+        local f="${INSTANCES_DIR:?}/$instance/compose-${instance_slug}.yml"
         for suffix in "" ".backup" ".bak"; do
             local file="${f}${suffix}"
             if [ -f "$file" ]; then
@@ -1697,7 +1721,8 @@ remove_instance() {
         print_error "Framework name is required"
 
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         show_usage_remove
@@ -1756,7 +1781,8 @@ remove_instance() {
     fi
     instance_mode="${instance_mode:-shared}"
 
-    local compose_file="$(get_compose_file "$framework")"
+    local compose_file
+    compose_file=$(get_compose_file "$framework")
 
     if [ "$instance_mode" = "dedicated" ] && [ -f "$compose_file" ]; then
         # Dedicated: full compose down (own DB + app + network)
@@ -1774,7 +1800,8 @@ remove_instance() {
 
     # Remove only this instance's resources (Docker names use lowercase framework_slug)
     # Containers: znuny-<framework_slug>-instance and (dedicated only) znuny-<framework_slug>-mariadb etc.
-    local framework_slug=$(get_framework_slug "$framework")
+    local framework_slug
+    framework_slug=$(get_framework_slug "$framework")
     print_status "Removing Docker resources for '$framework'..."
     docker ps -a --format "{{.Names}}" | grep -E "^znuny-${framework_slug}-" | while read -r container; do
         if [ -n "$container" ]; then
@@ -1810,7 +1837,8 @@ remove_instance() {
 
     # Release framework index and remove entire instance directory
     if [ -f "$instance_env_file" ]; then
-        local framework_index=$(grep "^FRAMEWORK_INDEX=" "$instance_env_file" | cut -d'=' -f2)
+        local framework_index
+        framework_index=$(grep "^FRAMEWORK_INDEX=" "$instance_env_file" | cut -d'=' -f2)
         if [ -n "$framework_index" ]; then
             unset_instance_index_used "$framework_index"
         fi
@@ -1818,7 +1846,7 @@ remove_instance() {
 
     if [ -d "$INSTANCES_DIR/$framework" ]; then
         print_status "Removing instance directory: $INSTANCES_DIR/$framework"
-        rm -rf "$INSTANCES_DIR/$framework"
+        rm -rf "${INSTANCES_DIR:?}/$framework"
     fi
 
     # Remove framework directory only if not --keep-framework
@@ -1827,13 +1855,13 @@ remove_instance() {
             print_status "Keeping framework directory (--keep-framework)"
         elif [ "$force" != "true" ]; then
             if confirm "Do you also want to remove the framework directory '$framework'?" "n"; then
-                rm -rf "$FRAMEWORKS_DIR/$framework"
+                rm -rf "${FRAMEWORKS_DIR:?}/$framework"
                 print_status "Removed framework directory"
             else
                 print_status "Framework directory preserved"
             fi
         else
-            rm -rf "$FRAMEWORKS_DIR/$framework"
+            rm -rf "${FRAMEWORKS_DIR:?}/$framework"
             print_status "Removed framework directory"
         fi
     fi
@@ -1876,7 +1904,8 @@ remove_instances() {
 
     local instances_dir="${INSTANCES_DIR:-$ZNUNY_DEV_DIR/instances}"
     if [ -d "$instances_dir" ]; then
-        local instances=($(get_available_instances))
+        local instances=()
+        read_lines_to_array instances < <(get_available_instances)
         if [ ${#instances[@]} -gt 0 ]; then
             print_status "Found instances:"
             print_list "${instances[@]}"
@@ -1954,6 +1983,10 @@ main() {
             ;;
         setup-compose)
             setup_compose
+            exit 0
+            ;;
+        sync-indices)
+            sync_indices
             exit 0
             ;;
         # ========================================

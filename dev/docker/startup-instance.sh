@@ -205,7 +205,7 @@ update_config_custom() {
     # Replace placeholders in snippet: {{FRAMEWORK_DIR}}{{FRAMEWORK}} (first), {{FRAMEWORK}}, {{PORT}} with actual values
     local snippet_processed
     snippet_processed="$(mktemp)"
-    trap "rm -f '$snippet_processed'" RETURN
+    trap 'rm -f -- "$snippet_processed"' RETURN
     local instance_port="${INSTANCE_PORT:-10000}"
     sed 's|{{FRAMEWORK_DIR}}{{FRAMEWORK}}|'"$FRAMEWORK_DIR"'|g; s|{{FRAMEWORK}}|'"$FRAMEWORK"'|g; s|{{PORT}}|'"$instance_port"'|g' "$snippet_file" > "$snippet_processed"
 
@@ -251,8 +251,9 @@ setup_znuny_user() {
         log "Creating user 'znuny'..."
 
         # Get www-data user info
-        local www_data_uid=$(id -u www-data 2>/dev/null || echo "33")
-        local www_data_gid=$(id -g www-data 2>/dev/null || echo "33")
+        local www_data_uid www_data_gid
+        www_data_uid=$(id -u www-data 2>/dev/null || echo "33")
+        www_data_gid=$(id -g www-data 2>/dev/null || echo "33")
 
         # Create znuny user with same UID/GID as www-data
         useradd -u "$www_data_uid" -g "$www_data_gid" -d /home/znuny -s /usr/bin/zsh -m znuny 2>/dev/null || {
@@ -474,7 +475,7 @@ initialize_database() {
     # Run Znuny database setup
     if [ -f "/opt/znuny/scripts/database/znuny-schema.xml" ]; then
         log "Creating database schema..."
-        cd /opt/znuny
+        cd /opt/znuny || return 1
         perl "$CONSOLE_PL" Maint::Database::Check || true
         perl "$CONSOLE_PL" Maint::Database::Check::Tables || true
     fi
@@ -493,9 +494,8 @@ setup_module_tools() {
 
         if [ -f "/opt/tools/module-tools/cpanfile" ]; then
             log "Installing module-tools CPAN dependencies (cpanfile)..."
-            cd /opt/tools/module-tools
-            cpanm --notest --installdeps .
-            if [ $? -eq 0 ]; then
+            cd /opt/tools/module-tools || return 0
+            if cpanm --notest --installdeps .; then
                 log "Module-tools dependencies installed."
             else
                 log "WARNING: module-tools installdeps failed (e.g. String::Similarity needs build-essential). Some commands may not work."

@@ -125,13 +125,13 @@ run_test_suite() {
 
     local exit_code=$?
 
-    if [ $exit_code -eq 0 ]; then
+    if [ "$exit_code" -eq 0 ]; then
         echo -e "${GREEN}✓ $test_name tests passed${NC}"
     else
         echo -e "${RED}✗ $test_name tests failed${NC}"
     fi
 
-    return $exit_code
+    return "$exit_code"
 }
 
 # Function to run all tests
@@ -189,6 +189,7 @@ run_all_tests() {
 # Main execution
 main() {
     # Load assertion functions
+    # shellcheck source=utils/assertions.sh
     source "$TEST_DIR/utils/assertions.sh"
 
     if [ -n "$RUN_SPECIFIC" ]; then

@@ -9,6 +9,7 @@
 set -e
 
 TEST_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+# shellcheck source=../../utils/assertions.sh
 source "$TEST_DIR/utils/assertions.sh"
 
 # Same awk logic as in dev/docker/startup-instance.sh update_config_custom()
@@ -42,7 +43,7 @@ test_block_replaced_with_snippet() {
 
     local tmp_dir
     tmp_dir=$(mktemp -d)
-    trap "rm -rf '$tmp_dir'" RETURN
+    trap 'rm -rf -- "$tmp_dir"' RETURN
 
     # Config.pm with same structure as Config.pm.dist (opening block, placeholders, then "data inserted" and "end of your own config options")
     cat > "$tmp_dir/Config.pm" << 'CONFIGEOF'
@@ -191,7 +192,7 @@ test_no_markers_unchanged() {
 
     local tmp_dir
     tmp_dir=$(mktemp -d)
-    trap "rm -rf '$tmp_dir'" RETURN
+    trap 'rm -rf -- "$tmp_dir"' RETURN
 
     cat > "$tmp_dir/Config.pm" << 'EOF'
 sub Load {
@@ -217,7 +218,7 @@ test_header_and_footer_preserved() {
 
     local tmp_dir
     tmp_dir=$(mktemp -d)
-    trap "rm -rf '$tmp_dir'" RETURN
+    trap 'rm -rf -- "$tmp_dir"' RETURN
 
     cat > "$tmp_dir/Config.pm" << 'EOF'
 package Kernel::Config;

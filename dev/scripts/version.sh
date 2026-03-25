@@ -152,7 +152,9 @@ check_version() {
     print_table "Last version check" "$last_check"
     print_table "Today" "$today"
 
+    # Same file as ../../.env when ZNUNY_DEV_DIR is repo root; often missing in CI (SC1091).
     # shellcheck source=../../.env
+    # shellcheck disable=SC1091
     source "$env_file" 2>/dev/null || true
 
     local release_file="$ZNUNY_DEV_DIR/RELEASE"

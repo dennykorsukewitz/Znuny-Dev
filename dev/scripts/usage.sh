@@ -37,6 +37,7 @@ show_usage() {
     print_command "status <framework|all> [--verbose]" "Show framework instance or all instance status"
     echo ""
     print_command "create <framework> [options]"       "Create a new framework instance"
+    print_command "sync-indices"                       "Rebuild USED_FRAMEWORK_INDICES from instances/ (after manual deletes)"
     print_command "remove <framework|all> [options]"   "Remove framework instance or all instances"
     print_command "start <framework|all>"              "Start framework instance or all instances"
     print_command "stop <framework|all>"               "Stop framework instance or all instances"

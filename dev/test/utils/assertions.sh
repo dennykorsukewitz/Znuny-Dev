@@ -158,8 +158,10 @@ assert_file_exists() {
 
     local verbose_info=""
     if [ -f "$file_path" ] && [ "$VERBOSE_TESTS" = true ]; then
-        local file_size=$(wc -c < "$file_path" 2>/dev/null || echo "unknown")
-        local file_perms=$(ls -l "$file_path" 2>/dev/null | awk '{print $1}' || echo "unknown")
+        local file_size
+        file_size=$(wc -c < "$file_path" 2>/dev/null || echo "unknown")
+        local file_perms
+        file_perms=$(stat -c '%A' "$file_path" 2>/dev/null || stat -f '%Sp' "$file_path" 2>/dev/null || echo "unknown")
         verbose_info="Size: ${file_size} bytes, Permissions: ${file_perms}"
     fi
 
@@ -169,9 +171,13 @@ assert_file_exists() {
     else
         # Show parent directory contents in verbose mode
         if [ "$VERBOSE_TESTS" = true ]; then
-            local parent_dir=$(dirname "$file_path")
+            local parent_dir
+            parent_dir=$(dirname "$file_path")
             if [ -d "$parent_dir" ]; then
-                verbose_info="Parent directory exists, files: $(ls -1 "$parent_dir" 2>/dev/null | head -5 | tr '\n' ', ' || echo 'none')"
+                local sample_files
+                sample_files=$(find "$parent_dir" -mindepth 1 -maxdepth 1 -exec basename {} \; 2>/dev/null | head -5 | tr '\n' ', ' | sed 's/,$//')
+                [ -n "$sample_files" ] || sample_files='none'
+                verbose_info="Parent directory exists, files: $sample_files"
             else
                 verbose_info="Parent directory does not exist: $parent_dir"
             fi
@@ -202,8 +208,10 @@ assert_dir_exists() {
 
     local verbose_info=""
     if [ -d "$dir_path" ] && [ "$VERBOSE_TESTS" = true ]; then
-        local item_count=$(ls -1 "$dir_path" 2>/dev/null | wc -l | tr -d ' ')
-        local dir_perms=$(ls -ld "$dir_path" 2>/dev/null | awk '{print $1}' || echo "unknown")
+        local item_count
+        item_count=$(find "$dir_path" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l | tr -d ' ')
+        local dir_perms
+        dir_perms=$(stat -c '%A' "$dir_path" 2>/dev/null || stat -f '%Sp' "$dir_path" 2>/dev/null || echo "unknown")
         verbose_info="Items: ${item_count}, Permissions: ${dir_perms}"
     fi
 
@@ -213,9 +221,13 @@ assert_dir_exists() {
     else
         # Show parent directory info in verbose mode
         if [ "$VERBOSE_TESTS" = true ]; then
-            local parent_dir=$(dirname "$dir_path")
+            local parent_dir
+            parent_dir=$(dirname "$dir_path")
             if [ -d "$parent_dir" ]; then
-                verbose_info="Parent directory exists, subdirs: $(ls -1d "$parent_dir"/*/ 2>/dev/null | head -3 | tr '\n' ', ' || echo 'none')"
+                local sample_subdirs
+                sample_subdirs=$(find "$parent_dir" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; 2>/dev/null | head -3 | tr '\n' ', ' | sed 's/,$//')
+                [ -n "$sample_subdirs" ] || sample_subdirs='none'
+                verbose_info="Parent directory exists, subdirs: $sample_subdirs"
             else
                 verbose_info="Parent directory does not exist: $parent_dir"
             fi
@@ -299,29 +311,6 @@ assert_not_set() {
     fi
 }
 
-# Function to run a test suite
-run_test_suite() {
-    local suite_name="$1"
-    local test_function="$2"
-
-    echo ""
-    echo "=========================================="
-    echo -e "${BLUE}Running Test Suite: $suite_name${NC}"
-    echo "=========================================="
-
-    # Reset counters for this suite
-    local suite_tests_run=0
-    local suite_tests_passed=0
-    local suite_tests_failed=0
-
-    # Run the test function
-    if $test_function; then
-        echo -e "${GREEN}✓ Test suite '$suite_name' completed successfully${NC}"
-    else
-        echo -e "${RED}✗ Test suite '$suite_name' had failures${NC}"
-    fi
-}
-
 # Function to setup test environment
 setup_test_env() {
     local test_dir="$1"
@@ -358,6 +347,5 @@ export -f assert_contains
 export -f assert_not_contains
 export -f assert_set
 export -f assert_not_set
-export -f run_test_suite
 export -f setup_test_env
 export -f cleanup_test_env

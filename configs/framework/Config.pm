@@ -1,3 +1,6 @@
+# --
+# Config fragment merged into Kernel/Config.pm by container startup (not a standalone module).
+## no critic (TestingAndDebugging::RequireUseStrict)
 
     $Self->{'SecureMode'}                        = 1;
     $Self->{'SystemID'}                          = '42';

@@ -4,7 +4,7 @@ This folder contains tests for the individual script files of the Znuny Developm
 
 ## Structure
 
-```
+```text
 dev/test/
 ├── README.md                # This file
 ├── data/                    # Test data and mock files
@@ -26,12 +26,15 @@ dev/test/
 ## Usage
 
 ### Run all tests
+
 ```bash
 ./dev/test/run.sh
 ```
+
 Runs all suites: common, instance, env (if present), repository, compose (if present), znuny-dev, and **instance-create** (`tests/instance/create.sh`). The last one performs real `zd create` runs (needs network and write access to frameworks/ and instances/).
 
 ### Run individual test suites
+
 ```bash
 ./dev/test/tests/instance.sh
 ./dev/test/tests/repository.sh
@@ -41,11 +44,13 @@ Runs all suites: common, instance, env (if present), repository, compose (if pre
 ```
 
 ### Tests with verbose output
+
 ```bash
 ./dev/test/run.sh --verbose
 ```
 
 ### Run specific test suite
+
 ```bash
 ./dev/test/run.sh --test instance
 ./dev/test/run.sh --test repository
@@ -55,6 +60,7 @@ Runs all suites: common, instance, env (if present), repository, compose (if pre
 ```
 
 ### Show help
+
 ```bash
 ./dev/test/run.sh --help
 ```
@@ -62,16 +68,19 @@ Runs all suites: common, instance, env (if present), repository, compose (if pre
 ## Test Categories
 
 ### 1. Unit Tests
+
 - Test individual functions in isolation
 - Mock data and environments
 - Edge cases and error handling
 
 ### 2. Integration Tests
+
 - Test interaction between scripts
 - End-to-end workflows
 - Realistic scenarios
 
 ### 3. Regression Tests
+
 - Ensure changes don't break existing functionality
 - Automated tests on code changes
 
@@ -85,12 +94,14 @@ Runs all suites: common, instance, env (if present), repository, compose (if pre
 ## Verbose Mode
 
 The `--verbose` flag provides additional debug information:
+
 - File sizes, permissions, and modification times
 - Command output and exit codes
 - String lengths and content previews
 - Parent directory contents on failures
 
 See detailed examples:
+
 ```bash
 # Standard output (compact)
 ./dev/test/run.sh

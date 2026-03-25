@@ -24,7 +24,8 @@ execute_console_command() {
         print_error "Framework name is required"
 
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         echo "Usage:"
@@ -53,7 +54,8 @@ execute_shell_command() {
         print_error "Framework name is required"
 
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         echo "Usage:"
@@ -79,7 +81,8 @@ execute_shell_command() {
         esac
     done
 
-    local container_name=$(get_instance_container_name "$framework")
+    local container_name
+    container_name=$(get_instance_container_name "$framework")
 
     # If shell_command contains a space, treat as command line and run via shell (docker exec runs argv[0] as binary otherwise)
     local exec_cmd=("$shell_command")
@@ -112,7 +115,8 @@ execute_module_tools_command() {
     if [ -z "$framework" ]; then
         print_error "Framework name is required"
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         echo "Usage:"

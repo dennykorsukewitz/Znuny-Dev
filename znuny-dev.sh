@@ -16,6 +16,7 @@ SCRIPTS_DIR="$ZNUNY_DEV_DIR/dev/scripts"
 TEST_DIR="$ZNUNY_DEV_DIR/dev/test"
 
 # Load common functions (use ZNUNY_DEV_DIR so script works when called from anywhere)
+# shellcheck source=dev/scripts/common.sh
 source "$ZNUNY_DEV_DIR/dev/scripts/common.sh"
 
 load_environment
@@ -44,10 +45,7 @@ setup_all() {
     print_header "Step 5: Creating new instance          (dev|mariadb)."
     print_header "Step 6: Starting new instance          (docker-compose up -d)."
 
-    local step1_completed=false
     local step2_completed=false
-    local step3_completed=false
-    local step4_completed=false
     local step5_completed=false
 
     # Step 1: Generate global .env with backup preservation
@@ -55,7 +53,6 @@ setup_all() {
     if confirm "Step 1: Generate global .env (with backup preservation)" "y"; then
         echo ''
         setup_env
-        step1_completed=true
     else
         print_status "Skipping Step 1: Generate global .env"
     fi
@@ -79,7 +76,6 @@ setup_all() {
     if confirm "Step 3: Setting up directories path (frameworks, packages, tools)" "y"; then
         echo ''
         setup_directories
-        step3_completed=true
     else
         print_status "Skipping Step 3: Setting up directories path"
     fi
@@ -89,7 +85,6 @@ setup_all() {
     if confirm "Step 4: Setting up repositories (Znuny, ZnunyCodePolicy, module-tools, etc.)." "y"; then
         echo ''
         setup_repositories
-        step4_completed=true
     else
         print_status "Skipping Step 4: Setting up repositories"
     fi
@@ -99,7 +94,9 @@ setup_all() {
     if confirm "Step 5: Creating new instance" "y"; then
         echo ''
 
-        local existing_instances=($("$SCRIPTS_DIR/instance.sh" get_available_instances))
+        local existing_instances=()
+
+        read_lines_to_array existing_instances < <("$SCRIPTS_DIR/instance.sh" get_available_instances)
         if [ ${#existing_instances[@]} -gt 0 ]; then
             if ! confirm "There are already instances (${existing_instances[*]}). Create another one?" "n"; then
                 print_status "Step 5 skipped (no new instance requested)."
@@ -111,13 +108,14 @@ setup_all() {
         fi
 
         if [ "${step5_do_create:-false}" = true ]; then
-            local frameworks=($("$SCRIPTS_DIR/instance.sh" get_available_frameworks))
+            local frameworks=()
+            read_lines_to_array frameworks < <("$SCRIPTS_DIR/instance.sh" get_available_frameworks)
             if [ ${#frameworks[@]} -eq 0 ]; then
                 print_warning "No frameworks found. Please run 'zd setup-framework' first."
                 print_status "Step 5 skipped."
             else
                 local default_framework="dev"
-                if [[ ! " ${frameworks[*]} " =~ " ${default_framework} " ]]; then
+                if [[ ! " ${frameworks[*]} " == *" ${default_framework} "* ]]; then
                     default_framework="${frameworks[0]}"
                 fi
                 echo "Available frameworks:"
@@ -142,7 +140,7 @@ setup_all() {
                         framework_name="$default_framework"
                     fi
                 else
-                    if [[ ! " ${frameworks[*]} " =~ " ${framework_name} " ]]; then
+                    if [[ ! " ${frameworks[*]} " == *" ${framework_name} "* ]]; then
                         print_warning "Framework '$framework_name' not found, using default: $default_framework"
                         framework_name="$default_framework"
                     fi
@@ -437,6 +435,9 @@ main() {
         instance-random-data-insert|random-data-insert)
             "$SCRIPTS_DIR/instance.sh" random-data-insert "${@:2}"
             ;;
+        instance-sync-indices|sync-indices)
+            "$SCRIPTS_DIR/instance.sh" sync-indices
+            ;;
         instance-help)
             "$SCRIPTS_DIR/instance.sh" help
             ;;
@@ -456,7 +457,7 @@ main() {
         unittest|unit)
             "$SCRIPTS_DIR/instance.sh" unittest "${@:2}"
             ;;
-        translate|translate)
+        translate)
             "$SCRIPTS_DIR/instance.sh" translate "${@:2}"
             ;;
         contributors)

@@ -9,13 +9,16 @@ set -e
 COMPOSE_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
 # Load common functions
+# shellcheck source=../common.sh
 source "$COMPOSE_SCRIPT_DIR/../common.sh"
 
 # Load global environment variables (.env then configs/instance/my.env so my.env overrides)
 if [ -f "$COMPOSE_SCRIPT_DIR/../../../.env" ]; then
+    # shellcheck disable=SC1091
     source "$COMPOSE_SCRIPT_DIR/../../../.env"
 fi
 if [ -f "$COMPOSE_SCRIPT_DIR/../../../configs/instance/my.env" ]; then
+    # shellcheck disable=SC1091
     source "$COMPOSE_SCRIPT_DIR/../../../configs/instance/my.env"
 fi
 
@@ -29,7 +32,6 @@ COMPOSE_DIR="${COMPOSE_DIR:-$COMPOSE_SCRIPT_DIR/../../docker/compose}"
 INSTANCES_DIR="${INSTANCES_DIR:-$COMPOSE_SCRIPT_DIR/../../../instances}"
 DOCKER_DIR="${DOCKER_DIR:-$COMPOSE_SCRIPT_DIR/../../docker}"
 SCRIPTS_DIR="${SCRIPTS_DIR:-$COMPOSE_SCRIPT_DIR/..}"
-GLOBAL_ENV_FILE="$COMPOSE_SCRIPT_DIR/../../../.env"
 
 # Base path for compose templates (shared = default, dedicated = own DB + network)
 COMPOSE_TEMPLATES_BASE="$COMPOSE_SCRIPT_DIR/../../templates/compose"
@@ -50,7 +52,8 @@ get_compose_file() {
 # Regenerates if file is empty or too small (e.g. from a failed earlier generation)
 check_compose_file() {
     local framework="$1"
-    local compose_file="$(get_compose_file "$framework")"
+    local compose_file
+    compose_file="$(get_compose_file "$framework")"
 
     if [ ! -f "$compose_file" ] || [ ! -s "$compose_file" ]; then
         if [ -f "$compose_file" ]; then
@@ -60,8 +63,7 @@ check_compose_file() {
         fi
         print_status "Generating docker-compose.yml..."
 
-        create_instance_compose "$framework"
-        if [ $? -eq 0 ]; then
+        if create_instance_compose "$framework"; then
             return 0
         else
             print_error "Failed to generate Docker Compose file"
@@ -130,7 +132,8 @@ create_instance_compose() {
     # Script alias from instance env (--script-alias)
     local script_alias_sed="/dev/"
     if [ -f "$env_file" ]; then
-        local from_env=$(grep "^ZNUNY_SCRIPT_ALIAS=" "$env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || true)
+        local from_env
+        from_env=$(grep "^ZNUNY_SCRIPT_ALIAS=" "$env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || true)
         [ -n "$from_env" ] && script_alias_sed="$from_env"
     fi
     [ -z "$script_alias_sed" ] && script_alias_sed="/dev/"
@@ -197,7 +200,8 @@ create_instance_compose() {
     mkdir -p "$INSTANCES_DIR/$framework/logs"
 
     # Docker identifiers use lowercase (FRAMEWORK_SLUG); paths and env file use actual name (FRAMEWORK_NAME)
-    local framework_slug=$(get_framework_slug "$framework")
+    local framework_slug
+    framework_slug=$(get_framework_slug "$framework")
     sed -e "s/\${FRAMEWORK_SLUG}/$framework_slug/g" \
         -e "s|{{FRAMEWORK_SLUG}}|$framework_slug|g" \
         -e "s/\${FRAMEWORK_NAME}/$framework/g" \
@@ -232,8 +236,8 @@ create_all_compose_files() {
     print_status "Generating separate Docker Compose files for all frameworks..."
 
     # Get available frameworks using instance.sh function
-    local frameworks_str=$("$SCRIPTS_DIR/instance.sh" get_available_frameworks 2>/dev/null)
-    local frameworks=($frameworks_str)
+    local frameworks=()
+    read_lines_to_array frameworks < <("$SCRIPTS_DIR/instance.sh" get_available_frameworks 2>/dev/null)
 
     if [ ${#frameworks[@]} -eq 0 ]; then
         print_warning "No frameworks found. Please run setup-framework first."
@@ -289,7 +293,8 @@ EOF
 
     # Add all framework networks to the reverse proxy (Docker network names use lowercase framework_slug)
     for framework in "${frameworks[@]}"; do
-        local framework_slug=$(get_framework_slug "$framework")
+        local framework_slug
+        framework_slug=$(get_framework_slug "$framework")
         echo "      - znuny-${framework_slug}-network" >> "$compose_file"
     done
 
@@ -308,7 +313,8 @@ EOF
 
     # Add external network references for all framework networks (framework_slug for Docker)
     for framework in "${frameworks[@]}"; do
-        local framework_slug=$(get_framework_slug "$framework")
+        local framework_slug
+        framework_slug=$(get_framework_slug "$framework")
         cat >> "$compose_file" << EOF
   znuny-${framework_slug}-network:
     external: true
@@ -380,7 +386,8 @@ docker_compose() {
     local action="$2"
     shift 2  # Remove first two arguments
 
-    local compose_file="$(get_compose_file "$framework")"
+    local compose_file compose_dir compose_basename
+    compose_file="$(get_compose_file "$framework")"
     local compose_cmd
     compose_cmd=$(get_compose_cmd 2>/dev/null) || compose_cmd="docker compose"
 
@@ -389,8 +396,8 @@ docker_compose() {
         return 1
     fi
 
-    local compose_dir="$(dirname "$compose_file")"
-    local compose_basename="$(basename "$compose_file")"
+    compose_dir="$(dirname "$compose_file")"
+    compose_basename="$(basename "$compose_file")"
     cd "$compose_dir"
 
     case "$action" in

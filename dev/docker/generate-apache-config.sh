@@ -6,18 +6,18 @@
 # Don't exit on errors to prevent stopping on non-critical issues
 # set -e
 
-# Load common functions
+# Load common functions (in the image common.sh is beside this script; in-repo copy for ShellCheck: dev/scripts/common.sh)
+# shellcheck source=../scripts/common.sh
 source "$(dirname "$0")/common.sh"
 
 # Configuration
 APACHE_CONFIG_FILE="/etc/apache2/sites-available/000-default.conf"
 APACHE_CONFIG_TEMPLATE="/etc/apache2/sites-available/000-default.conf.template"
-FRAMEWORKS_DIR="/opt/znuny"
 
 # Function to generate instance dashboard
 generate_instance_dashboard() {
-    local frameworks=($(get_available_frameworks))
-
+    local frameworks=()
+    read_lines_to_array frameworks < <(get_available_frameworks)
     # Create dashboard directory
     mkdir -p /var/www/html/znuny-dev
 
@@ -432,8 +432,9 @@ EOF
 generate_apache_config() {
     print_status "Generating Apache configuration for multi-instance setup..."
 
-    local frameworks=($(get_available_frameworks))
+    local frameworks=()
 
+    read_lines_to_array frameworks < <(get_available_frameworks)
     if [ ${#frameworks[@]} -eq 0 ]; then
         print_status "No frameworks found in mounted directory. Using default configuration."
         cp "$APACHE_CONFIG_TEMPLATE" "$APACHE_CONFIG_FILE"

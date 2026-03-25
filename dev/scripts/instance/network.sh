@@ -5,9 +5,10 @@
 
 set -e
 
-# Load common functions
-if [ -f "$(dirname "$0")/common.sh" ]; then
-    source "$(dirname "$0")/common.sh"
+# Load common functions (common.sh lives in dev/scripts/, not in instance/)
+if [ -f "$(dirname "$0")/../common.sh" ]; then
+    # shellcheck source=../common.sh
+    source "$(dirname "$0")/../common.sh"
 fi
 
 # Load environment
@@ -24,7 +25,8 @@ get_instance_port() {
 
     # Try to get port from instance .env file first
     if [ -f "$instance_env_file" ]; then
-        local port=$(grep "^INSTANCE_PORT=" "$instance_env_file" | cut -d'=' -f2)
+        local port
+        port=$(grep "^INSTANCE_PORT=" "$instance_env_file" | cut -d'=' -f2)
         if [ -n "$port" ]; then
             echo "$port"
             return 0
@@ -94,7 +96,8 @@ get_database_port() {
 
     # Try to get port from instance .env file first
     if [ -f "$instance_env_file" ]; then
-        local port=$(grep "^DB_PORT=" "$instance_env_file" | cut -d'=' -f2)
+        local port
+        port=$(grep "^DB_PORT=" "$instance_env_file" | cut -d'=' -f2)
         if [ -n "$port" ]; then
             echo "$port"
             return 0
@@ -116,7 +119,8 @@ get_network_subnet() {
 
     # Try to get network from instance .env file first
     if [ -f "$instance_env_file" ]; then
-        local network=$(grep "^NETWORK_SUBNET=" "$instance_env_file" | cut -d'=' -f2)
+        local network
+        network=$(grep "^NETWORK_SUBNET=" "$instance_env_file" | cut -d'=' -f2)
         if [ -n "$network" ]; then
             echo "$network"
             return 0
@@ -131,7 +135,8 @@ get_network_subnet() {
 # Function to get container name for framework (Docker requires lowercase)
 get_instance_container_name() {
     local framework="$1"
-    local framework_slug=$(get_framework_slug "$framework")
+    local framework_slug
+    framework_slug=$(get_framework_slug "$framework")
     echo "znuny-${framework_slug}-instance"
 }
 
@@ -160,7 +165,8 @@ get_database_container_name() {
                 ;;
         esac
     else
-        local framework_slug=$(get_framework_slug "$framework")
+        local framework_slug
+        framework_slug=$(get_framework_slug "$framework")
         case "$db_type" in
             mysql)
                 db_container_name="znuny-${framework_slug}-mysql"
@@ -183,7 +189,8 @@ get_database_container_name() {
 # Function to create required Docker network for a framework (Docker names lowercase)
 create_network() {
     local framework="$1"
-    local framework_slug=$(get_framework_slug "$framework")
+    local framework_slug
+    framework_slug=$(get_framework_slug "$framework")
     local network_name="znuny-${framework_slug}-network"
 
     # Check if network exists, create if not
@@ -196,7 +203,8 @@ create_network() {
 # Function to remove Docker network for a framework (Docker names lowercase)
 remove_network() {
     local framework="$1"
-    local framework_slug=$(get_framework_slug "$framework")
+    local framework_slug
+    framework_slug=$(get_framework_slug "$framework")
     local network_name="znuny-${framework_slug}-network"
 
     # Check if network exists

@@ -11,6 +11,7 @@ if [ -z "${ZNUNY_DEV_DIR:-}" ]; then
 fi
 
 # Load common functions (needed for show_help output)
+# shellcheck source=common.sh
 source "$(dirname "$0")/common.sh"
 
 # Show help
@@ -52,6 +53,7 @@ if [ -n "${1:-}" ]; then
 else
     # Read current version and increment patch
     if [ -f "$RELEASE_FILE" ]; then
+        # shellcheck source=../../RELEASE
         source "$RELEASE_FILE"
         # Parse version (e.g., 0.0.1 -> 0.0.2)
         MAJOR=$(echo "$VERSION" | cut -d. -f1)

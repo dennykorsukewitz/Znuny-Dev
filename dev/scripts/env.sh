@@ -6,6 +6,7 @@
 set -e
 
 # Load common functions
+# shellcheck source=common.sh
 source "$(dirname "$0")/common.sh"
 
 # Load environment variables
@@ -36,14 +37,17 @@ setup_env() {
     print_header "==========================="
     echo ""
 
-    local znuny_dev_root="$(cd "$(dirname "$0")/../.." && pwd)"
+    local znuny_dev_root
+    znuny_dev_root="$(cd "$(dirname "$0")/../.." && pwd)"
     local env_file="$znuny_dev_root/.env"
     local template_file="$znuny_dev_root/dev/templates/env/global.env.template"
 
     # Check if .env already exists
     if [ -f "$env_file" ]; then
         print_warning ".env file already exists"
-        if confirm "Do you want to overwrite the existing .env file?" "n"; then
+        if [ "${ZNUNY_ENV_FORCE_REGENERATE:-0}" = 1 ]; then
+            print_status "Overwriting .env file (--force)..."
+        elif confirm "Do you want to overwrite the existing .env file?" "n"; then
             print_status "Overwriting .env file..."
         else
             print_status "Keeping existing .env file"
@@ -60,7 +64,8 @@ setup_env() {
     fi
 
     # Get current date
-    local setup_date=$(date)
+    local setup_date
+    setup_date=$(date)
 
     # Define all path variables (Full Paths)
     local dev_dir="$znuny_dev_root/dev"
@@ -250,9 +255,12 @@ setup_directories() {
     read_input "PACKAGES_DIR" "Packages directory" "$current_packages_dir"
     read_input "TOOLS_DIR" "Tools directory" "$current_tools_dir"
 
-    # Store configuration for later use in .env generation
+    # Store configuration for later use in .env generation (FRAMEWORKS_DIR etc. set by read_input)
+    # shellcheck disable=SC2153
     export CONFIGURED_FRAMEWORKS_DIR="$FRAMEWORKS_DIR"
+    # shellcheck disable=SC2153
     export CONFIGURED_PACKAGES_DIR="$PACKAGES_DIR"
+    # shellcheck disable=SC2153
     export CONFIGURED_TOOLS_DIR="$TOOLS_DIR"
 
     # Save configurations immediately to .env file
@@ -274,12 +282,16 @@ setup_alias() {
     print_header "==================="
     echo ""
 
-    local script_path="$(cd "$(dirname "$0")/../.." && pwd)/znuny-dev.sh"
+    local script_path
+    script_path="$(cd "$(dirname "$0")/../.." && pwd)/znuny-dev.sh"
 
     # Detect current shell using common function
-    local shell_info=($(detect_shell))
-    local shell_name="${shell_info[0]}"
-    local config_file="${shell_info[1]}"
+    local -a shell_info=()
+    local shell_name=""
+    local config_file=""
+    read -r -a shell_info <<< "$(detect_shell)"
+    shell_name="${shell_info[0]}"
+    config_file="${shell_info[1]}"
 
     if [ -z "$config_file" ]; then
         print_warning "Could not detect shell type. Skipping alias setup."
@@ -303,13 +315,15 @@ setup_alias() {
     fi
 
     # Add alias with absolute path (script works from any CWD via ZNUNY_DEV_DIR)
-    echo "" >> "$config_file"
-    echo "# Znuny Development Environment" >> "$config_file"
-    echo "# Added by znuny environment setup on $(date)" >> "$config_file"
-    echo "alias zd='$script_path'" >> "$config_file"
-    echo "alias zd-frameworks='cd $FRAMEWORKS_DIR'" >> "$config_file"
-    echo "alias zd-packages='cd $PACKAGES_DIR'" >> "$config_file"
-    echo "alias zd-tools='cd $TOOLS_DIR'" >> "$config_file"
+    {
+        echo ""
+        echo "# Znuny Development Environment"
+        echo "# Added by znuny environment setup on $(date)"
+        echo "alias zd='$script_path'"
+        echo "alias zd-frameworks='cd $FRAMEWORKS_DIR'"
+        echo "alias zd-packages='cd $PACKAGES_DIR'"
+        echo "alias zd-tools='cd $TOOLS_DIR'"
+    } >> "$config_file"
 
     print_success "Alias 'zd' added to $config_file"
     print_success "Alias 'zd-frameworks' added to $config_file"
@@ -351,9 +365,12 @@ remove_alias() {
     echo ""
 
     # Detect current shell using common function
-    local shell_info=($(detect_shell))
-    local shell_name="${shell_info[0]}"
-    local config_file="${shell_info[1]}"
+    local -a shell_info=()
+    local shell_name=""
+    local config_file=""
+    read -r -a shell_info <<< "$(detect_shell)"
+    shell_name="${shell_info[0]}"
+    config_file="${shell_info[1]}"
 
     if [ -n "$config_file" ] && [ -f "$config_file" ]; then
         if grep -q "zd()" "$config_file" || grep -q "alias zd=" "$config_file"; then
@@ -426,7 +443,6 @@ check_directory_structure() {
 set_env_variable() {
     local key="$1"
     local value="$2"
-    local znuny_dev_root="$(cd "$(dirname "$0")/../.." && pwd)"
     local env_file="$ZNUNY_DEV_DIR/.env"
 
     # Ensure .env file exists
@@ -472,7 +488,11 @@ main() {
                 exit 0
                 ;;
             setup-env)
-                setup_env
+                if [ "$force_regenerate" = true ]; then
+                    ZNUNY_ENV_FORCE_REGENERATE=1 setup_env
+                else
+                    setup_env
+                fi
                 exit 0
                 ;;
             setup-alias)

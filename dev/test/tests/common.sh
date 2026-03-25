@@ -11,6 +11,7 @@
 TEST_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "$0")/../../scripts" && pwd)"
 
+# shellcheck source=../utils/assertions.sh
 source "$TEST_DIR/utils/assertions.sh"
 
 # Source common.sh once for this process

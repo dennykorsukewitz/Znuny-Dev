@@ -1,4 +1,6 @@
 #!/bin/bash
+# Subshell exports in run_repository_* are intentional (isolated test env).
+# shellcheck disable=SC2030,SC2031
 
 # Test Suite for repository.sh
 #
@@ -10,6 +12,7 @@
 TEST_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "$0")/../../scripts" && pwd)"
 
+# shellcheck source=../utils/assertions.sh
 source "$TEST_DIR/utils/assertions.sh"
 
 # Source repository.sh in a subshell with env set; run a single function and return its exit code or output

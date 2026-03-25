@@ -15,6 +15,19 @@ MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
 # ========================================
+# Bash 3.2 compatibility (macOS /bin/bash has no mapfile/readarray)
+# ========================================
+# Read newline-separated stdin into the array named $1 (identifier only).
+read_lines_to_array() {
+    local _r2a_name="$1"
+    eval "${_r2a_name}=()"
+    local line
+    while IFS= read -r line || [ -n "$line" ]; do
+        [ -n "$line" ] && eval "${_r2a_name}+=(\"\$line\")"
+    done
+}
+
+# ========================================
 # Print Functions
 # ========================================
 # Function to print colored output
@@ -100,11 +113,11 @@ read_input() {
 
     if [ -n "$default" ]; then
         printf "${MAGENTA}[ENTER] %s [%s]: " "$prompt" "$default"
-        read input
+        read -r input
         eval "$var_name=\"\${input:-$default}\""
     else
         printf "${MAGENTA}[ENTER] %s: " "$prompt"
-        read input
+        read -r input
         eval "$var_name=\"$input\""
     fi
 }
@@ -117,11 +130,11 @@ read_password() {
 
     if [ -n "$default" ]; then
         printf "${MAGENTA}[ENTER] %s [%s]: " "$prompt" "$default"
-        read -s password
+        read -r -s password
         password="${password:-$default}"
     else
         printf "${MAGENTA}[ENTER] %s: " "$prompt"
-        read -s password
+        read -r -s password
     fi
     eval "$var_name=\"$password\""
 }
@@ -133,11 +146,11 @@ confirm() {
 
     if [ "$default" = "y" ]; then
         printf "${MAGENTA}[CONFIRM] %s [Y/n]: " "$message"
-        read response
+        read -r response
         response="${response:-y}"
     else
         printf "${MAGENTA}[CONFIRM] %s [y/N]: " "$message"
-        read response
+        read -r response
         response="${response:-n}"
     fi
 
@@ -239,7 +252,8 @@ check_docker() {
     fi
 
     # Get Docker daemon status
-    local docker_status=$(docker info --format '{{.ServerVersion}}' 2>/dev/null)
+    local docker_status
+    docker_status=$(docker info --format '{{.ServerVersion}}' 2>/dev/null)
     if [ -n "$docker_status" ]; then
         print_success "Docker is running (Version: $docker_status)"
     else
@@ -253,19 +267,22 @@ load_environment() {
     # Define ZNUNY_DEV_DIR if not already set
     if [ -z "${ZNUNY_DEV_DIR:-}" ]; then
         # Get absolute path to project root (common.sh is in dev/scripts/, so go up 2 levels)
-        local script_dir="$(cd "$(dirname "$0")" && pwd)"
+        local script_dir
+        script_dir="$(cd "$(dirname "$0")" && pwd)"
         ZNUNY_DEV_DIR="$(dirname "$(dirname "$script_dir")")"
     fi
 
     local env_file="$ZNUNY_DEV_DIR/.env"
 
     if [ -f "$env_file" ]; then
+        # shellcheck disable=SC1090
         source "$env_file"
     fi
 
     # Load configs/instance/my.env last so it overrides global .env
     local my_env="$ZNUNY_DEV_DIR/configs/instance/my.env"
     if [ -f "$my_env" ]; then
+        # shellcheck disable=SC1090
         source "$my_env"
     fi
 }
@@ -319,7 +336,9 @@ detect_shell() {
 
 # Function to check if zd alias/function is already configured in shell config
 check_zd_alias_configured() {
-    local shell_info=($(detect_shell))
+    local shell_line shell_info
+    shell_line=$(detect_shell)
+    read -r -a shell_info <<< "$shell_line"
     local config_file="${shell_info[1]}"
 
     if [ -z "$config_file" ] || [ ! -f "$config_file" ]; then
@@ -401,9 +420,13 @@ check_email() {
 
 # Function to show progress bar
 show_progress() {
-    local current="$1"
-    local total="$2"
+    local current="${1:-0}"
+    local total="${2:-0}"
     local description="${3:-Progress}"
+
+    if [ "$total" -le 0 ] 2>/dev/null; then
+        return 0
+    fi
 
     local percent=$((current * 100 / total))
     local filled=$((percent / 2))
@@ -412,7 +435,7 @@ show_progress() {
     printf "\r${BLUE}[INFO]${NC} %s: [" "$description"
     printf "%*s" $filled | tr ' ' '='
     printf "%*s" $empty | tr ' ' ' '
-    printf "] %d%% (%d/%d)" $percent $current $total
+    printf "] %d%% (%d/%d)" "$percent" "$current" "$total"
 }
 
 
@@ -442,7 +465,8 @@ get_available_frameworks() {
     if [ -d "$FRAMEWORKS_DIR" ]; then
         for framework_dir in "$FRAMEWORKS_DIR"/*; do
             if [ -d "$framework_dir" ]; then
-                local framework_name=$(basename "$framework_dir")
+                local framework_name
+                framework_name=$(basename "$framework_dir")
                 frameworks+=("$framework_name")
             fi
         done
@@ -455,7 +479,8 @@ get_available_frameworks() {
 # Echoes the real directory name (e.g. TSystems) or the input if no match.
 resolve_framework_name() {
     local input="$1"
-    local frameworks=($(get_available_frameworks))
+    local frameworks=()
+    read_lines_to_array frameworks < <(get_available_frameworks)
     local input_lc
     input_lc=$(echo "$input" | tr '[:upper:]' '[:lower:]')
     for f in "${frameworks[@]}"; do
@@ -475,12 +500,15 @@ get_framework_slug() {
 # Function to get available instances (subdirs of INSTANCES_DIR with NAME.env)
 get_available_instances() {
     local instances=()
+    # INSTANCES_DIR from load_environment / .env
+    # shellcheck disable=SC2153
     local instances_dir="$INSTANCES_DIR"
 
     if [ -d "$instances_dir" ]; then
         for d in "$instances_dir"/*/; do
             [ -d "$d" ] || continue
-            local instance_name=$(basename "$d")
+            local instance_name
+            instance_name=$(basename "$d")
             [ -f "$d/$instance_name.env" ] || continue
             instances+=("$instance_name")
         done
@@ -507,8 +535,8 @@ export -f confirm
 export -f check_command
 export -f check_docker
 export -f check_url
-export -f wait_for_url
 export -f check_email
+export -f wait_for_url
 
 export -f ensure_directory
 export -f backup_file
@@ -516,6 +544,7 @@ export -f show_progress
 
 export -f detect_os
 export -f detect_shell
+export -f read_lines_to_array
 
 export -f get_available_frameworks
 export -f get_available_instances

@@ -32,7 +32,8 @@ setup_status() {
     elif ! docker info >/dev/null 2>&1; then
         print "   ❌ Docker is not running"
     else
-        local docker_version=$(docker info --format '{{.ServerVersion}}' 2>/dev/null)
+        local docker_version
+        docker_version=$(docker info --format '{{.ServerVersion}}' 2>/dev/null)
         if [ -n "$docker_version" ]; then
             print "   ✅ Docker is running (Version: $docker_version)"
             check_docker=true
@@ -44,7 +45,8 @@ setup_status() {
 
     # Check shared containers (reverse proxy, etc.)
     if check_command docker && docker info >/dev/null 2>&1; then
-        local shared_containers=$(docker ps -a --format "{{.Names}} {{.Status}}" | grep -E "znuny_reverse_proxy|znuny_selenium|znuny-mariadb|znuny-mysql|znuny-postgresql" 2>/dev/null || true)
+        local shared_containers
+        shared_containers=$(docker ps -a --format "{{.Names}} {{.Status}}" | grep -E "znuny_reverse_proxy|znuny_selenium|znuny-mariadb|znuny-mysql|znuny-postgresql" 2>/dev/null || true)
         if [ -n "$shared_containers" ]; then
             print "   ✅ Shared containers:"
             echo "$shared_containers" | while read -r container_name container_status; do
@@ -64,14 +66,16 @@ setup_status() {
     print_subheader "🏗️  Instances:"
     # Show directory path in verbose mode
     if [[ "$verbose_mode" == "true" ]]; then
+        # shellcheck disable=SC2153
         print_step "   $INSTANCES_DIR"
     fi
 
     # Count instances
     check_instance_files=false
-    local instances_count=$(find "$INSTANCES_DIR" -maxdepth 1 -type d -not -name "instances" -not -name "." | sed 's|.*/||' | sort | wc -l)
+    local instances_count
+    instances_count=$(find "$INSTANCES_DIR" -maxdepth 1 -type d -not -name "instances" -not -name "." | sed 's|.*/||' | sort | wc -l)
 
-    if [ $instances_count -gt 0 ]; then
+    if [ "$instances_count" -gt 0 ]; then
         check_instance_files=true
     fi
 
@@ -94,7 +98,8 @@ setup_status() {
         [ -d "$instance_dir" ] || continue
         local name
         name=$(basename "$instance_dir")
-        local framework_slug=$(get_framework_slug "$name")
+        local framework_slug
+        framework_slug=$(get_framework_slug "$name")
         [ -f "$instance_dir/compose-${framework_slug}.yml" ] && compose_files+=("$name/compose-${framework_slug}.yml")
     done
     [ -f "$COMPOSE_DIR/compose-reverse-proxy.yml" ] && compose_files+=("compose-reverse-proxy.yml (shared)")
@@ -119,12 +124,14 @@ setup_status() {
 
     # Show directory path in verbose mode
     if [[ "$verbose_mode" == "true" ]]; then
+        # shellcheck disable=SC2153
         print_step "   $FRAMEWORKS_DIR"
     fi
 
     local check_frameworks=false
     if [ -d "$FRAMEWORKS_DIR" ]; then
-        local frameworks=($(find "$FRAMEWORKS_DIR" -maxdepth 1 -type d -not -name "frameworks" -not -name "." | sed 's|.*/||' | sort))
+        local frameworks=()
+        read_lines_to_array frameworks < <(find "$FRAMEWORKS_DIR" -maxdepth 1 -type d -not -name "frameworks" -not -name "." | sed 's|.*/||' | sort)
         if [ ${#frameworks[@]} -eq 0 ]; then
             print "   ❌ No frameworks found"
         else
@@ -147,6 +154,7 @@ setup_status() {
 
     # Show directory path in verbose mode
     if [[ "$verbose_mode" == "true" ]]; then
+        # shellcheck disable=SC2153
         print_step "   $TOOLS_DIR"
     fi
 
@@ -167,12 +175,14 @@ setup_status() {
 
     # Show directory path in verbose mode
     if [[ "$verbose_mode" == "true" ]]; then
+        # shellcheck disable=SC2153
         print_step "   $PACKAGES_DIR"
     fi
 
     # Count packages
-    local packages_count=$(find "$PACKAGES_DIR" -maxdepth 1 -type d -not -name "packages" -not -name "." | sed 's|.*/||' | sort | wc -l)
-    if [ $packages_count -gt 0 ]; then
+    local packages_count
+    packages_count=$(find "$PACKAGES_DIR" -maxdepth 1 -type d -not -name "packages" -not -name "." | sed 's|.*/||' | sort | wc -l)
+    if [ "$packages_count" -gt 0 ]; then
         print "   ✅ $packages_count packages"
     else
         print "   ❌ No packages found"

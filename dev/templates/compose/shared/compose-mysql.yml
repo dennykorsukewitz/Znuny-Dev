@@ -1,5 +1,7 @@
+---
 # Znuny Framework Instance – Shared Mode (MySQL)
-# Includes shared DB container; first instance start creates DB + network, further instances only add their app.
+# Includes shared DB container; first instance start creates DB + network,
+# further instances only add their app.
 
 services:
   znuny-mysql:
@@ -26,14 +28,14 @@ services:
     ports:
       - "${FRAMEWORK_PORT}:80"
     volumes:
-      - {{FRAMEWORKS_DIR}}/${FRAMEWORK_NAME}:/opt/znuny:rw
-      - {{PACKAGES_DIR}}:/opt/packages:rw
-      - {{TOOLS_DIR}}:/opt/tools:rw
+      - "{{FRAMEWORKS_DIR}}/${FRAMEWORK_NAME}:/opt/znuny:rw"
+      - "{{PACKAGES_DIR}}:/opt/packages:rw"
+      - "{{TOOLS_DIR}}:/opt/tools:rw"
       - ${FRAMEWORK_SLUG}-data:/var/lib/znuny
-      - {{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/var/log/apache2:rw
-      - {{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/opt/znuny/var/log:rw
-      - {{CONFIGS_DIR}}:/etc/znuny/configs:ro
-      - {{FRAMEWORK_CONFIGS_DIR}}:/opt/framework-config:ro
+      - "{{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/var/log/apache2:rw"
+      - "{{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/opt/znuny/var/log:rw"
+      - "{{CONFIGS_DIR}}:/etc/znuny/configs:ro"
+      - "{{FRAMEWORK_CONFIGS_DIR}}:/opt/framework-config:ro"
     env_file:
       - ./${FRAMEWORK_NAME}.env
     environment:

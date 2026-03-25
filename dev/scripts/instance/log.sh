@@ -20,7 +20,8 @@ show_container_log() {
         print_error "Framework name is required"
 
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         echo "Usage:"
@@ -30,7 +31,8 @@ show_container_log() {
 
     print_subheader "Showing Docker container logs for: $framework (last $lines lines)"
 
-    local service_name=$(get_instance_container_name "$framework")
+    local service_name
+    service_name=$(get_instance_container_name "$framework")
 
     # Use centralized docker_compose function for Docker stdout/stderr
     docker_compose "$framework" logs --tail="$lines" -f "$service_name"
@@ -51,7 +53,7 @@ show_all_container_log() {
     compose_cmd=$(get_compose_cmd 2>/dev/null) || compose_cmd="docker compose"
 
     if [ -d "$COMPOSE_DIR" ] && [ -f "$COMPOSE_DIR/compose-reverse-proxy.yml" ]; then
-        cd "$COMPOSE_DIR" && $compose_cmd -p znuny logs -f $service
+        cd "$COMPOSE_DIR" && $compose_cmd -p znuny logs -f "$service"
         return $?
     fi
 
@@ -82,7 +84,8 @@ show_framework_log() {
         print_error "Framework name is required"
 
         echo "Available frameworks:"
-        local available_frameworks=($(get_available_frameworks))
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
         print_list "${available_frameworks[@]}"
         echo ""
         echo "Usage:"

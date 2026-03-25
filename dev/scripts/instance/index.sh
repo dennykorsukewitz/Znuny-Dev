@@ -7,6 +7,7 @@ set -e
 
 # Load common functions
 if [ -f "$(dirname "$0")/../common.sh" ]; then
+    # shellcheck source=../common.sh
     source "$(dirname "$0")/../common.sh"
 fi
 
@@ -20,18 +21,21 @@ load_environment
 # Function to get framework index from instance .env file
 get_instance_index() {
     local framework="$1"
+    # INSTANCES_DIR from load_environment
+    # shellcheck disable=SC2153
     local instance_env_file="$INSTANCES_DIR/$framework/$framework.env"
+    local index=""
 
     # Try to get index from instance .env file first
     if [ -f "$instance_env_file" ]; then
-        local index=$(grep "^FRAMEWORK_INDEX=" "$instance_env_file" | cut -d'=' -f2)
+        index=$(grep "^FRAMEWORK_INDEX=" "$instance_env_file" | cut -d'=' -f2)
         if [ -n "$index" ]; then
             echo "$index"
             return 0
         fi
     fi
 
-    echo $index
+    echo ""
 }
 
 # Function to get used framework indices from global .env
@@ -63,7 +67,8 @@ is_instance_index_in_use() {
     local index="$1"
 
     # Check if index is used in global .env
-    local used_indices=$(get_used_instance_indices)
+    local used_indices
+    used_indices=$(get_used_instance_indices)
     if [ -n "$used_indices" ]; then
         for used_index in $(echo "$used_indices" | tr ',' ' '); do
             if [ "$used_index" = "$index" ]; then
@@ -73,14 +78,17 @@ is_instance_index_in_use() {
     fi
 
     # Check if index is used by any existing instance
+    # shellcheck disable=SC2153
     local instances_dir="$INSTANCES_DIR"
     if [ -d "$instances_dir" ]; then
         for instance_dir in "$instances_dir"/*/; do
             [ -d "$instance_dir" ] || continue
-            local instance_name=$(basename "$instance_dir")
+            local instance_name
+            instance_name=$(basename "$instance_dir")
             local env_file="$instance_dir/$instance_name.env"
             if [ -f "$env_file" ]; then
-                local used_index=$(grep "^FRAMEWORK_INDEX=" "$env_file" | cut -d'=' -f2)
+                local used_index
+                used_index=$(grep "^FRAMEWORK_INDEX=" "$env_file" | cut -d'=' -f2)
                 if [ "$used_index" = "$index" ]; then
                     return 0  # Index is in use
                 fi
@@ -120,7 +128,8 @@ set_instance_index_used() {
     fi
 
     # Get current used indices
-    local used_indices=$(get_used_instance_indices)
+    local used_indices
+    used_indices=$(get_used_instance_indices)
 
     # Add new index to used list
     if [ -n "$used_indices" ]; then
@@ -150,7 +159,8 @@ unset_instance_index_used() {
     fi
 
     # Get current used indices
-    local used_indices=$(get_used_instance_indices)
+    local used_indices
+    used_indices=$(get_used_instance_indices)
 
     if [ -n "$used_indices" ]; then
         # Remove index from used list
@@ -174,5 +184,50 @@ unset_instance_index_used() {
 
         print_status "Unset framework index $index as used in global configuration"
     fi
+}
+
+# Rewrite USED_FRAMEWORK_INDICES in global .env from existing instances only (covers manual deletes / drift).
+sync_indices() {
+    local env_file="$ZNUNY_DEV_DIR/.env"
+
+    if [ ! -f "$env_file" ]; then
+        print_error "Global .env file not found: $env_file"
+        return 1
+    fi
+
+    local raw_indices=""
+    # shellcheck disable=SC2153
+    local instances_dir="$INSTANCES_DIR"
+
+    if [ -d "$instances_dir" ]; then
+        for instance_dir in "$instances_dir"/*/; do
+            [ -d "$instance_dir" ] || continue
+            local instance_name
+            instance_name=$(basename "$instance_dir")
+            local inst_env="$instance_dir/$instance_name.env"
+            if [ -f "$inst_env" ]; then
+                local idx
+                idx=$(grep "^FRAMEWORK_INDEX=" "$inst_env" 2>/dev/null | cut -d'=' -f2- | tr -d ' "')
+                if [ -n "$idx" ]; then
+                    if [ -n "$raw_indices" ]; then
+                        raw_indices="$raw_indices,$idx"
+                    else
+                        raw_indices="$idx"
+                    fi
+                fi
+            fi
+        done
+    fi
+
+    local new_list=""
+    if [ -n "$raw_indices" ]; then
+        new_list=$(echo "$raw_indices" | tr ',' '\n' | grep -v '^$' | sort -nu | paste -sd ',' -)
+    fi
+
+    sed -i.bak "s/^USED_FRAMEWORK_INDICES=.*/USED_FRAMEWORK_INDICES=$new_list/" "$env_file"
+    rm -f "$env_file.bak"
+
+    print_success "USED_FRAMEWORK_INDICES synced from instances: ${new_list:-<empty>}"
+    return 0
 }
 

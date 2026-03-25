@@ -22,6 +22,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")/../../scripts" && pwd)"
 DATA_DIR="$TEST_DIR/data"
 
 # Load assertion functions
+# shellcheck source=../utils/assertions.sh
 source "$TEST_DIR/utils/assertions.sh"
 
 # Test environment setup
@@ -55,6 +56,7 @@ setup_test_environment() {
     export TOOLS_DIR="$TEST_ENV_DIR/tools"
 
     # Source common.sh to get utility functions
+    # shellcheck source=../../scripts/common.sh
     source "$SCRIPT_DIR/common.sh"
 
     echo "Test environment created at: $TEST_ENV_DIR"
@@ -74,16 +76,17 @@ call_instance_function() {
     shift
 
     # Extract just the function from instance.sh and execute it
-    bash -c "
-        source '$SCRIPT_DIR/common.sh'
-        export ZNUNY_DEV_DIR='$ZNUNY_DEV_DIR'
-        export FRAMEWORKS_DIR='$FRAMEWORKS_DIR'
-        export INSTANCES_DIR='$INSTANCES_DIR'
-        export COMPOSE_DIR='$COMPOSE_DIR'
-
-        # Extract and source only the function we need
-        sed -n '/^$func_name()/,/^}/p' '$SCRIPT_DIR/instance.sh' | bash -s -- $@
-    "
+    bash -c '
+        sd="$1"
+        source "$sd/common.sh"
+        export ZNUNY_DEV_DIR="$2"
+        export FRAMEWORKS_DIR="$3"
+        export INSTANCES_DIR="$4"
+        export COMPOSE_DIR="$5"
+        fn="$6"
+        shift 6
+        sed -n "/^${fn}()/,/^}/p" "$sd/instance.sh" | bash -s -- "$@"
+    ' _ "$SCRIPT_DIR" "$ZNUNY_DEV_DIR" "$FRAMEWORKS_DIR" "$INSTANCES_DIR" "$COMPOSE_DIR" "$func_name" "$@"
 }
 
 # Test get_available_frameworks function
@@ -91,12 +94,14 @@ test_get_available_frameworks() {
     echo ""
     echo "Testing get_available_frameworks..."
 
-    local frameworks=$(get_available_frameworks)
-    local framework_array=($frameworks)
+    local framework_array=()
+    read_lines_to_array framework_array < <(get_available_frameworks)
     local framework_count=${#framework_array[@]}
+    local frameworks
+    frameworks=$(printf '%s\n' "${framework_array[@]}")
 
     # Should find 3 frameworks: test, prod, dev
-    if [ $framework_count -eq 3 ]; then
+    if [ "$framework_count" -eq 3 ]; then
         print_test_result "get_available_frameworks count" "PASS" "Found 3 frameworks"
     else
         print_test_result "get_available_frameworks count" "FAIL" "Expected 3, found $framework_count"
@@ -126,7 +131,8 @@ test_get_available_instances() {
     echo ""
     echo "Testing get_available_instances..."
 
-    local instances=$(get_available_instances)
+    local instances
+    instances=$(get_available_instances)
 
     if echo "$instances" | grep -q "test"; then
         print_test_result "get_available_instances" "PASS" "Found test instance"
@@ -146,7 +152,7 @@ test_directory_structure() {
         print_test_result "Framework directory exists" "FAIL" "test framework directory should exist"
     fi
 
-    if [ -f "$INSTANCES_DIR/test.env" ]; then
+    if [ -f "$INSTANCES_DIR/test/test.env" ]; then
         print_test_result "Instance env file exists" "PASS" "test instance env file exists"
     else
         print_test_result "Instance env file exists" "FAIL" "test instance env file should exist"
@@ -159,17 +165,21 @@ test_environment_variables() {
     echo "Testing environment variables..."
 
     # Read FRAMEWORK_INDEX from test.env
-    if [ -f "$INSTANCES_DIR/test.env" ]; then
-        local framework_index=$(grep "^FRAMEWORK_INDEX=" "$INSTANCES_DIR/test.env" | cut -d'=' -f2)
+    if [ -f "$INSTANCES_DIR/test/test.env" ]; then
+        local framework_index
+        framework_index=$(grep "^FRAMEWORK_INDEX=" "$INSTANCES_DIR/test/test.env" | cut -d'=' -f2)
         assert_equal "1" "$framework_index" "Should read correct FRAMEWORK_INDEX"
 
-        local instance_port=$(grep "^INSTANCE_PORT=" "$INSTANCES_DIR/test.env" | cut -d'=' -f2)
+        local instance_port
+        instance_port=$(grep "^INSTANCE_PORT=" "$INSTANCES_DIR/test/test.env" | cut -d'=' -f2)
         assert_equal "8081" "$instance_port" "Should read correct INSTANCE_PORT"
 
-        local db_port=$(grep "^DB_PORT=" "$INSTANCES_DIR/test.env" | cut -d'=' -f2)
+        local db_port
+        db_port=$(grep "^DB_PORT=" "$INSTANCES_DIR/test/test.env" | cut -d'=' -f2)
         assert_equal "3306" "$db_port" "Should read correct DB_PORT"
 
-        local network_subnet=$(grep "^NETWORK_SUBNET=" "$INSTANCES_DIR/test.env" | cut -d'=' -f2)
+        local network_subnet
+        network_subnet=$(grep "^NETWORK_SUBNET=" "$INSTANCES_DIR/test/test.env" | cut -d'=' -f2)
         assert_equal "172.20.2.0/24" "$network_subnet" "Should read correct NETWORK_SUBNET"
     else
         print_test_result "Environment file reading" "FAIL" "test.env file not found"
@@ -182,7 +192,8 @@ test_used_indices() {
     echo "Testing USED_FRAMEWORK_INDICES..."
 
     if [ -f "$ZNUNY_DEV_DIR/.env" ]; then
-        local used_indices=$(grep "^USED_FRAMEWORK_INDICES=" "$ZNUNY_DEV_DIR/.env" | cut -d'=' -f2)
+        local used_indices
+        used_indices=$(grep "^USED_FRAMEWORK_INDICES=" "$ZNUNY_DEV_DIR/.env" | cut -d'=' -f2)
 
         if echo "$used_indices" | grep -q "0"; then
             print_test_result "USED_FRAMEWORK_INDICES contains 0" "PASS" "Found index 0"
@@ -235,7 +246,8 @@ test_compose_file_paths() {
     echo "Testing compose file paths..."
 
     local test_framework="test"
-    local expected_compose="$INSTANCES_DIR/$test_framework/compose-$(get_framework_slug "$test_framework").yml"
+    local expected_compose
+    expected_compose="$INSTANCES_DIR/$test_framework/compose-$(get_framework_slug "$test_framework").yml"
 
     assert_equal "$expected_compose" "$INSTANCES_DIR/test/compose-test.yml" "Should generate correct compose file path (slug format)"
 }

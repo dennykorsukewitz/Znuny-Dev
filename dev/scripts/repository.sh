@@ -6,6 +6,7 @@
 set -e
 
 # Load common functions
+# shellcheck source=common.sh
 source "$(dirname "$0")/common.sh"
 
 # Load existing environment
@@ -82,16 +83,25 @@ sort_branches() {
     done
 
     # Sort rel-dev branches descending (newest first)
-    IFS=$'\n' rel_dev_branches=($(sort -V -r <<<"${rel_dev_branches[*]}"))
-    unset IFS
+    local rel_dev_sorted=()
+    if [ ${#rel_dev_branches[@]} -gt 0 ]; then
+        read_lines_to_array rel_dev_sorted < <(printf '%s\n' "${rel_dev_branches[@]}" | sort -V -r)
+    fi
+    rel_dev_branches=("${rel_dev_sorted[@]}")
 
     # Sort rel branches descending (newest first)
-    IFS=$'\n' rel_branches=($(sort -V -r <<<"${rel_branches[*]}"))
-    unset IFS
+    local rel_sorted=()
+    if [ ${#rel_branches[@]} -gt 0 ]; then
+        read_lines_to_array rel_sorted < <(printf '%s\n' "${rel_branches[@]}" | sort -V -r)
+    fi
+    rel_branches=("${rel_sorted[@]}")
 
     # Sort other branches alphabetically
-    IFS=$'\n' other_branches=($(sort <<<"${other_branches[*]}"))
-    unset IFS
+    local other_sorted=()
+    if [ ${#other_branches[@]} -gt 0 ]; then
+        read_lines_to_array other_sorted < <(printf '%s\n' "${other_branches[@]}" | sort)
+    fi
+    other_branches=("${other_sorted[@]}")
 
     # Combine in desired order
     local sorted_branches=()
@@ -110,7 +120,8 @@ get_available_branches() {
 
     # Try to get branches using git ls-remote
     if check_command git; then
-        local remote_branches=$(git ls-remote --heads "$repo_source" 2>/dev/null | sed 's/.*refs\/heads\///' | sort -u)
+        local remote_branches
+        remote_branches=$(git ls-remote --heads "$repo_source" 2>/dev/null | sed 's/.*refs\/heads\///' | sort -u)
 
         if [ -n "$remote_branches" ]; then
             while IFS= read -r branch; do
@@ -136,8 +147,8 @@ select_branch() {
     local default_branch="$2"
 
     print_status "Fetching available branches from $repo_source..."
-    local branches=($(get_available_branches "$repo_source"))
-
+    local branches=()
+    read_lines_to_array branches < <(get_available_branches "$repo_source")
     if [ ${#branches[@]} -eq 0 ]; then
         print_warning "No branches found, using default: $default_branch"
         echo "$default_branch"
@@ -153,6 +164,7 @@ select_branch() {
         print_list_item "$((i+1)). ${branches[$i]}$marker"
     done
 
+    local selected_branch=""
     read_input "selected_branch" "Select branch number or enter branch name" "dev"
 
     # Check if it's a number
@@ -209,13 +221,13 @@ clone_repository() {
     ensure_directory "$(dirname "$target_dir")"
 
     # Clone repository. With --depth 1 only the chosen branch exists locally; use CLONE_DEPTH=0 for full clone (all branches).
-    local depth_arg=""
+    local depth_args=()
     if [ -n "${CLONE_DEPTH:-}" ] && [ "${CLONE_DEPTH}" = "0" ]; then
         print_status "Full clone (all branches) – CLONE_DEPTH=0"
     else
-        depth_arg="--depth 1"
+        depth_args=(--depth 1)
     fi
-    if git clone --branch "$branch" $depth_arg "$repo_source" "$target_dir"; then
+    if git clone --branch "$branch" "${depth_args[@]}" "$repo_source" "$target_dir"; then
         # Allow fetching all branches (clone only sets fetch for the checked-out branch)
         git -C "$target_dir" config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
         print_success "Repository cloned successfully"
@@ -301,7 +313,7 @@ setup_framework() {
             return 1
         fi
         local target_dir
-        target_dir=$(echo "$dir" | sed 's/[^a-zA-Z0-9._-]/_/g')
+        target_dir=${dir//[^a-zA-Z0-9._-]/_}
         clone_repository "$znuny_source" "$FRAMEWORKS_DIR/$target_dir" "$branch"
         print_success "Znuny Framework repositories setup completed!"
         return 0
@@ -310,7 +322,7 @@ setup_framework() {
     # Branch only given: clone that branch, directory = sanitized branch name, no branch selection
     if [ -n "$branch" ]; then
         local target_dir
-        target_dir=$(echo "$branch" | sed 's/[^a-zA-Z0-9._-]/_/g')
+        target_dir=${branch//[^a-zA-Z0-9._-]/_}
         if [ -d "$FRAMEWORKS_DIR/$target_dir" ]; then
             print_warning "Directory $FRAMEWORKS_DIR/$target_dir already exists, skipping."
             return 0
@@ -352,10 +364,11 @@ setup_framework() {
     read_input "dev_branch_num" "Branch number" "1"
     local dev_branch="${branch_array[$((dev_branch_num-1))]:-dev}"
     selected_branches+=("$dev_branch")
-    selected_dirs+=("$(echo "$dev_branch" | sed 's/[^a-zA-Z0-9._-]/_/g')")
+    selected_dirs+=("${dev_branch//[^a-zA-Z0-9._-]/_}")
 
     echo ""
     if confirm "Do you want to clone additional Znuny versions?" "n"; then
+        local additional_count="0"
         read_input "additional_count" "How many additional versions?" "0"
         for ((i=1; i<=additional_count; i++)); do
             echo "Select branch for additional version $i:"
@@ -363,21 +376,26 @@ setup_framework() {
             local additional_branch="${branch_array[$((additional_branch_num-1))]}"
             if [ -n "$additional_branch" ]; then
                 selected_branches+=("$additional_branch")
-                selected_dirs+=("$(echo "$additional_branch" | sed 's/[^a-zA-Z0-9._-]/_/g')")
+                selected_dirs+=("${additional_branch//[^a-zA-Z0-9._-]/_}")
             fi
         done
     fi
 
     # Clone repositories
+    local clone_total=${#selected_branches[@]}
+    local clone_step=0
     for i in "${!selected_branches[@]}"; do
         local branch="${selected_branches[$i]}"
         local target_dir="${selected_dirs[$i]}"
+        clone_step=$((clone_step + 1))
+        show_progress "$clone_step" "$clone_total" "Clone framework"
         if [ -d "$FRAMEWORKS_DIR/$target_dir" ]; then
             print_warning "Directory $FRAMEWORKS_DIR/$target_dir already exists, skipping."
             continue
         fi
         clone_repository "$znuny_source" "$FRAMEWORKS_DIR/$target_dir" "$branch"
     done
+    printf '\n'
 
     print_success "Znuny Framework repositories setup completed!"
 }
@@ -399,19 +417,24 @@ setup_tools() {
     mkdir -p "$TOOLS_DIR"
 
     # Clone development tools using configured URLs (use default branches)
+    local tools_total=3
+    show_progress 1 "$tools_total" "Cloning tools"
     print_subheader "Cloning module-tools..."
     clone_repository "$module_tools_source" "$TOOLS_DIR/module-tools" "dev"
     echo ""
 
     # TODO: Change to dev branch once merged Znuny/Public/Fred/-/merge_requests/2
+    show_progress 2 "$tools_total" "Cloning tools"
     print_subheader "Cloning Fred..."
     clone_repository "$fred_source" "$TOOLS_DIR/Fred" "private-dk-dev-upgrade"
     echo ""
 
+    show_progress 3 "$tools_total" "Cloning tools"
     print_subheader "Cloning ZnunyCodePolicy..."
     clone_repository "$code_policy_source" "$TOOLS_DIR/ZnunyCodePolicy" "dev"
     echo ""
 
+    printf '\n'
     print_success "Development tools setup completed!"
 }
 
@@ -437,7 +460,11 @@ setup_packages() {
     if [ ${#package_vars[@]} -gt 0 ]; then
         print_subheader "Cloning packages..."
         echo ""
+        local pkg_total=${#package_vars[@]}
+        local pkg_step=0
         for var in "${package_vars[@]}"; do
+            pkg_step=$((pkg_step + 1))
+            show_progress "$pkg_step" "$pkg_total" "Cloning packages"
             local package_name="${var#PACKAGE_SOURCE_LIST}"
             local package_url="${!var}"
             if [ -n "$package_url" ]; then
@@ -448,6 +475,7 @@ setup_packages() {
                 print_warning "Skipping package '$package_name': URL is empty"
             fi
         done
+        printf '\n'
     else
         print_status "No PACKAGE_SOURCE_LIST variables found in .env – no packages to clone"
     fi
@@ -464,22 +492,28 @@ remove_packages() {
     echo ""
 
     if [ -d "$PACKAGES_DIR" ]; then
-        local packages=($(find "$PACKAGES_DIR" -maxdepth 1 -type d -not -name "packages" -not -name "." | sed 's|.*/||' | sort))
+        local packages=()
+        read_lines_to_array packages < <(find "$PACKAGES_DIR" -maxdepth 1 -type d -not -name "packages" -not -name "." | sed 's|.*/||' | sort)
         if [ ${#packages[@]} -gt 0 ]; then
             print_status "Found packages"
             for package in "${packages[@]}"; do
                 print_list_item "$package"
             done
             echo ""
+            local rm_total=${#packages[@]}
+            local rm_step=0
             for package in "${packages[@]}"; do
+                rm_step=$((rm_step + 1))
+                show_progress "$rm_step" "$rm_total" "Remove packages"
                 if confirm "Remove package '$package'?" "n"; then
                     print_status "Removing package: $package"
-                    rm -rf "$PACKAGES_DIR/$package"
+                    rm -rf "${PACKAGES_DIR:?}/$package"
                     print_success "Package '$package' removed!"
                 else
                     print_status "Skipping package '$package'"
                 fi
             done
+            printf '\n'
             print_success "Package removal completed!"
         else
             print_status "No packages found in $PACKAGES_DIR"
@@ -499,22 +533,28 @@ remove_tools() {
     echo ""
 
     if [ -d "$TOOLS_DIR" ]; then
-        local tools=($(find "$TOOLS_DIR" -maxdepth 1 -type d -not -name "tools" -not -name "." | sed 's|.*/||' | sort))
+        local tools=()
+        read_lines_to_array tools < <(find "$TOOLS_DIR" -maxdepth 1 -type d -not -name "tools" -not -name "." | sed 's|.*/||' | sort)
         if [ ${#tools[@]} -gt 0 ]; then
             print_status "Found tools"
             for tool in "${tools[@]}"; do
                 print_list_item "$tool"
             done
             echo ""
+            local rm_total=${#tools[@]}
+            local rm_step=0
             for tool in "${tools[@]}"; do
+                rm_step=$((rm_step + 1))
+                show_progress "$rm_step" "$rm_total" "Remove tools"
                 if confirm "Remove tool '$tool'?" "n"; then
                     print_status "Removing tool: $tool"
-                    rm -rf "$TOOLS_DIR/$tool"
+                    rm -rf "${TOOLS_DIR:?}/$tool"
                     print_success "Tool '$tool' removed!"
                 else
                     print_status "Skipping tool '$tool'"
                 fi
             done
+            printf '\n'
             print_success "Tool removal completed!"
         else
             print_status "No tools found in $TOOLS_DIR"
@@ -535,22 +575,28 @@ remove_frameworks() {
 
     local frameworks_dir="${FRAMEWORKS_DIR:-$ZNUNY_DEV_DIR/frameworks}"
     if [ -d "$frameworks_dir" ]; then
-        local frameworks=($(find "$frameworks_dir" -maxdepth 1 -type d -not -name "frameworks" -not -name "." | sed 's|.*/||' | sort))
+        local frameworks=()
+        read_lines_to_array frameworks < <(find "$frameworks_dir" -maxdepth 1 -type d -not -name "frameworks" -not -name "." | sed 's|.*/||' | sort)
         if [ ${#frameworks[@]} -gt 0 ]; then
             print_status "Found frameworks:"
             for framework in "${frameworks[@]}"; do
                 print_list_item "$framework"
             done
             echo ""
+            local rm_total=${#frameworks[@]}
+            local rm_step=0
             for framework in "${frameworks[@]}"; do
+                rm_step=$((rm_step + 1))
+                show_progress "$rm_step" "$rm_total" "Remove frameworks"
                 if confirm "Remove framework '$framework'?" "n"; then
                     print_status "Removing framework: $framework"
-                    rm -rf "$frameworks_dir/$framework"
+                    rm -rf "${frameworks_dir:?}/$framework"
                     print_success "Framework '$framework' removed!"
                 else
                     print_status "Skipping framework '$framework'"
                 fi
             done
+            printf '\n'
             print_success "Framework removal completed!"
         else
             print_status "No frameworks found in $frameworks_dir"

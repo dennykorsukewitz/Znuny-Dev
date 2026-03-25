@@ -12,6 +12,7 @@ TEST_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 ZD="${ZD_CMD:-$ROOT/znuny-dev.sh}"
 
+# shellcheck source=../utils/assertions.sh
 source "$TEST_DIR/utils/assertions.sh"
 
 test_zd_help() {

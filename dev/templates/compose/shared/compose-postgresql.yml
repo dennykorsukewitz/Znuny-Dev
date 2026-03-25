@@ -1,5 +1,7 @@
+---
 # Znuny Framework Instance – Shared Mode (PostgreSQL)
-# Includes shared DB container; first instance start creates DB + network, further instances only add their app.
+# Includes shared DB container; first instance start creates DB + network,
+# further instances only add their app.
 
 services:
   znuny-postgresql:
@@ -25,14 +27,14 @@ services:
     ports:
       - "${FRAMEWORK_PORT}:80"
     volumes:
-      - {{FRAMEWORKS_DIR}}/${FRAMEWORK_NAME}:/opt/znuny:rw
-      - {{PACKAGES_DIR}}:/opt/packages:rw
-      - {{TOOLS_DIR}}:/opt/tools:rw
+      - "{{FRAMEWORKS_DIR}}/${FRAMEWORK_NAME}:/opt/znuny:rw"
+      - "{{PACKAGES_DIR}}:/opt/packages:rw"
+      - "{{TOOLS_DIR}}:/opt/tools:rw"
       - ${FRAMEWORK_SLUG}-data:/var/lib/znuny
-      - {{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/var/log/apache2:rw
-      - {{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/opt/znuny/var/log:rw
-      - {{CONFIGS_DIR}}:/etc/znuny/configs:ro
-      - {{FRAMEWORK_CONFIGS_DIR}}:/opt/framework-config:ro
+      - "{{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/var/log/apache2:rw"
+      - "{{INSTANCES_DIR}}/{{FRAMEWORK_NAME}}/logs:/opt/znuny/var/log:rw"
+      - "{{CONFIGS_DIR}}:/etc/znuny/configs:ro"
+      - "{{FRAMEWORK_CONFIGS_DIR}}:/opt/framework-config:ro"
     env_file:
       - ./${FRAMEWORK_NAME}.env
     environment:
@@ -43,6 +45,7 @@ services:
       - DB_NAME=${DB_NAME:-${FRAMEWORK_NAME}}
       - DB_USER=${DB_USER:-${FRAMEWORK_NAME}}
       - DB_PASSWORD=${DB_PASSWORD:-${FRAMEWORK_NAME}}
+      # yamllint disable-line line-length
       - POSTGRES_ROOT_PASSWORD=${POSTGRES_ROOT_PASSWORD:-${POSTGRES_PASSWORD:-postgres_shared}}
       - ZNUNY_PORT=${FRAMEWORK_PORT}
       - FRAMEWORK_NAME=${FRAMEWORK_NAME}

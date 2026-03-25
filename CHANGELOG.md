@@ -19,6 +19,7 @@ All notable changes to the Znuny Development Environment will be documented in t
 ## [1.0.0] - 2026-XX-XX
 
 ### Added
+
 - Complete Znuny development environment automation via `znuny-dev.sh`
 - Setup commands: `setup-all`, `setup-status`, `setup-env`, `setup-remove`, framework, tools, packages, Docker Compose generation
 - Instance management: create, remove, start, stop, restart, build, status, logs (framework and container)
@@ -36,19 +37,25 @@ All notable changes to the Znuny Development Environment will be documented in t
 ## Release Notes Format
 
 ### Added
+
 - New features
 
 ### Changed
+
 - Changes in existing functionality
 
 ### Deprecated
+
 - Soon-to-be removed features
 
 ### Removed
+
 - Removed features
 
 ### Fixed
+
 - Bug fixes
 
 ### Security
+
 - Security improvements

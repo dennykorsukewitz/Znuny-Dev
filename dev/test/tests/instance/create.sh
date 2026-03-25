@@ -110,7 +110,8 @@ run_real_test_with_assert() {
 # Load env to get paths
 if [ -f "$ROOT/.env" ]; then
     set -a
-    # shellcheck source=../../.env
+    # Optional; .env is gitignored and path comes from ROOT at runtime
+    # shellcheck disable=SC1091
     source "$ROOT/.env" 2>/dev/null || true
     set +a
 fi

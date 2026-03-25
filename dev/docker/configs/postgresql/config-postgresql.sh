@@ -72,7 +72,7 @@ if [ "$BOOTSTRAP_USER" = "postgres" ]; then
     log "Creating database and role for shared DB..."
     # Escape single quotes in password for SQL: ' -> ''
     DB_PASSWORD_ESCAPED="${DB_PASSWORD//\'/\'\'}"
-    PGPASSWORD="$BOOTSTRAP_PASSWORD" psql -h"$DB_HOST" -U"$BOOTSTRAP_USER" -d postgres -v ON_ERROR_STOP=1 << EOF
+    if ! PGPASSWORD="$BOOTSTRAP_PASSWORD" psql -h"$DB_HOST" -U"$BOOTSTRAP_USER" -d postgres -v ON_ERROR_STOP=1 << EOF
 -- Create role if not exists (PostgreSQL 9.5+)
 DO \$\$
 BEGIN
@@ -84,7 +84,7 @@ BEGIN
 END
 \$\$;
 EOF
-    if [ $? -ne 0 ]; then
+    then
         log "ERROR: Failed to create role"
         exit 1
     fi

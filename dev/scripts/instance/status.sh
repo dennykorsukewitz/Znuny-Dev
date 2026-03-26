@@ -154,12 +154,15 @@ show_instance_status() {
     db_port=$(grep "^DB_PORT=" "$instance_env_file" 2>/dev/null | head -1 | cut -d'=' -f2- | tr -d '"' || echo "unknown")
     local framework_name
     framework_name=$(grep "^FRAMEWORK_NAME=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || echo "unknown")
+    local db_url
+    db_url=$(get_db_connection_url "$framework" 2>/dev/null || true)
 
     print "      ⚙️  Configuration:"
     printf "         %-20s %s\n" "📁 Framework:" "$framework_name"
     printf "         %-20s %s\n" "🌐 Web Interface:" "http://localhost:$http_port"
     printf "         %-20s %s\n" "🔌 HTTP Port:" "$http_port"
     printf "         %-24s %s\n" "🗄️  Database:" "$db_type (Port: $db_port)"
+    printf "         %-20s %s\n" "🔗 Database URL:" "$db_url"
     printf "         %-20s %s\n" "🔅 Instance mode:" "$instance_mode"
     printf "         %-20s %s\n" "📁 Directory:" "$INSTANCES_DIR/$framework"
 

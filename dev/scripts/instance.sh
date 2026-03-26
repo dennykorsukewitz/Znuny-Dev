@@ -996,7 +996,7 @@ create_instance() {
         print_list_item "1. Review environment configuration: $INSTANCES_DIR_REL/$framework/$framework.env"
         print_list_item "2. Start the framework: ${ZD_CMD:-./znuny-dev.sh} instance-start $framework"
         db_url=$(get_db_connection_url "$framework" 2>/dev/null)
-        [ -n "$db_url" ] && print_list_item "3. Database URL (Beekeeper etc.): $db_url"
+        [ -n "$db_url" ] && print_list_item "3. Database URL: $db_url"
         print_list_item "$([ -n "$db_url" ] && echo "4" || echo "3"). Access the framework at: http://localhost:$(get_instance_port "$framework")"
 
         echo ""

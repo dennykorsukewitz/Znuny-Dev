@@ -34,7 +34,7 @@ get_instance_port() {
     fi
 }
 
-# Function to get external database port from compose (host-mapped port for tools like Beekeeper)
+# Function to get external database port from compose (host-mapped port for tools like)
 get_external_db_port() {
     local framework="$1"
     local compose_file
@@ -57,7 +57,7 @@ get_external_db_port() {
     esac
 }
 
-# Function to get database connection URL for external tools (Beekeeper Studio, etc.)
+# Function to get database connection URL for external tools
 get_db_connection_url() {
     local framework="$1"
     local instance_env_file="$INSTANCES_DIR/$framework/$framework.env"

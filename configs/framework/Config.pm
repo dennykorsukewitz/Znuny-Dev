@@ -26,7 +26,7 @@
 
     # Fred
     $Self->{'Fred'}->{'Active'}          = '1';
-    $Self->{'Fred'}->{'BackgroundColor'} = '#006ea5';
+    $Self->{'Fred'}->{'BackgroundColor'} = '#ff9b00';
     $Self->{'Fred'}->{'SystemName'}      = '{{FRAMEWORK}}';
     $Self->{'Fred'}->{'ConsoleOpacity'}  = '0.7';
     $Self->{'Fred'}->{'ConsoleWidth'}    = '30%';

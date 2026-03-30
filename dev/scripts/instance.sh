@@ -74,7 +74,8 @@ show_usage() {
     print_command "    --instance-mode <shared|dedicated>   # shared (default) or dedicated"
     print_command "    --start                              # Start instance immediately after creation"
     print_command "    --start-prompt                       # Ask to start instance (interactive)"
-    print_command "    --random-data-insert                        # Run RandomDataInsert after start (no prompt)"
+    print_command "    --random-data-insert                 # Run RandomDataInsert after start (no prompt)"
+    print_command "    --link-fred                          # Run link-fred after start (no prompt)"
     print_command "  start <framework>                      # Start framework instance(s) or all instances"
     print_command "  stop <framework>                       # Stop framework instance(s) or all instances"
     print_command "  restart <framework>                    # Restart framework instance(s) or all instances"
@@ -156,7 +157,8 @@ show_usage_create() {
     print_command "    --instance-mode <shared|dedicated>   # shared (default) or dedicated"
     print_command "    --start                              # Start instance immediately after creation"
     print_command "    --start-prompt                       # Ask to start instance (interactive)"
-    print_command "    --random-data-insert                        # Run RandomDataInsert after start (no prompt)"
+    print_command "    --random-data-insert                 # Run RandomDataInsert after start (no prompt)"
+    print_command "    --link-fred                          # Run link-fred after start (no prompt)"
     print_command "  list                                   # List available frameworks"
     print_command "  help                                   # Show this help message"
     echo ""
@@ -708,6 +710,54 @@ random_data_insert() {
     fi
 }
 
+# If flag was not set via CLI, ask once; prints "true" or "false".
+prompt_random_data_insert() {
+    local flag="$1"
+    if [ "$flag" != false ]; then
+        printf '%s\n' "$flag"
+        return
+    fi
+    if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "y"; then
+        printf '%s\n' "true"
+    else
+        printf '%s\n' "false"
+    fi
+}
+
+# If flag was not set via CLI, ask once; prints "true" or "false".
+prompt_link_fred() {
+    local flag="$1"
+    if [ "$flag" != false ]; then
+        printf '%s\n' "$flag"
+        return
+    fi
+    if confirm "Do you want to run link-fred (Fred dev tools) after starting?" "y"; then
+        printf '%s\n' "true"
+    else
+        printf '%s\n' "false"
+    fi
+}
+
+# After start_instance: optional link-fred, optional RandomDataInsert, then URLs if anything ran.
+post_create_instance() {
+    local framework="$1"
+    local do_link_fred="$2"
+    local do_random_data="$3"
+
+    if [ "$do_link_fred" = true ]; then
+        link_fred "$framework"
+    fi
+    if [ "$do_random_data" = true ]; then
+        random_data_insert "$framework"
+    fi
+    if [ "$do_link_fred" = true ] || [ "$do_random_data" = true ]; then
+        local db_url
+        db_url=$(get_db_connection_url "$framework" 2>/dev/null)
+        [ -n "$db_url" ] && print_status "Database URL: $db_url"
+        print_status "Access URL: http://localhost:$(get_instance_port "$framework")"
+    fi
+}
+
 # Function to create framework instance with smart logic
 create_instance() {
 
@@ -757,6 +807,7 @@ create_instance() {
     local start_prompt=true
     local instance_mode="shared"
     local random_data=false
+    local link_fred=false
 
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
@@ -811,6 +862,10 @@ create_instance() {
                 ;;
             --random-data-insert)
                 random_data=true
+                shift
+                ;;
+            --link-fred)
+                link_fred=true
                 shift
                 ;;
             --instance-mode)
@@ -974,21 +1029,15 @@ create_instance() {
     fi
 
     local random_data_insert_requested="$random_data"
+    local link_fred_requested="$link_fred"
 
     if [ "$auto_start" = true ]; then
-        if [ "$random_data_insert_requested" = false ]; then
-            if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "y"; then
-                random_data_insert_requested=true
-            fi
-        fi
+        random_data_insert_requested=$(prompt_random_data_insert "$random_data_insert_requested")
+        link_fred_requested=$(prompt_link_fred "$link_fred_requested")
+
         print_status "Starting framework instance automatically..."
         start_instance "$framework"
-        if [ "$random_data_insert_requested" = true ]; then
-            random_data_insert "$framework"
-            db_url=$(get_db_connection_url "$framework" 2>/dev/null)
-            [ -n "$db_url" ] && print_status "Database URL: $db_url"
-            print_status "Access URL: http://localhost:$(get_instance_port "$framework")"
-        fi
+        post_create_instance "$framework" "$link_fred_requested" "$random_data_insert_requested"
 
     else
         echo ""
@@ -1001,19 +1050,11 @@ create_instance() {
 
         echo ""
         if confirm "Do you want to start the framework instance now?" "y"; then
-            if [ "$random_data_insert_requested" = false ]; then
-                if confirm "Do you want to run Dev::Tools::Database::RandomDataInsert after starting?" "y"; then
-                    random_data_insert_requested=true
-                fi
-            fi
+            random_data_insert_requested=$(prompt_random_data_insert "$random_data_insert_requested")
+            link_fred_requested=$(prompt_link_fred "$link_fred_requested")
             print_status "Starting framework instance..."
             start_instance "$framework"
-            if [ "$random_data_insert_requested" = true ]; then
-                random_data_insert "$framework"
-                db_url=$(get_db_connection_url "$framework" 2>/dev/null)
-                [ -n "$db_url" ] && print_status "Database URL: $db_url"
-                print_status "Access URL: http://localhost:$(get_instance_port "$framework")"
-            fi
+            post_create_instance "$framework" "$link_fred_requested" "$random_data_insert_requested"
         else
             print_status "Framework instance created but not started. Use 'instance-start $framework' to start it later."
         fi

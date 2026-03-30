@@ -144,12 +144,13 @@ confirm() {
     local message="$1"
     local default="${2:-y}"
 
+    # Prompts must go to stderr so they stay visible inside $(command_substitution) (stdout is captured).
     if [ "$default" = "y" ]; then
-        printf "${MAGENTA}[CONFIRM] %s [Y/n]: " "$message"
+        printf "${MAGENTA}[CONFIRM] %s [Y/n]: " "$message" >&2
         read -r response
         response="${response:-y}"
     else
-        printf "${MAGENTA}[CONFIRM] %s [y/N]: " "$message"
+        printf "${MAGENTA}[CONFIRM] %s [y/N]: " "$message" >&2
         read -r response
         response="${response:-n}"
     fi

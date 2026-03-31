@@ -967,8 +967,8 @@ create_instance() {
 
         # Ask user what they want to do
         print_todo "What would you like to do?"
-        echo "1) Keep existing framework and recreate instance (Docker containers, volumes, env file)"
-        echo "2) Remove everything (framework directory + instance configuration) and start fresh"
+        echo "1) Remove everything (framework directory + instance configuration) and start fresh"
+        echo "2) Keep existing framework and recreate instance (Docker containers, volumes, env file)"
         echo "3) Cancel and keep everything as is"
         echo ""
 
@@ -978,13 +978,6 @@ create_instance() {
             echo ""
             case "$choice" in
                 1)
-                    print_subheader "Keep existing framework and recreate instance (Docker containers, volumes, env file)..."
-
-                    # Remove instance and keep framework directory
-                    remove_instance "$framework" --force --keep-framework
-                    break
-                    ;;
-                2)
                     print_subheader "Removing everything and starting fresh..."
 
                     # Remove instance and framework directory
@@ -992,6 +985,13 @@ create_instance() {
 
                     # Continue with normal creation process (clone repository)
                     clone_repository "$repo_url" "$framework_dir" "$branch"
+                    break
+                    ;;
+                2)
+                    print_subheader "Keep existing framework and recreate instance (Docker containers, volumes, env file)..."
+
+                    # Remove instance and keep framework directory
+                    remove_instance "$framework" --force --keep-framework
                     break
                     ;;
                 3)

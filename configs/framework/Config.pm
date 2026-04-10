@@ -24,6 +24,8 @@
     $Self->{'SwitchToAgent'}                     = 1;
     $Self->{'SwitchToCustomer'}                  = 1;
 
+    $Self->{'Ticket::Service'}                   = 1;
+
     # Fred
     $Self->{'Fred'}->{'Active'}          = '1';
     $Self->{'Fred'}->{'BackgroundColor'} = '#ff9b00';

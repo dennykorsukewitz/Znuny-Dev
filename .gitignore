@@ -44,5 +44,8 @@ Thumbs.db
 # Backup files
 *.bak
 
+# Configuration files
+my.env
+
 # TODO!.md
 !TODO.md

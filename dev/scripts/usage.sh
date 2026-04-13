@@ -68,6 +68,8 @@ show_usage() {
     print_command "$ZD_CMD contributors <framework>"          "Dev::Code::ContributorsListUpdate"
     print_command "$ZD_CMD random-data-insert <framework>"            "Dev::Tools::Database::RandomDataInsert"
     echo ""
+    print_command "$ZD_CMD codepolicy <framework> [options|paths]" "Znuny CodePolicy (znuny.CodePolicy.pl); optional framework (default: dev); forwards --all-files, --file-path, --directory, --staged-files, --verbose, ..."
+    echo ""
 
     # ========================================
     # ModuleTools Commands
@@ -189,6 +191,10 @@ show_usage_examples() {
     print_command "$ZD_CMD translate dev" ""
     print_command "$ZD_CMD contributors dev" ""
     print_command "$ZD_CMD random-data-insert dev" ""
+    print_command "$ZD_CMD codepolicy dev" ""
+    print_command "$ZD_CMD codepolicy dev --all-files" ""
+    print_command "$ZD_CMD codepolicy dev --file-path Kernel/System/Ticket.pm" ""
+    print_command "$ZD_CMD codepolicy dev --directory Kernel/System" ""
     echo ""
 
     print_subheader "Fred Example:"

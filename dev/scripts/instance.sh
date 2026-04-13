@@ -530,6 +530,42 @@ module_tools() {
     execute_module_tools_command "$framework" "$@"
 }
 
+# Znuny CodePolicy: host Perl from the framework checkout root (not Docker); forwards znuny.CodePolicy.pl options.
+code_policy() {
+    if [ -z "${FRAMEWORKS_DIR:-}" ] || [ -z "${TOOLS_DIR:-}" ]; then
+        print_error "FRAMEWORKS_DIR or TOOLS_DIR not set. Run '${ZD_CMD:-zd} setup-env'."
+        return 1
+    fi
+
+    local cp_script="${TOOLS_DIR}/ZnunyCodePolicy/bin/znuny.CodePolicy.pl"
+    if [ ! -f "$cp_script" ]; then
+        print_error "ZnunyCodePolicy not found: $cp_script"
+        print_status "Run '${ZD_CMD:-zd} setup-tools' or clone into tools/ZnunyCodePolicy (see ${ZD_CMD:-zd} setup-repository-sources)."
+        return 1
+    fi
+
+    local framework=""
+    if [ "$#" -gt 0 ] && [ "${1#-}" = "$1" ]; then
+        local candidate
+        candidate=$(resolve_framework_name "$1")
+        if [ -d "$FRAMEWORKS_DIR/$candidate" ]; then
+            framework="$candidate"
+            shift
+        fi
+    fi
+    framework="${framework:-dev}"
+
+    local fw_dir="$FRAMEWORKS_DIR/$framework"
+    if [ ! -d "$fw_dir" ]; then
+        print_error "Framework directory not found: $fw_dir"
+        return 1
+    fi
+
+    local fw_rel="${FRAMEWORKS_DIR_REL:-frameworks}"
+    print_status "Znuny CodePolicy (framework: $framework, cwd: $fw_rel/$framework)"
+    ( cd "$fw_dir" && perl "$cp_script" "$@" )
+}
+
 link_fred() {
     local framework="$1"
     execute_module_tools_command "$framework" Module::File::Link "/opt/tools/Fred" "/opt/znuny"
@@ -2136,6 +2172,9 @@ main() {
             ;;
         module-tools|mt)
             module_tools "$framework" "${@:3}"
+            ;;
+        codepolicy|cp|cc)
+            code_policy "${@:2}"
             ;;
 
         # ========================================

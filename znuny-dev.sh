@@ -463,6 +463,9 @@ main() {
         contributors)
             "$SCRIPTS_DIR/instance.sh" contributors "${@:2}"
             ;;
+        codepolicy|cp|cc)
+            "$SCRIPTS_DIR/instance.sh" "$1" "${@:2}"
+            ;;
 
         # ========================================
         # ModuleTools Commands

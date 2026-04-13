@@ -738,6 +738,21 @@ prompt_link_fred() {
     fi
 }
 
+# After create: switch working directory to the new instance (this process; interactive shell unchanged when invoked via znuny-dev.sh).
+change_to_instance_directory() {
+    local instance_dir="$1"
+    local abs_dir
+    if ! abs_dir=$(cd "$instance_dir" && pwd); then
+        print_warning "Could not resolve $instance_dir"
+        return 0
+    fi
+    if cd "$abs_dir"; then
+        print_status "Working directory: $(pwd)"
+    else
+        print_warning "Could not cd to $abs_dir"
+    fi
+}
+
 # After start_instance: optional link-fred, optional RandomDataInsert, then URLs if anything ran.
 post_create_instance() {
     local framework="$1"
@@ -1021,6 +1036,11 @@ create_instance() {
     create_instance_compose "$framework" "$instance_mode"
 
     print_success "Framework instance '$framework' created successfully!"
+
+    # Continue from the new instance directory for the rest of this run (when interactive)
+    if [ "$start_prompt" = true ]; then
+        change_to_instance_directory "$instance_dir"
+    fi
 
     # Ask if user wants to start the instance or start automatically if --start flag was used
     # Skip prompt unless --start-prompt (e.g. setup-all skips; Step 6 will ask instead)

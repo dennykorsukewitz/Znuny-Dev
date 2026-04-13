@@ -24,7 +24,9 @@
     $Self->{'SwitchToAgent'}                     = 1;
     $Self->{'SwitchToCustomer'}                  = 1;
 
-    $Self->{'Ticket::Service'}                   = 1;
+    $Self->{'Ticket::Service'}     = 1;
+    $Self->{'Ticket::Type'}        = 1;
+    $Self->{'Ticket::Responsible'} = 1;
 
     # Fred
     $Self->{'Fred'}->{'Active'}          = '1';
@@ -48,24 +50,24 @@
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'InformAgent'}                 = 1;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'InvolvedAgent'}               = 1;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'IsVisibleForCustomerDefault'} = 1;
-    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'Note'}                        = '1';
-    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'NoteMandatory'}               = '1';
+    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'Note'}                        = 'Hi there from {{FRAMEWORK}}';
+    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'NoteMandatory'}               = 0;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'Owner'}                       = 1;
-    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'OwnerMandatory'}              = 1;
+    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'OwnerMandatory'}              = 0;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'Permission'}                  = 'note';
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'Priority'}                    = 1;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'Queue'}                       = 1;
-    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'QueueMandatory'}              = 1;
+    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'QueueMandatory'}              = 0;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'RequiredLock'}                = 1;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'Responsible'}                 = 1;
-    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'ResponsibleMandatory'}        = 1;
+    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'ResponsibleMandatory'}        = 0;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'RichTextHeight'}              = '100px';
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'RichTextWidth'}               = '100%';
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'Service'}                     = 1;
-    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'ServiceMandatory'}            = 1;
-    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'SLAMandatory'}                = 1;
+    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'ServiceMandatory'}            = 0;
+    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'SLAMandatory'}                = 0;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'State'}                       = 1;
-    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'StateMandatory'}              = 1;
+    $Self->{'Ticket::Frontend::AgentTicketNote'}->{'StateMandatory'}              = 0;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'Subject'}                     = 'Test Subject';
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'TicketType'}                  = 1;
     $Self->{'Ticket::Frontend::AgentTicketNote'}->{'Title'}                       = 1;

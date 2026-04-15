@@ -514,7 +514,17 @@ main() {
             ;;
 
         # ========================================
-        # Fred Commands
+        # Link/Unlink CodePolicy
+        # ========================================
+        link-codepolicy)
+            "$SCRIPTS_DIR/instance.sh" link-codepolicy "${@:2}"
+            ;;
+        unlink-codepolicy)
+            "$SCRIPTS_DIR/instance.sh" unlink-codepolicy "${@:2}"
+            ;;
+
+        # ========================================
+        # Link/Unlink Fred
         # ========================================
         link-fred)
             "$SCRIPTS_DIR/instance.sh" link-fred "${@:2}"

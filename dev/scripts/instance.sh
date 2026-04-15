@@ -570,6 +570,22 @@ code_policy() {
     ( cd "$fw_dir" && perl "$cp_script" "$@" )
 }
 
+link_codepolicy() {
+    local framework="$1"
+    execute_module_tools_command "$framework" Module::File::Link "/opt/tools/ZnunyCodePolicy" "/opt/znuny"
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    execute_console_command "$framework" Maint::Cache::Delete
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+}
+
+unlink_codepolicy() {
+    local framework="$1"
+    execute_module_tools_command "$framework" Module::File::Unlink "/opt/tools/ZnunyCodePolicy" "/opt/znuny"
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    execute_console_command "$framework" Maint::Cache::Delete
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+}
+
 link_fred() {
     local framework="$1"
     execute_module_tools_command "$framework" Module::File::Link "/opt/tools/Fred" "/opt/znuny"
@@ -2212,7 +2228,17 @@ main() {
             ;;
 
         # ========================================
-        # Fred Commands
+        # Link/Unlink CodePolicy
+        # ========================================
+        link-codepolicy)
+            link_codepolicy "$framework"
+            ;;
+        unlink-codepolicy)
+            unlink_codepolicy "$framework"
+            ;;
+
+        # ========================================
+        # Link/Unlink Fred
         # ========================================
         link-fred)
             link_fred "$framework"

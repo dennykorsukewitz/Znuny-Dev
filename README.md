@@ -29,6 +29,7 @@ A comprehensive Docker-based development environment for Znuny that enables work
 - **Developer Tools**: Fred for debugging, ZnunyCodePolicy for code quality
 - **Environment Variables Management**: Template-based configuration with automatic backup system
 - **Bash Scripts**: Cross-platform compatibility
+- **Optional local dashboard** (experimental): `zd dashboard start` / `zd dashboard restart` / `zd dashboard stop` — UI is served from your repo mount (`dev/dashboard/public`), so CSS/JS changes apply after a **restart** (no rebuild). Use `zd dashboard build` when you change the **Dockerfile** (base image). Same data as `zd status`; `http://127.0.0.1:9999/`
 
 ## 📋 Prerequisites
 
@@ -106,7 +107,7 @@ zd log <framework> error.log
 zd container-log <framework>
 zd container-log <framework> 100
 
-# All container logs (reverse-proxy stack)
+# All container logs (all znuny-* containers)
 zd container-log
 ```
 
@@ -170,11 +171,10 @@ Optional host-side configuration lives in the **`configs/`** directory at the pr
 
 1. **Template-based .env**: Global `.env` generated from templates, each instance has its own configuration
 2. **Automatic generation**: docker-compose.yml is automatically updated when changes occur
-3. **Reverse Proxy**: All instances are accessible via Port 80/443 with URL-based routing
-4. **Port conflicts**: The system automatically assigns free ports (internal only)
-5. **Volumes**: Each instance has separate Docker volumes for data and logs
-6. **Isolation**: Complete separation between instances
-7. **Apache configuration**: Automatically generated based on available frameworks
+3. **Port conflicts**: The system automatically assigns free ports for each instance (see instance `.env`)
+4. **Volumes**: Each instance has separate Docker volumes for data and logs
+5. **Isolation**: Complete separation between instances
+6. **Apache**: Per-instance container uses Znuny’s Apache setup from `startup-instance.sh`
 
 ## 📁 Directory Structure
 
@@ -192,11 +192,9 @@ Znuny-Dev/
 │   └── test/
 ├── dev/                             # Development configuration
 │   ├── docker/                      # Docker configuration
-│   │   ├── compose/                 # Shared reverse-proxy only
-│   │   │   └── compose-reverse-proxy.yml
+│   │   ├── compose/                 # Optional extra compose snippets (optional)
 │   │   ├── Dockerfile               # Docker image definition
 │   │   ├── startup-instance.sh     # Instance startup script
-│   │   ├── startup-reverse-proxy.sh
 │   │   └── configs/                 # Database configurations
 │   ├── templates/                   # Templates
 │   │   └── env/                     # Environment templates

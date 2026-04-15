@@ -26,11 +26,31 @@ fi
 FRAMEWORKS_DIR="${FRAMEWORKS_DIR:-$COMPOSE_SCRIPT_DIR/../../../frameworks}"
 PACKAGES_DIR="${PACKAGES_DIR:-$COMPOSE_SCRIPT_DIR/../../../packages}"
 TOOLS_DIR="${TOOLS_DIR:-$COMPOSE_SCRIPT_DIR/../../../tools}"
+if [ ! -d "$FRAMEWORKS_DIR" ]; then
+    FRAMEWORKS_DIR="$COMPOSE_SCRIPT_DIR/../../../frameworks"
+fi
+if [ ! -d "$PACKAGES_DIR" ]; then
+    PACKAGES_DIR="$COMPOSE_SCRIPT_DIR/../../../packages"
+fi
+if [ ! -d "$TOOLS_DIR" ]; then
+    TOOLS_DIR="$COMPOSE_SCRIPT_DIR/../../../tools"
+fi
 
-# Configuration (COMPOSE_DIR = shared reverse-proxy only; instance compose in INSTANCES_DIR/NAME/)
+# Optional: compose extra files under dev/docker/compose; per-instance compose lives in INSTANCES_DIR/<name>/
 COMPOSE_DIR="${COMPOSE_DIR:-$COMPOSE_SCRIPT_DIR/../../docker/compose}"
 INSTANCES_DIR="${INSTANCES_DIR:-$COMPOSE_SCRIPT_DIR/../../../instances}"
 DOCKER_DIR="${DOCKER_DIR:-$COMPOSE_SCRIPT_DIR/../../docker}"
+# .env often stores absolute host paths; they do not exist inside the dashboard container (only /znuny-dev/...).
+# Fall back to paths derived from this script so compose generation works in Docker and on any cwd.
+if [ ! -d "$DOCKER_DIR" ]; then
+    DOCKER_DIR="$COMPOSE_SCRIPT_DIR/../../docker"
+fi
+if [ ! -d "$COMPOSE_DIR" ]; then
+    COMPOSE_DIR="$COMPOSE_SCRIPT_DIR/../../docker/compose"
+fi
+if [ ! -d "$INSTANCES_DIR" ]; then
+    INSTANCES_DIR="$COMPOSE_SCRIPT_DIR/../../../instances"
+fi
 SCRIPTS_DIR="${SCRIPTS_DIR:-$COMPOSE_SCRIPT_DIR/..}"
 
 # Base path for compose templates (shared = default, dedicated = own DB + network)
@@ -251,77 +271,7 @@ create_all_compose_files() {
         create_instance_compose "$framework"
     done
 
-    # Generate main reverse proxy compose file
-    create_reverse_proxy_compose "${frameworks[@]}"
-
     print_success "All Docker Compose files generated successfully!"
-}
-
-# Function to generate reverse proxy compose file
-create_reverse_proxy_compose() {
-    local frameworks=("$@")
-    local compose_file="$COMPOSE_DIR/compose-reverse-proxy.yml"
-
-    print_status "Generating reverse proxy compose file with multi-network setup..."
-
-    # Start building the compose file
-    cat > "$compose_file" << 'EOF'
-# Znuny Reverse Proxy Docker Compose Configuration
-# This file manages the reverse proxy for all framework instances
-
-services:
-  # Reverse Proxy (Apache) - Main entry point for all frameworks
-  reverse-proxy:
-    build:
-      context: ../../..
-      dockerfile: dev/docker/Dockerfile
-    image: reverse-proxy
-    container_name: reverse-proxy
-    command: ["/usr/local/bin/startup-reverse-proxy.sh"]
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      # Apache configuration
-      - ./configs:/etc/znuny/configs:ro
-    environment:
-      - APACHE_SERVER_NAME=localhost
-      - APACHE_DOCUMENT_ROOT=/var/www/html
-    networks:
-      - znuny_reverse_proxy_network
-EOF
-
-    # Add all framework networks to the reverse proxy (Docker network names use lowercase framework_slug)
-    for framework in "${frameworks[@]}"; do
-        local framework_slug
-        framework_slug=$(get_framework_slug "$framework")
-        echo "      - znuny-${framework_slug}-network" >> "$compose_file"
-    done
-
-    # Continue with the rest of the configuration
-    cat >> "$compose_file" << 'EOF'
-    restart: unless-stopped
-
-# Network configuration
-networks:
-  znuny_reverse_proxy_network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.21.0.0/16
-EOF
-
-    # Add external network references for all framework networks (framework_slug for Docker)
-    for framework in "${frameworks[@]}"; do
-        local framework_slug
-        framework_slug=$(get_framework_slug "$framework")
-        cat >> "$compose_file" << EOF
-  znuny-${framework_slug}-network:
-    external: true
-EOF
-    done
-
-    print_success "Generated: $compose_file"
 }
 
 # ========================================
@@ -333,16 +283,6 @@ remove_instance_compose() {
     local framework="$1"
     local compose_file
     compose_file="$(get_compose_file "$framework")"
-
-    if [ -f "$compose_file" ]; then
-        rm -f "$compose_file"
-        print_status "Removed: $(basename "$compose_file")"
-    fi
-}
-
-# Function to remove reverse proxy compose files
-remove_reverse_proxy_compose() {
-    local compose_file="$COMPOSE_DIR/compose-reverse-proxy.yml"
 
     if [ -f "$compose_file" ]; then
         rm -f "$compose_file"
@@ -422,6 +362,41 @@ docker_compose() {
             ;;
         *)
             print_error "Unknown action: $action"
+            return 1
+            ;;
+    esac
+}
+
+# Run compose stop|restart on the Znuny app service only (znuny-<slug>-instance).
+# Shared compose files also define znuny-mariadb etc.; targeting this service avoids touching shared DB containers.
+docker_compose_app_service() {
+    local framework="$1"
+    local action="$2"
+
+    local compose_file compose_dir compose_basename
+    compose_file="$(get_compose_file "$framework")"
+    local compose_cmd
+    compose_cmd=$(get_compose_cmd 2>/dev/null) || compose_cmd="docker compose"
+
+    if [ ! -f "$compose_file" ]; then
+        print_error "Compose file not found: $compose_file"
+        return 1
+    fi
+
+    compose_dir="$(dirname "$compose_file")"
+    compose_basename="$(basename "$compose_file")"
+    local framework_slug
+    framework_slug=$(get_framework_slug "$framework")
+    local svc="znuny-${framework_slug}-instance"
+
+    cd "$compose_dir" || return 1
+
+    case "$action" in
+        stop | restart)
+            $compose_cmd -p znuny -f "$compose_basename" "$action" "$svc"
+            ;;
+        *)
+            print_error "docker_compose_app_service: use stop or restart (got: $action)"
             return 1
             ;;
     esac

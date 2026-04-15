@@ -604,14 +604,6 @@ EOF
 # Function to start Apache
 start_apache() {
     log "Starting Apache web server..."
-
-    # Generate Apache configuration if this is the reverse proxy container
-    if [ "$FRAMEWORK_NAME" = "reverse-proxy" ] || [ -z "$FRAMEWORK_NAME" ]; then
-        log "Generating Apache reverse proxy configuration..."
-        /usr/local/bin/generate-apache-config.sh --reload
-    fi
-
-    # Start Apache in foreground
     exec apache2ctl -D FOREGROUND
 }
 

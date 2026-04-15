@@ -68,6 +68,12 @@ services:
     networks:
       - znuny-${FRAMEWORK_SLUG}-network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 # Named volumes for persistent data
 volumes:

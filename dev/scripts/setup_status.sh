@@ -43,10 +43,10 @@ setup_status() {
         fi
     fi
 
-    # Check shared containers (reverse proxy, etc.)
+    # Check shared containers
     if check_command docker && docker info >/dev/null 2>&1; then
         local shared_containers
-        shared_containers=$(docker ps -a --format "{{.Names}} {{.Status}}" | grep -E "znuny_reverse_proxy|znuny_selenium|znuny-mariadb|znuny-mysql|znuny-postgresql" 2>/dev/null || true)
+        shared_containers=$(docker ps -a --format "{{.Names}} {{.Status}}" | grep -E "znuny_selenium|znuny-mariadb|znuny-mysql|znuny-postgresql" 2>/dev/null || true)
         if [ -n "$shared_containers" ]; then
             print "   ✅ Shared containers:"
             echo "$shared_containers" | while read -r container_name container_status; do
@@ -86,11 +86,11 @@ setup_status() {
         "$SCRIPTS_DIR/instance.sh" status --no-header
     fi
 
-    # Check compose files (per-instance in INSTANCES_DIR/NAME/ and reverse-proxy in COMPOSE_DIR)
+    # Check compose files (per-instance in INSTANCES_DIR/NAME/)
     print_subheader "🐳 Compose Files:"
     # Show directory path in verbose mode
     if [[ "$verbose_mode" == "true" ]]; then
-        print_step "   $INSTANCES_DIR/<name>/compose-<framework_slug>.yml, $COMPOSE_DIR (reverse-proxy)"
+        print_step "   $INSTANCES_DIR/<name>/compose-<framework_slug>.yml"
     fi
 
     local compose_files=()
@@ -102,7 +102,6 @@ setup_status() {
         framework_slug=$(get_framework_slug "$name")
         [ -f "$instance_dir/compose-${framework_slug}.yml" ] && compose_files+=("$name/compose-${framework_slug}.yml")
     done
-    [ -f "$COMPOSE_DIR/compose-reverse-proxy.yml" ] && compose_files+=("compose-reverse-proxy.yml (shared)")
 
     # Count compose files
     local check_compose_files=false

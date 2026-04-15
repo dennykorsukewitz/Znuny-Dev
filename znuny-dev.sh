@@ -420,6 +420,9 @@ main() {
         instance-status|status)
             "$SCRIPTS_DIR/instance.sh" status "${@:2}"
             ;;
+        dashboard)
+            "$SCRIPTS_DIR/instance.sh" dashboard "${@:2}"
+            ;;
         instance-log|log)
             "$SCRIPTS_DIR/instance.sh" log "${@:2}"
             ;;

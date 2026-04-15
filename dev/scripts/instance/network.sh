@@ -34,27 +34,67 @@ get_instance_port() {
     fi
 }
 
-# Function to get external database port from compose (host-mapped port for tools like)
+# Function to get external database port from compose (host-mapped port for tools like DBeaver).
+# Falls back to docker port when compose is missing or port lines use a different format.
 get_external_db_port() {
     local framework="$1"
-    local compose_file
-    compose_file="$(get_compose_file "$framework")"
-    [ -n "$compose_file" ] || return 1
-    [ -f "$compose_file" ] || return 1
-
+    local instance_env_file="$INSTANCES_DIR/$framework/$framework.env"
+    local compose_file=""
     local db_type
-    db_type=$(grep "^DB_TYPE=" "$INSTANCES_DIR/$framework/$framework.env" 2>/dev/null | cut -d'=' -f2 | tr -d '"' | tr -d "'")
+    local port=""
+    local internal_port=3306
+
+    [ -f "$instance_env_file" ] || {
+        echo ""
+        return 0
+    }
+
+    db_type=$(grep "^DB_TYPE=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'")
     case "$db_type" in
         mysql|mariadb)
-            grep -oE '"[0-9]+:3306"' "$compose_file" | head -1 | tr -d '"' | cut -d: -f1
+            internal_port=3306
             ;;
         postgresql|postgres)
-            grep -oE '"[0-9]+:5432"' "$compose_file" | head -1 | tr -d '"' | cut -d: -f1
+            internal_port=5432
             ;;
         *)
             echo ""
+            return 0
             ;;
     esac
+
+    if command -v get_compose_file >/dev/null 2>&1; then
+        compose_file="$(get_compose_file "$framework")"
+    fi
+
+    if [ -n "$compose_file" ] && [ -f "$compose_file" ]; then
+        case "$db_type" in
+            mysql|mariadb)
+                port=$(grep -oE '"[0-9]+:3306"' "$compose_file" | head -1 | tr -d '"' | cut -d: -f1)
+                [ -z "$port" ] && port=$(grep -oE "'[0-9]+:3306'" "$compose_file" | head -1 | tr -d "'" | cut -d: -f1)
+                [ -z "$port" ] && port=$(grep -oE '[0-9]+:3306' "$compose_file" | head -1 | cut -d: -f1)
+                ;;
+            postgresql|postgres)
+                port=$(grep -oE '"[0-9]+:5432"' "$compose_file" | head -1 | tr -d '"' | cut -d: -f1)
+                [ -z "$port" ] && port=$(grep -oE "'[0-9]+:5432'" "$compose_file" | head -1 | tr -d "'" | cut -d: -f1)
+                [ -z "$port" ] && port=$(grep -oE '[0-9]+:5432' "$compose_file" | head -1 | cut -d: -f1)
+                ;;
+        esac
+    fi
+
+    if [ -z "$port" ]; then
+        local instance_mode
+        instance_mode=$(grep "^INSTANCE_MODE=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || echo "shared")
+        instance_mode="${instance_mode:-shared}"
+        local cname
+        cname=$(get_database_container_name "$framework" "$db_type" "$instance_mode")
+        if [ -n "$cname" ] && docker inspect "$cname" >/dev/null 2>&1; then
+            port=$(docker port "$cname" "${internal_port}/tcp" 2>/dev/null | head -1 | grep -oE '[0-9]+$' || true)
+        fi
+    fi
+
+    printf '%s' "${port:-}"
+    return 0
 }
 
 # Function to get database connection URL for external tools

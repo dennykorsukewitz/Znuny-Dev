@@ -41,6 +41,10 @@ if [ -f "$(dirname "$0")/instance/status.sh" ]; then
     source "$(dirname "$0")/instance/status.sh"
 fi
 
+if [ -f "$(dirname "$0")/dashboard.sh" ]; then
+    source "$(dirname "$0")/dashboard.sh"
+fi
+
 if [ -f "$(dirname "$0")/instance/execute.sh" ]; then
     source "$(dirname "$0")/instance/execute.sh"
 fi
@@ -1025,7 +1029,7 @@ create_instance() {
 
         while true; do
             choice=""
-            read_input "choice" "Please choose (1/2/3)" ""
+            read_input "choice" "Please choose (1/2/3)" "1"
             echo ""
             case "$choice" in
                 1)
@@ -1072,6 +1076,8 @@ create_instance() {
     create_instance_compose "$framework" "$instance_mode"
 
     print_success "Framework instance '$framework' created successfully!"
+
+    ensure_dashboard_started
 
     # Continue from the new instance directory for the rest of this run (when interactive)
     if [ "$start_prompt" = true ]; then
@@ -1391,6 +1397,7 @@ check_instance_exists() {
 
 start_instance() {
     local framework="$1"
+    local skip_ready_wait="${2:-}"
 
     # Validate framework parameter
     if [ -z "$framework" ]; then
@@ -1418,6 +1425,11 @@ start_instance() {
         print_error "Framework instance '$framework' does not exist"
         print_status "Environment file not found: $INSTANCES_DIR_REL/$framework/$framework.env"
         echo ""
+        # No TTY — never prompt to create (would block or mislead)
+        if [ ! -t 0 ]; then
+            print_status "On the host, create the instance first, e.g.: ${ZD_CMD:-zd} create $framework"
+            return 1
+        fi
 
         if confirm "Do you want to create the framework instance '$framework' now?" "y"; then
             print_status "Creating framework instance: $framework"
@@ -1473,8 +1485,9 @@ start_instance() {
         port=$(get_instance_port "$framework")
         print_success "Framework '$framework' started successfully!"
 
-        # Wait for the service to be ready
-        wait_for_url "http://localhost:$port" "$framework"
+        if [ "$skip_ready_wait" != "1" ] && [ "$skip_ready_wait" != "true" ]; then
+            wait_for_url "http://localhost:$port" "$framework"
+        fi
         db_url=$(get_db_connection_url "$framework" 2>/dev/null)
         [ -n "$db_url" ] && print_status "Database URL: $db_url"
         print_status "Access URL: http://localhost:$port"
@@ -1495,27 +1508,17 @@ start_all_instances() {
 
     print_status "Starting all Znuny instances..."
 
-    # Create networks for all available frameworks
+    # One row per real instance (instances/<name>/<name>.env), not only frameworks/* checkouts
     local available_frameworks=()
-    read_lines_to_array available_frameworks < <(get_available_frameworks)
+    read_lines_to_array available_frameworks < <(get_available_instances)
     for framework in "${available_frameworks[@]}"; do
-        # Start instance only if instance exists
-        if ! check_instance_exists "$framework"; then
-            print_error "Instance '$framework' does not exist, skipping..."
-            continue
-        fi
         print_status "Starting instance: $framework"
-        start_instance "$framework"
+        start_instance "$framework" "1"
     done
 
-    # if reverse proxy is enabled, start it
-    if [ "$REVERSE_PROXY" = "true" ]; then
-        start_instance "reverse-proxy"
-    fi
-
     echo ""
-    print_success "All Znuny instances are now ready!"
-    print_status "Access Znuny at: http://localhost/dev/"
+    print_success "All instances have been started (containers up)."
+    print_status "HTTP readiness was not waited for; use ${ZD_CMD:-zd} status to see when each is reachable."
     echo ""
     # print_subheader "Available commands:"
     # print_command "  ${ZD_CMD:-./znuny-dev.sh} setup-status    - Check setup status"
@@ -1541,13 +1544,39 @@ stop_instance() {
         return 1
     fi
 
+    check_compose_file "$framework" || return 1
+    if ! check_instance_exists "$framework"; then
+        print_error "Framework instance '$framework' does not exist"
+        print_status "Environment file not found: $INSTANCES_DIR_REL/$framework/$framework.env"
+        return 1
+    fi
+
+    local instance_env_file="$INSTANCES_DIR/$framework/$framework.env"
+    local instance_mode="shared"
+    if [ -f "$instance_env_file" ]; then
+        instance_mode=$(grep "^INSTANCE_MODE=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || echo "shared")
+    fi
+    instance_mode="${instance_mode:-shared}"
+
     print_status "Stopping framework instance: $framework"
 
-    if docker_compose "$framework" "down"; then
-        print_success "Framework '$framework' stopped successfully!"
+    if [ "$instance_mode" = "shared" ]; then
+        local _slug
+        _slug=$(get_framework_slug "$framework")
+        print_status "Shared mode: stopping only znuny-${_slug}-instance; shared database containers (e.g. znuny-mariadb) keep running."
+        if docker_compose_app_service "$framework" "stop"; then
+            print_success "Framework '$framework' stopped successfully!"
+        else
+            print_error "Failed to stop framework '$framework'"
+            return 1
+        fi
     else
-        print_error "Failed to stop framework '$framework'"
-        return 1
+        if docker_compose "$framework" "down"; then
+            print_success "Framework '$framework' stopped successfully!"
+        else
+            print_error "Failed to stop framework '$framework'"
+            return 1
+        fi
     fi
 }
 
@@ -1560,17 +1589,11 @@ stop_all_instances() {
 
     print_status "Stopping all Znuny instances..."
 
-    # Get all available frameworks
     local available_frameworks=()
-    read_lines_to_array available_frameworks < <(get_available_frameworks)
-    # Stop all instances
+    read_lines_to_array available_frameworks < <(get_available_instances)
     for framework in "${available_frameworks[@]}"; do
         stop_instance "$framework"
     done
-
-    # TODO: Stop reverse proxy
-    # # Stop reverse proxy
-    # docker_compose "reverse-proxy" "down"
 
     print_success "All instances stopped!"
 }
@@ -1618,13 +1641,8 @@ build_instances() {
 
     print_status "Building Docker images for all Znuny instances..."
     local available_frameworks=()
-    read_lines_to_array available_frameworks < <(get_available_frameworks)
+    read_lines_to_array available_frameworks < <(get_available_instances)
     for framework in "${available_frameworks[@]}"; do
-        # Skip if no instance exists
-        if ! check_instance_exists "$framework"; then
-            print_warning "Framework instance '$framework' does not exist, skipping..."
-            continue
-        fi
         build_instance "$framework" "$@"
     done
 
@@ -1657,6 +1675,10 @@ restart_instance() {
         print_error "Framework instance '$framework' does not exist"
         print_status "Environment file not found: $INSTANCES_DIR_REL/$framework/$framework.env"
         echo ""
+        if [ ! -t 0 ]; then
+            print_status "On the host, create the instance first, e.g.: ${ZD_CMD:-zd} create $framework"
+            return 1
+        fi
 
         if confirm "Do you want to create the framework instance '$framework' now?" "y"; then
             print_status "Creating framework instance: $framework"
@@ -1670,12 +1692,30 @@ restart_instance() {
 
     print_status "Restarting framework instance: $framework"
 
-    if docker_compose "$framework" "restart"; then
+    local instance_env_file="$INSTANCES_DIR/$framework/$framework.env"
+    local instance_mode="shared"
+    if [ -f "$instance_env_file" ]; then
+        instance_mode=$(grep "^INSTANCE_MODE=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || echo "shared")
+    fi
+    instance_mode="${instance_mode:-shared}"
+
+    local restart_ok=1
+    if [ "$instance_mode" = "shared" ]; then
+        print_status "Shared mode: restarting only the app container (shared database stays running)."
+        if docker_compose_app_service "$framework" "restart"; then
+            restart_ok=0
+        fi
+    else
+        if docker_compose "$framework" "restart"; then
+            restart_ok=0
+        fi
+    fi
+
+    if [ "$restart_ok" -eq 0 ]; then
         local port
         port=$(get_instance_port "$framework")
         print_success "Framework '$framework' restarted successfully!"
 
-        # Wait for the service to be ready
         wait_for_url "http://localhost:$port" "$framework"
         db_url=$(get_db_connection_url "$framework" 2>/dev/null)
         [ -n "$db_url" ] && print_status "Database URL: $db_url"
@@ -1711,7 +1751,7 @@ remove_compose() {
     fi
 }
 
-# Remove compose files: per-instance (in INSTANCES_DIR/NAME/) and reverse-proxy (in COMPOSE_DIR)
+# Remove compose files: per-instance (in INSTANCES_DIR/NAME/)
 remove_composes() {
 
     echo ""
@@ -1735,16 +1775,6 @@ remove_composes() {
                 fi
             fi
         done
-    done
-    local f
-    for f in "$COMPOSE_DIR"/compose-reverse-proxy.yml "$COMPOSE_DIR"/compose-reverse-proxy.yml.backup "$COMPOSE_DIR"/compose-reverse-proxy.yml.bak; do
-        if [ -f "$f" ]; then
-            if confirm "Do you want to remove $(basename "$f")?" "n"; then
-                print_status "Removing: $(basename "$f")"
-                rm -f "$f"
-                count=$((count + 1))
-            fi
-        fi
     done
     if [ "$count" -eq 0 ]; then
         print_status "No compose files to remove"
@@ -2057,6 +2087,10 @@ main() {
 
         status)
             show_status "${@:2}"
+            ;;
+        dashboard)
+            dashboard "${@:2}"
+            exit 0
             ;;
 
         # ========================================

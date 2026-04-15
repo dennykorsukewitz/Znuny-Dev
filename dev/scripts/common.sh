@@ -286,6 +286,40 @@ load_environment() {
         # shellcheck disable=SC1090
         source "$my_env"
     fi
+
+    # .env often contains absolute host paths. Inside Docker only ZNUNY_DEV_DIR (e.g. /znuny-dev) exists.
+    # If a path from .env is missing here, fall back to the standard layout under ZNUNY_DEV_DIR so
+    # get_available_instances / check_instance_exists match real dirs (same as status-json).
+    if [ -n "${ZNUNY_DEV_DIR:-}" ]; then
+        if [ -z "${INSTANCES_DIR:-}" ] || [ ! -d "$INSTANCES_DIR" ]; then
+            INSTANCES_DIR="$ZNUNY_DEV_DIR/instances"
+            INSTANCES_DIR_REL="${INSTANCES_DIR_REL:-instances}"
+        fi
+        if [ -z "${FRAMEWORKS_DIR:-}" ] || [ ! -d "$FRAMEWORKS_DIR" ]; then
+            FRAMEWORKS_DIR="$ZNUNY_DEV_DIR/frameworks"
+            FRAMEWORKS_DIR_REL="${FRAMEWORKS_DIR_REL:-frameworks}"
+        fi
+        if [ -z "${PACKAGES_DIR:-}" ] || [ ! -d "$PACKAGES_DIR" ]; then
+            PACKAGES_DIR="$ZNUNY_DEV_DIR/packages"
+            PACKAGES_DIR_REL="${PACKAGES_DIR_REL:-packages}"
+        fi
+        if [ -z "${TOOLS_DIR:-}" ] || [ ! -d "$TOOLS_DIR" ]; then
+            TOOLS_DIR="$ZNUNY_DEV_DIR/tools"
+            TOOLS_DIR_REL="${TOOLS_DIR_REL:-tools}"
+        fi
+        if [ -z "${DOCKER_DIR:-}" ] || [ ! -d "$DOCKER_DIR" ]; then
+            DOCKER_DIR="$ZNUNY_DEV_DIR/dev/docker"
+            DOCKER_DIR_REL="${DOCKER_DIR_REL:-dev/docker}"
+        fi
+        if [ -z "${COMPOSE_DIR:-}" ] || [ ! -d "$COMPOSE_DIR" ]; then
+            COMPOSE_DIR="$ZNUNY_DEV_DIR/dev/docker/compose"
+            COMPOSE_DIR_REL="${COMPOSE_DIR_REL:-dev/docker/compose}"
+        fi
+        if [ -z "${DEV_DIR:-}" ] || [ ! -d "$DEV_DIR" ]; then
+            DEV_DIR="$ZNUNY_DEV_DIR/dev"
+            DEV_DIR_REL="${DEV_DIR_REL:-dev}"
+        fi
+    fi
 }
 
 # Set ZD_CMD for help/examples: "zd" when alias is set, else "./znuny-dev.sh". Only set if not already set.

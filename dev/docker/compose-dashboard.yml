@@ -1,0 +1,30 @@
+# Local dev dashboard (experimental): http://127.0.0.1:${DASHBOARD_PORT:-9999}/
+# Same Compose project as instances: docker compose -p znuny (see dev/scripts/instance/compose.sh).
+# Never use `compose down --remove-orphans` for this file: other project containers would count as orphans and be removed.
+# Shares named network znuny-network with instances (see dev/templates/compose/shared).
+# Run: zd dashboard start — app runs from repo mount; zd dashboard restart picks up public/ and server.mjs changes.
+services:
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: dev/dashboard/Dockerfile
+    image: znuny-dashboard:local
+    container_name: znuny-dashboard
+    ports:
+      # IPv4 + IPv6 loopback so http://localhost:9999/ works when localhost resolves to ::1
+      - "127.0.0.1:${DASHBOARD_PORT:-9999}:3000"
+      - "[::1]:${DASHBOARD_PORT:-9999}:3000"
+    volumes:
+      # rw: instance.sh may regenerate compose files; docker compose needs a writable socket
+      - ../../:/znuny-dev
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      ZNUNY_DEV_DIR: /znuny-dev
+      PORT: "3000"
+    networks:
+      - znuny-network
+
+networks:
+  znuny-network:
+    name: znuny-network
+    driver: bridge

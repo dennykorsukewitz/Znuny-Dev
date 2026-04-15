@@ -1,5 +1,5 @@
 # Znuny Multi-Instance Development Environment Dockerfile
-# Includes Apache with reverse proxy configuration for multiple Znuny instances
+# Apache + Perl stack for Znuny instance containers
 
 FROM ubuntu:24.04
 LABEL org.opencontainers.image.authors="Denny Korsukéwitz" \
@@ -107,7 +107,7 @@ RUN echo "smtp.unibas.ch" > /etc/nullmailer/remotes
 # Enable required Apache modules (use mpm_prefork for mod_perl)
 RUN a2dismod mpm_event && \
     a2enmod mpm_prefork perl headers deflate filter cgi rewrite && \
-    a2enmod proxy proxy_http proxy_balancer lbmethod_byrequests ssl
+    a2enmod ssl
 
 # Create directories
 RUN mkdir -p /opt/znuny \
@@ -130,19 +130,11 @@ COPY dev/docker/configs/root.zshrc /root/.zshrc
 
 # Copy startup scripts
 COPY dev/docker/startup-instance.sh /usr/local/bin/startup-instance.sh
-COPY dev/docker/startup-reverse-proxy.sh /usr/local/bin/startup-reverse-proxy.sh
-RUN chmod +x /usr/local/bin/startup-instance.sh /usr/local/bin/startup-reverse-proxy.sh
-
-# Copy Apache configuration template
-COPY dev/templates/apache/apache-config-template.conf /etc/apache2/sites-available/000-default.conf.template
+RUN chmod +x /usr/local/bin/startup-instance.sh
 
 # Copy common functions script
 COPY dev/scripts/common.sh /usr/local/bin/common.sh
 RUN chmod +x /usr/local/bin/common.sh
-
-# Create Apache virtual host generator script
-COPY dev/docker/generate-apache-config.sh /usr/local/bin/generate-apache-config.sh
-RUN chmod +x /usr/local/bin/generate-apache-config.sh
 
 # Configure Apache for Znuny (after Znuny is mounted)
 # This will be done in the startup script

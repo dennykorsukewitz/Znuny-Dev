@@ -49,15 +49,7 @@ show_all_container_log() {
         print_header "Showing Docker container logs for all services"
     fi
 
-    local compose_cmd
-    compose_cmd=$(get_compose_cmd 2>/dev/null) || compose_cmd="docker compose"
-
-    if [ -d "$COMPOSE_DIR" ] && [ -f "$COMPOSE_DIR/compose-reverse-proxy.yml" ]; then
-        cd "$COMPOSE_DIR" && $compose_cmd -p znuny logs -f "$service"
-        return $?
-    fi
-
-    # No central reverse-proxy compose: show last N lines from each znuny container
+    # Show last N lines from each znuny container (no central compose bundle)
     local containers
     containers=$(docker ps -a --format "{{.Names}}" | grep -E "^znuny-" || true)
     if [ -z "$containers" ]; then

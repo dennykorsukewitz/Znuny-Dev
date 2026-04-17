@@ -343,6 +343,38 @@ _sjc_ps_running_status() {
     printf '%s\n' "$_SJC_PS_NAME_STATUS" | awk -F'\t' -v name="$n" '$1 == name { print $2; exit }'
 }
 
+# Current branch name, or detached@<short_sha> when not on a branch (Znuny checkout: FRAMEWORK_DIR in .env).
+_get_git_branch_display() {
+    local dir="${1:-}"
+    if [ -z "$dir" ] || [ ! -d "$dir" ]; then
+        printf ''
+        return 0
+    fi
+    if [ ! -e "$dir/.git" ]; then
+        printf ''
+        return 0
+    fi
+    if ! command -v git >/dev/null 2>&1; then
+        printf ''
+        return 0
+    fi
+    local br
+    br=$(git -C "$dir" branch --show-current 2>/dev/null || true)
+    br=$(printf '%s' "$br" | tr -d '\n\r')
+    if [ -n "$br" ]; then
+        printf '%s' "$br"
+        return 0
+    fi
+    local sha
+    sha=$(git -C "$dir" rev-parse --short HEAD 2>/dev/null || true)
+    sha=$(printf '%s' "$sha" | tr -d '\n\r')
+    if [ -n "$sha" ]; then
+        printf 'detached@%s' "$sha"
+        return 0
+    fi
+    printf ''
+}
+
 # Emit one instance as JSON object to stdout (no newline before/after; caller adds comma separation)
 _emit_one_instance_json() {
     local framework="$1"
@@ -414,6 +446,27 @@ _emit_one_instance_json() {
     db_url=$(get_db_connection_url "$framework" 2>/dev/null || true)
     db_label="${db_type:-unknown} (Port: ${db_port:-unknown})"
 
+    local framework_dir=""
+    local git_branch=""
+    if [ -f "$instance_env_file" ]; then
+        framework_dir=$(grep "^FRAMEWORK_DIR=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || true)
+        framework_dir=$(printf '%s' "$framework_dir" | tr -d '\n\r')
+    fi
+    if [ -z "$framework_dir" ]; then
+        framework_dir="${INSTANCES_DIR}/${framework}"
+    fi
+    git_branch=$(_get_git_branch_display "$framework_dir")
+    if [ -z "$git_branch" ] && [ -f "$instance_env_file" ]; then
+        git_branch=$(grep "^FRAMEWORK_BRANCH=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || true)
+        git_branch=$(printf '%s' "$git_branch" | tr -d '\n\r')
+    fi
+
+    local framework_index=""
+    if [ -f "$instance_env_file" ]; then
+        framework_index=$(grep "^FRAMEWORK_INDEX=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d ' "' || true)
+        framework_index=$(printf '%s' "$framework_index" | tr -d '\n\r')
+    fi
+
     printf '{'
     printf '"framework":"%s",' "$(json_escape_string "$framework")"
     printf '"port":"%s",' "$(json_escape_string "${port:-}")"
@@ -436,12 +489,14 @@ _emit_one_instance_json() {
     printf '"health":"%s"' "$(json_escape_string "${db_health:-}")"
     printf '},'
     printf '"configuration":{'
+    printf '"framework_index":"%s",' "$(json_escape_string "${framework_index:-}")"
     printf '"framework_name":"%s",' "$(json_escape_string "$framework_name")"
     printf '"web_interface":"%s",' "$(json_escape_string "http://localhost:${http_port:-}")"
     printf '"http_port":"%s",' "$(json_escape_string "${http_port:-}")"
     printf '"database":"%s",' "$(json_escape_string "$db_label")"
     printf '"database_url":"%s",' "$(json_escape_string "${db_url:-}")"
     printf '"instance_mode":"%s",' "$(json_escape_string "${instance_mode:-}")"
+    printf '"git_branch":"%s",' "$(json_escape_string "${git_branch:-}")"
     printf '"directory":"%s"' "$(json_escape_string "${INSTANCES_DIR}/${framework}")"
     printf '}'
 

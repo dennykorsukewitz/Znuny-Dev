@@ -263,9 +263,14 @@
             return true;
         }
         if (
+            (cfg.framework_index !== undefined &&
+                cfg.framework_index !== null &&
+                String(cfg.framework_index).trim() !== "") ||
             (cfg.framework_name && String(cfg.framework_name).trim()) ||
             (cfg.database_url && String(cfg.database_url).trim()) ||
+            (cfg.database && String(cfg.database).trim()) ||
             (cfg.instance_mode && String(cfg.instance_mode).trim()) ||
+            (cfg.git_branch && String(cfg.git_branch).trim()) ||
             (cfg.directory && String(cfg.directory).trim())
         ) {
             return true;
@@ -280,18 +285,34 @@
         var html = "";
         html += '<table class="instance-detail-table"><tbody>';
         html += detailRow(
+            "Instance index",
+            cfg.framework_index !== undefined &&
+                cfg.framework_index !== null &&
+                String(cfg.framework_index).trim() !== ""
+                ? escapeHtml(String(cfg.framework_index))
+                : '<span class="cell-muted">—</span>'
+        );
+        html += detailRow(
             "Framework",
             escapeHtml(cfg.framework_name || "")
         );
         html += detailRow(
-            "DB URL",
-            "<code>" + escapeHtml(cfg.database_url || "") + "</code>"
+            "Git branch",
+            cfg.git_branch && String(cfg.git_branch).trim()
+                ? "<code>" + escapeHtml(cfg.git_branch) + "</code>"
+                : '<span class="cell-muted">—</span>'
         );
-        html += detailRow("Mode", escapeHtml(cfg.instance_mode || ""));
         html += detailRow(
             "Directory",
             "<code>" + escapeHtml(cfg.directory || "") + "</code>"
         );
+        html += detailRow("Mode", escapeHtml(cfg.instance_mode || ""));
+        if (cfg.database && String(cfg.database).trim()) {
+            html += detailRow(
+                "DB (host)",
+                escapeHtml(cfg.database)
+            );
+        }
         if (inst.docker_status) {
             html += detailRow(
                 "Instance (Docker)",
@@ -304,6 +325,10 @@
                 escapeHtml(db.docker_status)
             );
         }
+        html += detailRow(
+            "DB URL",
+            "<code>" + escapeHtml(cfg.database_url || "") + "</code>"
+        );
         html += "</tbody></table>";
         if (row.verbose) {
             html += '<div class="verbose-block">';
@@ -490,6 +515,17 @@
         }
     }
 
+    /** Grid column layout class: 1–5 columns by count; 6+ uses max 5 per row. */
+    function instancesGridColsClass(count) {
+        if (count <= 0) {
+            return "";
+        }
+        if (count >= 6) {
+            return "instances-grid-cols-5";
+        }
+        return "instances-grid-cols-" + String(count);
+    }
+
     function renderView() {
         var el = document.getElementById("instances");
         var data = lastData;
@@ -516,7 +552,10 @@
             el.className = "instances-view instances-table-wrap";
             el.innerHTML = renderTable(sorted);
         } else {
-            el.className = "instances-view instances-grid";
+            var colsCls = instancesGridColsClass(sorted.length);
+            el.className =
+                "instances-view instances-grid" +
+                (colsCls ? " " + colsCls : "");
             var html = "";
             var i;
             for (i = 0; i < sorted.length; i++) {
@@ -721,6 +760,14 @@
 
     function loadStatus() {
         var banner = document.getElementById("error-banner");
+        if (typeof getZnunyDashboardStatusMock === "function") {
+            banner.hidden = true;
+            banner.textContent = "";
+            return Promise.resolve(getZnunyDashboardStatusMock()).then(
+                renderInstances
+            );
+        }
+
         // verbose=0 keeps /api/status fast with many instances (Docker details JSON is omitted).
         var url = "/api/status?verbose=0";
 

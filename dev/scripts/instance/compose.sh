@@ -345,6 +345,10 @@ docker_compose() {
             # --build: build image if missing (avoids "pull access denied" for local image names)
             $compose_cmd -p znuny -f "$compose_basename" up -d --build
             ;;
+        up-nobuild)
+            # Same as up without --build (e.g. dashboard: image already built on host)
+            $compose_cmd -p znuny -f "$compose_basename" up -d
+            ;;
         down)
             $compose_cmd -p znuny -f "$compose_basename" down -v
             ;;

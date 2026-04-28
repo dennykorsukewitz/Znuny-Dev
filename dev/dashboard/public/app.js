@@ -5,6 +5,46 @@
     var storageSortDir = "znuny-dashboard-sort-dir";
 
     var lastData = null;
+    var nextOperationId = 1;
+
+    /** Toast card (bottom-right): concurrent zd / status — returns id for endOperation. */
+    function beginOperation(label) {
+        var id = nextOperationId++;
+        var panel = document.getElementById("global-progress-panel");
+        if (!panel) {
+            return id;
+        }
+        var item = document.createElement("div");
+        item.className = "zd-progress-toast";
+        item.setAttribute("data-op-id", String(id));
+        var spin = document.createElement("span");
+        spin.className = "zd-progress-toast-spinner";
+        spin.setAttribute("aria-hidden", "true");
+        var lab = document.createElement("span");
+        lab.className = "zd-progress-toast-label";
+        lab.textContent = label;
+        item.appendChild(spin);
+        item.appendChild(lab);
+        panel.appendChild(item);
+        panel.hidden = false;
+        panel.setAttribute("aria-hidden", "false");
+        return id;
+    }
+
+    function endOperation(id) {
+        var panel = document.getElementById("global-progress-panel");
+        if (!panel) {
+            return;
+        }
+        var item = panel.querySelector('[data-op-id="' + String(id) + '"]');
+        if (item) {
+            item.remove();
+        }
+        if (panel.children.length === 0) {
+            panel.hidden = true;
+            panel.setAttribute("aria-hidden", "true");
+        }
+    }
 
     function getStoredTheme() {
         try {
@@ -250,6 +290,195 @@
             "</td>" +
             "</tr>"
         );
+    }
+
+    /** Buttons: Start (stopped) / Stop (running), Restart, Build — same as zd start|stop|restart|build. */
+    function renderInstanceActionsHtml(fw, running) {
+        var safeFw = escapeHtml(fw);
+        var lines =
+            '<div class="instance-actions" role="group" aria-label="Instance actions">';
+        if (!running) {
+            /* Start temporarily hidden (use CLI `zd start` or Restart when appropriate).
+            lines +=
+                '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="start" data-framework="' +
+                safeFw +
+                '">Start</button>';
+            */
+        } else {
+            lines +=
+                '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="stop" data-framework="' +
+                safeFw +
+                '">Stop</button>';
+        }
+        lines +=
+            '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="restart" data-framework="' +
+            safeFw +
+            '">Restart</button>';
+        lines +=
+            '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="build" data-framework="' +
+            safeFw +
+            '">Build</button>';
+        lines += "</div>";
+        return lines;
+    }
+
+    function setInstanceActionsBusy(actionsEl, busy) {
+        var buttons = actionsEl.querySelectorAll(".zd-action-btn");
+        var i;
+        for (i = 0; i < buttons.length; i++) {
+            buttons[i].disabled = !!busy;
+        }
+        if (busy) {
+            actionsEl.classList.add("instance-actions--busy");
+        } else {
+            actionsEl.classList.remove("instance-actions--busy");
+        }
+    }
+
+    function detachInstanceZdProgress(actionsEl) {
+        if (!actionsEl) {
+            return;
+        }
+        var card = actionsEl.closest(".instance-card");
+        var row = actionsEl.closest("tr.instance-table-main-row");
+        var host = null;
+        if (card) {
+            host = card.querySelector(".instance-header");
+        } else if (row) {
+            host = row.querySelector("td.cell-actions");
+        }
+        if (!host) {
+            host = actionsEl;
+        }
+        var ex = host.querySelector(".instance-zd-progress");
+        if (ex) {
+            ex.remove();
+        }
+    }
+
+    /**
+     * Indeterminate bar while zd runs: in cards between .instance-name and
+     * .instance-status; in table view above .instance-actions in the actions cell.
+     */
+    function attachInstanceZdProgress(actionsEl, command, framework) {
+        detachInstanceZdProgress(actionsEl);
+        var wrap = document.createElement("div");
+        wrap.className = "instance-zd-progress";
+        wrap.setAttribute("role", "status");
+        wrap.setAttribute("aria-label", "zd " + command + " " + framework);
+        var lab = document.createElement("div");
+        lab.className = "instance-zd-progress-label";
+        lab.textContent = "zd " + command + " · " + framework;
+        var track = document.createElement("div");
+        track.className = "instance-zd-progress-track";
+        var bar = document.createElement("div");
+        bar.className = "instance-zd-progress-bar";
+        bar.setAttribute("aria-hidden", "true");
+        track.appendChild(bar);
+        wrap.appendChild(lab);
+        wrap.appendChild(track);
+
+        var card = actionsEl.closest(".instance-card");
+        var tableRow = actionsEl.closest("tr.instance-table-main-row");
+        if (card) {
+            var header = card.querySelector(".instance-header");
+            var statusDot = header
+                ? header.querySelector(".instance-status.status-dot")
+                : null;
+            if (header && statusDot) {
+                header.insertBefore(wrap, statusDot);
+                return;
+            }
+            if (header) {
+                header.appendChild(wrap);
+                return;
+            }
+        }
+        if (tableRow) {
+            var cell = tableRow.querySelector("td.cell-actions");
+            var ia = tableRow.querySelector("td.cell-actions .instance-actions");
+            if (cell && ia) {
+                cell.insertBefore(wrap, ia);
+                return;
+            }
+            if (cell) {
+                cell.appendChild(wrap);
+                return;
+            }
+        }
+        actionsEl.appendChild(wrap);
+    }
+
+    function postZdCommand(command, framework, actionsEl) {
+        var banner = document.getElementById("error-banner");
+        if (window.location.protocol === "file:") {
+            banner.hidden = false;
+            banner.textContent =
+                "Open this app over HTTP (e.g. zd dashboard start), not as a local HTML file.";
+            return Promise.resolve();
+        }
+        banner.hidden = true;
+        banner.textContent = "";
+        setInstanceActionsBusy(actionsEl, true);
+        attachInstanceZdProgress(actionsEl, command, framework);
+        return fetch("/api/zd", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                command: command,
+                framework: framework,
+            }),
+        })
+            .then(function (r) {
+                return r.text().then(function (text) {
+                    var data = null;
+                    if (text) {
+                        try {
+                            data = JSON.parse(text);
+                        } catch (ignore) {
+                            throw new Error(
+                                "Invalid response (not JSON): " +
+                                    text.trim().slice(0, 280)
+                            );
+                        }
+                    }
+                    if (!r.ok) {
+                        var detail =
+                            (data && (data.detail || data.error)) || "";
+                        throw new Error(
+                            detail
+                                ? "HTTP " +
+                                      r.status +
+                                      ": " +
+                                      detail
+                                : "HTTP " + r.status
+                        );
+                    }
+                    return data;
+                });
+            })
+            .then(function () {
+                return loadStatus({ showProgress: false });
+            })
+            .catch(function (e) {
+                banner.hidden = false;
+                var msg =
+                    (e && e.message) || "Could not run command.";
+                if (
+                    e &&
+                    (e.message === "Failed to fetch" ||
+                        (e.name === "TypeError" &&
+                            String(e.message).indexOf("fetch") !== -1))
+                ) {
+                    msg +=
+                        " Is the dashboard running? Try: zd dashboard start (then http://127.0.0.1:9999/).";
+                }
+                banner.textContent = msg;
+            })
+            .finally(function () {
+                detachInstanceZdProgress(actionsEl);
+                setInstanceActionsBusy(actionsEl, false);
+            });
     }
 
     function hasInstanceExtra(row) {
@@ -574,6 +803,7 @@
             "<th>Database</th>" +
             "<th>Created</th>" +
             "<th>Port</th>" +
+            '<th class="cell-actions" scope="col">Actions</th>' +
             "</tr></thead><tbody>";
 
         var i;
@@ -601,7 +831,7 @@
             '">';
         lines +=
             '<td class="cell-status">' +
-            '<span class="status-dot' +
+            '<span class="instance-status status-dot' +
             dotExtra +
             '" aria-hidden="true"></span>' +
             "</td>";
@@ -625,6 +855,10 @@
         lines += "</td>";
         lines += "<td>" + formatCreated(inst) + "</td>";
         lines += "<td>" + portStackHtml(row) + "</td>";
+        lines +=
+            '<td class="cell-actions">' +
+            renderInstanceActionsHtml(fw, !!inst.running) +
+            "</td>";
         lines += "</tr>";
 
         var moreId = "table-more-panel-" + String(rowIndex);
@@ -633,7 +867,7 @@
                 '<tr class="table-more-row" id="' +
                 moreId +
                 '" hidden>' +
-                '<td colspan="6">' +
+                '<td colspan="7">' +
                 '<div class="table-more-inner">' +
                 renderInstanceExtraHtml(row) +
                 "</div></td></tr>";
@@ -713,11 +947,14 @@
             '<article class="instance-card' +
             (expandable ? " instance-card-expandable" : "") +
             '">';
+        lines += '<div class="instance-header">';
         lines += '<div class="instance-name">';
-        lines += '<div class="instance-title-row">';
         lines += "<h2>" + frameworkNameLinkHtml(fw, web) + "</h2>";
         lines += "</div>";
-        lines += '<span class="status-dot' + dotExtra + '"></span>';
+        lines +=
+            '<span class="instance-status status-dot' +
+            dotExtra +
+            '"></span>';
         lines += "</div>";
 
         lines += '<div class="instance-details">';
@@ -744,6 +981,8 @@
         lines += detailRow("Port", portStackHtml(row));
         lines += "</tbody></table></div>";
 
+        lines += renderInstanceActionsHtml(fw, !!inst.running);
+
         var extraPanelId = "instance-extra-" + String(cardIndex);
         if (expandable) {
             lines +=
@@ -758,14 +997,24 @@
         return lines;
     }
 
-    function loadStatus() {
+    function loadStatus(opt) {
         var banner = document.getElementById("error-banner");
+        var hideProgress = opt && opt.showProgress === false;
+
         if (typeof getZnunyDashboardStatusMock === "function") {
             banner.hidden = true;
             banner.textContent = "";
-            return Promise.resolve(getZnunyDashboardStatusMock()).then(
-                renderInstances
-            );
+            var mockOpId = null;
+            if (!hideProgress) {
+                mockOpId = beginOperation("Status · loading");
+            }
+            return Promise.resolve(getZnunyDashboardStatusMock())
+                .then(renderInstances)
+                .finally(function () {
+                    if (!hideProgress && mockOpId !== null) {
+                        endOperation(mockOpId);
+                    }
+                });
         }
 
         // verbose=0 keeps /api/status fast with many instances (Docker details JSON is omitted).
@@ -778,6 +1027,10 @@
             return Promise.resolve();
         }
 
+        var statusOpId = null;
+        if (!hideProgress) {
+            statusOpId = beginOperation("Status · loading");
+        }
         return fetch(url)
             .then(function (r) {
                 return r.text().then(function (text) {
@@ -823,6 +1076,11 @@
                         " Is the dashboard running? Try: zd dashboard start (then http://127.0.0.1:9999/).";
                 }
                 banner.textContent = msg;
+            })
+            .finally(function () {
+                if (!hideProgress && statusOpId !== null) {
+                    endOperation(statusOpId);
+                }
             });
     }
 
@@ -882,6 +1140,19 @@
         .addEventListener("change", onThemeSwitchChange);
 
     document.getElementById("instances").addEventListener("click", function (e) {
+        var zdBtn = e.target.closest(".zd-action-btn");
+        if (zdBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            var cmd = zdBtn.getAttribute("data-zd-command") || "";
+            var fw = zdBtn.getAttribute("data-framework") || "";
+            var actions = zdBtn.closest(".instance-actions");
+            if (cmd && fw && actions) {
+                postZdCommand(cmd, fw, actions);
+            }
+            return;
+        }
+
         var cardHit = e.target.closest(".instance-card");
         if (cardHit) {
             if (

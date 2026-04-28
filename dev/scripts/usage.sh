@@ -60,7 +60,7 @@ show_usage() {
     # Common Commands
     # ========================================
     print_subheader "Common Commands:"
-    print_command "$ZD_CMD delreb <framework>"                 "Maint::Cache::Delete + Maint::Loader::CacheCleanup + Maint::Config::Rebuild --cleanup"
+    print_command "$ZD_CMD delreb <framework>"                 "Maint::Cache::Delete + Maint::Loader::CacheCleanup + Maint::Config::Rebuild --cleanup; then restart instance (Apache)"
     print_command "$ZD_CMD reb <framework>"                    "Maint::Config::Rebuild --cleanup"
     print_command "$ZD_CMD del <framework>"                    "Maint::Cache::Delete + Maint::Loader::CacheCleanup"
     print_command "$ZD_CMD unit <framework>"                   "Dev::UnitTest::Run --verbose --test"

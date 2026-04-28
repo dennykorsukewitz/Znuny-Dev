@@ -176,6 +176,119 @@ body.font-open input {
   font-family: "Open Sans", "Segoe UI", system-ui, sans-serif;
 }
 
+/* In-flight ops: toast stack (bottom-right), no layout shift */
+.zd-progress-toasts {
+  position: fixed;
+  bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  right: max(16px, env(safe-area-inset-right, 0px));
+  left: auto;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  max-width: min(400px, calc(100vw - 32px));
+  max-height: min(50vh, 360px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  pointer-events: none;
+}
+
+.zd-progress-toasts[hidden] {
+  display: none !important;
+}
+
+.zd-progress-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--zn-orange);
+  box-shadow:
+    0 4px 24px color-mix(in srgb, var(--zn-blackish-950) 12%, transparent),
+    0 1px 0 color-mix(in srgb, #ffffff 40%, transparent);
+  animation: zd-toast-in 0.24s ease-out;
+  pointer-events: none;
+}
+
+body.theme-dark .zd-progress-toast {
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.45),
+    0 1px 0 color-mix(in srgb, #ffffff 6%, transparent);
+}
+
+@media (prefers-color-scheme: dark) {
+  body:not(.theme-light) .zd-progress-toast {
+    box-shadow:
+      0 8px 28px rgba(0, 0, 0, 0.45),
+      0 1px 0 color-mix(in srgb, #ffffff 6%, transparent);
+  }
+}
+
+@keyframes zd-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.zd-progress-toast-spinner {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border: 2px solid color-mix(in srgb, var(--zn-orange) 28%, transparent);
+  border-top-color: var(--zn-orange);
+  border-radius: 50%;
+  animation: zd-spinner-rotate 0.65s linear infinite;
+}
+
+@keyframes zd-spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.zd-progress-toast-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--heading);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+@media (max-width: 520px) {
+  .zd-progress-toasts {
+    left: 16px;
+    right: 16px;
+    max-width: none;
+    align-items: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zd-progress-toast {
+    animation: none;
+  }
+
+  .zd-progress-toast-spinner {
+    animation: none;
+    border-color: color-mix(in srgb, var(--zn-orange) 45%, transparent);
+    border-top-color: var(--zn-orange);
+    opacity: 0.9;
+  }
+}
+
 .page {
   min-height: 100vh;
   width: 100%;
@@ -680,7 +793,7 @@ a.cell-port-link:hover {
   vertical-align: middle;
 }
 
-.instances-table .cell-status .status-dot {
+.instances-table .cell-status .instance-status.status-dot {
   vertical-align: middle;
 }
 
@@ -737,25 +850,149 @@ a.cell-port-link:hover {
   cursor: pointer;
 }
 
-.instance-name {
+/* zd actions (start/stop/restart/build) — matches hero .btn-secondary */
+.instance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0 12px 12px;
+  margin-top: 4px;
+}
+
+/* In-place progress while zd runs (card: between title and status dot) */
+.instance-zd-progress {
+  min-width: 0;
+}
+
+.instance-header .instance-zd-progress {
+  flex: 1 1 0;
+  margin: 0 8px 0 10px;
+  align-self: center;
+}
+
+.instance-header .instance-zd-progress-label {
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.instances-table .cell-actions .instance-zd-progress {
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.instance-zd-progress-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 5px;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.instance-zd-progress-track {
+  position: relative;
+  height: 3px;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--zn-orange) 20%, transparent);
+}
+
+.instance-zd-progress-bar {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 42%;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(
+    90deg,
+    var(--zn-orange-hover),
+    var(--zn-orange),
+    var(--zn-orange-hover)
+  );
+  animation: instance-zd-progress-move 1.05s ease-in-out infinite;
+}
+
+@keyframes instance-zd-progress-move {
+  0% {
+    left: -42%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .instance-zd-progress-bar {
+    animation: none;
+    left: 0;
+    width: 100%;
+    opacity: 0.85;
+  }
+}
+
+.instance-actions .btn-compact {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+}
+
+.instance-actions--busy {
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.instance-actions .btn-secondary {
+  background: transparent;
+  color: var(--heading);
+  border: 1px solid var(--border);
+}
+
+.instance-actions .btn-secondary:hover {
+  background: color-mix(in srgb, var(--heading) 10%, var(--surface));
+  border-color: var(--zn-orange);
+  color: var(--zn-orange);
+}
+
+.instances-table .cell-actions {
+  vertical-align: top;
+  white-space: normal;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.instances-table .cell-actions .instance-actions {
+  padding: 0;
+  margin: 0;
+}
+
+.instance-header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 0;
   padding: 12px;
 }
 
-.instance-title-row {
+.instance-name {
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-.instance-name h2 {
+.instance-header h2 {
   margin: 0;
   font-size: 1.35rem;
   font-weight: 700;
   color: var(--heading);
+}
+
+.instance-header .instance-status.status-dot {
+  flex-shrink: 0;
 }
 
 /* Framework / instance name → open web UI (card title + table column) */
@@ -770,7 +1007,7 @@ a.cell-port-link:hover {
   text-decoration: underline;
 }
 
-.status-dot {
+.instance-status.status-dot {
   display: inline-block;
   width: 5px;
   height: 5px;
@@ -782,17 +1019,17 @@ a.cell-port-link:hover {
   box-sizing: content-box;
 }
 
-.status-dot.warning {
+.instance-status.status-dot.warning {
   background: var(--warn);
 }
 
-.status-dot.error {
+.instance-status.status-dot.error {
   background: var(--bad);
   animation: none;
 }
 
 /* Stopped instance / DB — warning (yellow), not ok green */
-.status-dot.stopped {
+.instance-status.status-dot.stopped {
   background: var(--warn);
   animation: none;
 }

@@ -694,6 +694,71 @@ random_data_insert() {
                 use_config=false
                 shift 2
                 ;;
+            --generate-roles)
+                generate_roles="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-types)
+                generate_types="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-states)
+                generate_states="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-priorities)
+                generate_priorities="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-services)
+                generate_services="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-slas)
+                generate_slas="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-attachments)
+                generate_attachments="$2"
+                use_config=false
+                shift 2
+                ;;
+            --generate-calendars)
+                generate_calendars="$2"
+                use_config=false
+                shift 2
+                ;;
+            --name-prefix)
+                name_prefix="$2"
+                use_config=false
+                shift 2
+                ;;
+            --mark-tickets-as-seen)
+                mark_tickets_as_seen=1
+                use_config=false
+                shift
+                ;;
+            --generate-dynamicfields)
+                generate_dynamicfields=1
+                use_config=false
+                shift
+                ;;
+            --generate-process)
+                generate_process=1
+                use_config=false
+                shift
+                ;;
+            --generate-webservice)
+                generate_webservice=1
+                use_config=false
+                shift
+                ;;
             *)
                 shift
                 ;;

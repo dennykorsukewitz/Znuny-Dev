@@ -96,6 +96,7 @@ show_usage() {
     print_command "    --generate-customer-companies <n>   # Number of customer companies (default: 2)"
     print_command "    --generate-groups <n>               # Number of groups (default: 3)"
     print_command "    --generate-queues <n>                # Number of queues (default: 5)"
+    print_command "    --help                               # Dev::Tools::Database::RandomDataInsert --help (via znuny.Console.pl)"
     print_command "  shell <framework> [options]            # Start shell session (default: as znuny user)"
     print_command "    --root                               # Start as root user instead of znuny user"
     print_command "  remove <framework|all> [options]       # Remove a framework instance or all instances"
@@ -176,33 +177,6 @@ show_usage_create() {
     print_command "    --db-name prod_db --db-user prod_user --db-password secret123 \\"
     print_command "    --script-alias /prod/ \\"
     print_command "    --start"
-}
-
-show_usage_random_data_insert() {
-    print_header "Random Data Insert"
-    print_header "=================="
-    echo ""
-    echo "Usage: ${ZD_CMD:-./znuny-dev.sh} random-data-insert <framework> [options]"
-    echo ""
-    print_subheader "Description:"
-    echo "  Inserts random test data into a Znuny instance via Dev::Tools::Database::RandomDataInsert."
-    echo "  Uses config from configs/framework/RandomDataInsert.conf unless options are passed."
-    echo ""
-    print_subheader "Options:"
-    print_command "  --generate-tickets <n>                 # Number of tickets (default: 10)"
-    print_command "  --articles-per-ticket <n>              # Articles per ticket (default: 10)"
-    print_command "  --generate-users <n>                  # Number of users (default: 5)"
-    print_command "  --generate-customer-users <n>         # Number of customer users (default: 6)"
-    print_command "  --generate-customer-companies <n>     # Number of customer companies (default: 2)"
-    print_command "  --generate-groups <n>                 # Number of groups (default: 3)"
-    print_command "  --generate-queues <n>                 # Number of queues (default: 5)"
-    print_command "  --help, -h                            # Show this help message"
-    echo ""
-    print_subheader "Examples:"
-    print_command "  ${ZD_CMD:-./znuny-dev.sh} random-data-insert dev"
-    print_command "  ${ZD_CMD:-./znuny-dev.sh} random-data-insert dev --generate-tickets 20 --articles-per-ticket 5"
-    print_command "  ${ZD_CMD:-./znuny-dev.sh} random-data-insert dev --generate-tickets 2 --generate-users 3"
-    echo ""
 }
 
 show_usage_remove() {
@@ -641,13 +615,15 @@ random_data_insert() {
     local framework="$1"
     shift
 
-    if [ "$framework" = "--help" ] || [ "$framework" = "-h" ]; then
-        show_usage_random_data_insert
-        return 0
-    fi
-
     if [ -z "$framework" ]; then
         print_error "Framework name is required for random_data_insert"
+        return 1
+    fi
+
+    if [ "$framework" = "--help" ] || [ "$framework" = "-h" ]; then
+        print_error "Framework name is required."
+        print_status "Use: ${ZD_CMD:-./znuny-dev.sh} random-data-insert <framework> --help"
+        print_status "(prints Dev::Tools::Database::RandomDataInsert help from znuny.Console.pl)"
         return 1
     fi
 
@@ -659,14 +635,29 @@ random_data_insert() {
     local generate_customer_companies=""
     local generate_groups=""
     local generate_queues=""
+    local mark_tickets_as_seen=""
+    local name_prefix=""
+    local generate_roles=""
+    local generate_types=""
+    local generate_states=""
+    local generate_priorities=""
+    local generate_services=""
+    local generate_slas=""
+    local generate_attachments=""
+    local generate_calendars=""
+    local generate_dynamicfields=""
+    local generate_process=""
+    local generate_webservice=""
     local use_config=true
 
     # Parse command line arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
             --help|-h)
-                show_usage_random_data_insert
-                return 0
+                if execute_console_command "$framework" Dev::Tools::Database::RandomDataInsert --help; then
+                    return 0
+                fi
+                return 1
                 ;;
             --generate-tickets)
                 generate_tickets="$2"
@@ -722,6 +713,19 @@ random_data_insert() {
         generate_customer_companies=2
         generate_groups=3
         generate_queues=5
+        mark_tickets_as_seen=""
+        name_prefix=""
+        generate_roles=""
+        generate_types=""
+        generate_states=""
+        generate_priorities=""
+        generate_services=""
+        generate_slas=""
+        generate_attachments=""
+        generate_calendars=""
+        generate_dynamicfields=""
+        generate_process=""
+        generate_webservice=""
 
         if [ -f "$config_file" ]; then
             while IFS= read -r line; do
@@ -730,6 +734,8 @@ random_data_insert() {
                 if [[ "$line" =~ ^([A-Za-z0-9_]+)=(.*)$ ]]; then
                     local key="${BASH_REMATCH[1]}"
                     local value="${BASH_REMATCH[2]}"
+                    value="${value%"${value##*[![:space:]]}"}"
+                    value="${value#"${value%%[![:space:]]*}"}"
                     case "$key" in
                         GENERATE_TICKETS) generate_tickets="${value:-10}" ;;
                         ARTICLES_PER_TICKET) articles_per_ticket="${value:-10}" ;;
@@ -738,26 +744,87 @@ random_data_insert() {
                         GENERATE_CUSTOMER_COMPANIES) generate_customer_companies="${value:-2}" ;;
                         GENERATE_GROUPS) generate_groups="${value:-3}" ;;
                         GENERATE_QUEUES) generate_queues="${value:-5}" ;;
+                        MARK_TICKETS_AS_SEEN) mark_tickets_as_seen="$value" ;;
+                        NAME_PREFIX) name_prefix="$value" ;;
+                        GENERATE_ROLES) generate_roles="$value" ;;
+                        GENERATE_TYPES) generate_types="$value" ;;
+                        GENERATE_STATES) generate_states="$value" ;;
+                        GENERATE_PRIORITIES) generate_priorities="$value" ;;
+                        GENERATE_SERVICES) generate_services="$value" ;;
+                        GENERATE_SLAS) generate_slas="$value" ;;
+                        GENERATE_ATTACHMENTS) generate_attachments="$value" ;;
+                        GENERATE_CALENDARS) generate_calendars="$value" ;;
+                        GENERATE_DYNAMICFIELDS) generate_dynamicfields="$value" ;;
+                        GENERATE_PROCESS) generate_process="$value" ;;
+                        GENERATE_WEBSERVICE) generate_webservice="$value" ;;
                     esac
                 fi
             done < "$config_file"
         fi
     fi
 
-    # Build args - only include params that are set
-    # Note: Dev::Tools::Database::RandomDataInsert requires --generate-tickets; use 0 when not set
+    # Build args — Dev::Tools::Database::RandomDataInsert (always pass ticket count; 0 if unset)
     local random_data_args=("Dev::Tools::Database::RandomDataInsert")
+    [ -n "$name_prefix" ] && random_data_args+=("--name-prefix" "$name_prefix")
+    case "$(printf '%s' "$mark_tickets_as_seen" | tr '[:upper:]' '[:lower:]')" in
+        1|true|yes|on) random_data_args+=("--mark-tickets-as-seen") ;;
+    esac
+    case "$(printf '%s' "$generate_dynamicfields" | tr '[:upper:]' '[:lower:]')" in
+        1|true|yes|on) random_data_args+=("--generate-dynamicfields") ;;
+    esac
+    case "$(printf '%s' "$generate_process" | tr '[:upper:]' '[:lower:]')" in
+        1|true|yes|on) random_data_args+=("--generate-process") ;;
+    esac
+    case "$(printf '%s' "$generate_webservice" | tr '[:upper:]' '[:lower:]')" in
+        1|true|yes|on) random_data_args+=("--generate-webservice") ;;
+    esac
+
+    if [ -n "$generate_roles" ] && [ "$generate_roles" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-roles" "$generate_roles")
+    fi
+    if [ -n "$generate_types" ] && [ "$generate_types" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-types" "$generate_types")
+    fi
+    if [ -n "$generate_states" ] && [ "$generate_states" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-states" "$generate_states")
+    fi
+    if [ -n "$generate_priorities" ] && [ "$generate_priorities" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-priorities" "$generate_priorities")
+    fi
+    if [ -n "$generate_services" ] && [ "$generate_services" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-services" "$generate_services")
+    fi
+    if [ -n "$generate_slas" ] && [ "$generate_slas" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-slas" "$generate_slas")
+    fi
+    if [ -n "$generate_attachments" ] && [ "$generate_attachments" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-attachments" "$generate_attachments")
+    fi
+    if [ -n "$generate_calendars" ] && [ "$generate_calendars" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-calendars" "$generate_calendars")
+    fi
+    if [ -n "$generate_users" ] && [ "$generate_users" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-users" "$generate_users")
+    fi
+    if [ -n "$generate_customer_users" ] && [ "$generate_customer_users" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-customer-users" "$generate_customer_users")
+    fi
+    if [ -n "$generate_customer_companies" ] && [ "$generate_customer_companies" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-customer-companies" "$generate_customer_companies")
+    fi
+    if [ -n "$generate_groups" ] && [ "$generate_groups" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-groups" "$generate_groups")
+    fi
+    if [ -n "$generate_queues" ] && [ "$generate_queues" -gt 0 ] 2>/dev/null; then
+        random_data_args+=("--generate-queues" "$generate_queues")
+    fi
+
     if [ -n "$generate_tickets" ]; then
         random_data_args+=("--generate-tickets" "$generate_tickets")
     else
         random_data_args+=("--generate-tickets" "0")
     fi
     [ -n "$articles_per_ticket" ] && random_data_args+=("--articles-per-ticket" "$articles_per_ticket")
-    [ -n "$generate_users" ] && random_data_args+=("--generate-users" "$generate_users")
-    [ -n "$generate_customer_users" ] && random_data_args+=("--generate-customer-users" "$generate_customer_users")
-    [ -n "$generate_customer_companies" ] && random_data_args+=("--generate-customer-companies" "$generate_customer_companies")
-    [ -n "$generate_groups" ] && random_data_args+=("--generate-groups" "$generate_groups")
-    [ -n "$generate_queues" ] && random_data_args+=("--generate-queues" "$generate_queues")
 
     print_status "Running Dev::Tools::Database::RandomDataInsert in $framework..."
     if execute_console_command "$framework" "${random_data_args[@]}"; then
@@ -2176,10 +2243,6 @@ main() {
             contributors "$framework"
             ;;
         random-data-insert)
-            if [ "${2:-}" = "--help" ] || [ "${2:-}" = "-h" ]; then
-                show_usage_random_data_insert
-                exit 0
-            fi
             random_data_insert "$framework" "${@:3}"
             ;;
         # ========================================

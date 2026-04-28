@@ -67,7 +67,6 @@ show_usage() {
     print_command "$ZD_CMD translate <framework>"              "Maint::Config::Sync + Maint::Config::Rebuild --cleanup + Dev::Tools::TranslationsUpdate --generate-po"
     print_command "$ZD_CMD contributors <framework>"          "Dev::Code::ContributorsListUpdate"
     print_command "$ZD_CMD random-data-insert <framework>"            "Dev::Tools::Database::RandomDataInsert"
-    echo ""
     print_command "$ZD_CMD codepolicy <framework> [options|paths]" "Znuny CodePolicy (znuny.CodePolicy.pl); optional framework (default: dev); forwards --all-files, --file-path, --directory, --staged-files, --verbose, ..."
     echo ""
 
@@ -95,9 +94,17 @@ show_usage() {
     echo ""
 
     # ========================================
+    # CodePolicy Commands
+    # ========================================
+    print_subheader "Link/Unlink CodePolicy Commands:"
+    print_command "$ZD_CMD link-codepolicy <framework>"           "Link ZnunyCodePolicy module into framework"
+    print_command "$ZD_CMD unlink-codepolicy <framework>"         "Unlink ZnunyCodePolicy module from framework"
+    echo ""
+
+    # ========================================
     # Fred
     # ========================================
-    print_subheader "Fred Commands:"
+    print_subheader "Link/Unlink Fred Commands:"
     print_command "$ZD_CMD link-fred <framework>"                 "Link Fred module into framework"
     print_command "$ZD_CMD unlink-fred <framework>"               "Unlink Fred module from framework"
     echo ""
@@ -206,9 +213,13 @@ show_usage_examples() {
     print_command "$ZD_CMD codepolicy dev --all-files" ""
     print_command "$ZD_CMD codepolicy dev --file-path Kernel/System/Ticket.pm" ""
     print_command "$ZD_CMD codepolicy dev --directory Kernel/System" ""
+
+    print_subheader "Link/Unlink CodePolicy Example:"
+    print_command "$ZD_CMD link-codepolicy dev" ""
+    print_command "$ZD_CMD unlink-codepolicy dev" ""
     echo ""
 
-    print_subheader "Fred Example:"
+    print_subheader "Link/Unlink Fred Example:"
     echo ""
     print_command "$ZD_CMD link-fred dev" ""
     print_command "$ZD_CMD unlink-fred dev" ""

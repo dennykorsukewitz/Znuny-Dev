@@ -32,6 +32,8 @@ All notable changes to the Znuny Development Environment will be documented in t
 - Backup and restore functionality, comprehensive status reporting
 - Built-in help, examples, and version commands
 
+- Experimental local web dashboard for development (Docker Compose on `127.0.0.1`, default port `9999`): `zd dashboard start|stop|remove|build|restart|status`; UI served from the repo mount (`dev/dashboard`)
+
 ---
 
 ## Release Notes Format

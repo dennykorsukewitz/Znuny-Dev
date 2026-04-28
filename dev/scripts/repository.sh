@@ -423,10 +423,9 @@ setup_tools() {
     clone_repository "$module_tools_source" "$TOOLS_DIR/module-tools" "dev"
     echo ""
 
-    # TODO: Change to dev branch once merged Znuny/Public/Fred/-/merge_requests/2
     show_progress 2 "$tools_total" "Cloning tools"
     print_subheader "Cloning Fred..."
-    clone_repository "$fred_source" "$TOOLS_DIR/Fred" "private-dk-dev-upgrade"
+    clone_repository "$fred_source" "$TOOLS_DIR/Fred" "dev"
     echo ""
 
     show_progress 3 "$tools_total" "Cloning tools"

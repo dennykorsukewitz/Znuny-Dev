@@ -336,7 +336,6 @@ delete_rebuild() {
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
     execute_console_command "$framework" Maint::Config::Rebuild --cleanup
-    restart_instance "$framework"
 }
 
 rebuild() {

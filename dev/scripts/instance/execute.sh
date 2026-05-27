@@ -69,15 +69,15 @@ resolve_module_sopm_name() {
         fi
         if docker exec "$container_name" test -f "/opt/znuny/${candidate}.sopm" 2>/dev/null; then
             if [ "$candidate" != "$module" ]; then
-                print_status "Resolved package '$module' -> ${candidate}.sopm"
+                print_status "Resolved package '$module' -> ${candidate}.sopm" >&2
             fi
             echo "$candidate"
             return 0
         fi
     done < <(_sopm_module_candidates "$module")
 
-    print_error "SOPM file not found for package: $module"
-    print_status "Checked in /opt/znuny:"
+    print_error "SOPM file not found for package: $module" >&2
+    print_status "Checked in /opt/znuny:" >&2
     local checked=""
     while IFS= read -r candidate; do
         if [ -z "$candidate" ]; then
@@ -85,11 +85,11 @@ resolve_module_sopm_name() {
         fi
         checked="${checked} ${candidate}.sopm"
     done < <(_sopm_module_candidates "$module")
-    print_status "${checked# }"
+    print_status "${checked# }" >&2
     echo ""
     echo "Available SOPM files in /opt/znuny:"
     docker exec "$container_name" su -s /bin/bash -c 'cd /opt/znuny && ls -1 *.sopm 2>/dev/null' znuny 2>/dev/null \
-        | sed 's/^/  /' || print_status "  (none or container not running)"
+        | sed 's/^/  /' || print_status "  (none or container not running)" >&2
     return 1
 }
 

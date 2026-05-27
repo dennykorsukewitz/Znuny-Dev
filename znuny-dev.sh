@@ -466,6 +466,9 @@ main() {
         contributors)
             "$SCRIPTS_DIR/instance.sh" contributors "${@:2}"
             ;;
+        cpanm)
+            "$SCRIPTS_DIR/instance.sh" cpanm "${@:2}"
+            ;;
         codepolicy|cp|cc)
             "$SCRIPTS_DIR/instance.sh" "$1" "${@:2}"
             ;;

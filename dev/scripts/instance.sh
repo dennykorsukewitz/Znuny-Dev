@@ -396,6 +396,12 @@ contributors() {
     execute_console_command "$framework" Dev::Code::ContributorsListUpdate --generate
 }
 
+cpanm() {
+    local framework="$1"
+    shift
+    execute_cpanm_command "$framework" "$@"
+}
+
 link() {
     local framework="$1"
     shift
@@ -2174,6 +2180,9 @@ main() {
             ;;
         contributors)
             contributors "$framework"
+            ;;
+        cpanm)
+            cpanm "$framework" "${@:3}"
             ;;
         random-data-insert)
             if [ "${2:-}" = "--help" ] || [ "${2:-}" = "-h" ]; then

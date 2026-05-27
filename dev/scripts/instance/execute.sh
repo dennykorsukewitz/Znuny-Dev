@@ -167,3 +167,43 @@ execute_module_tools_command() {
         return 1
     fi
 }
+
+# Function to install CPAN modules via cpanm inside the framework container (runs as root)
+execute_cpanm_command() {
+    local framework="$1"
+    shift
+
+    if [ -z "$framework" ]; then
+        print_error "Framework name is required"
+
+        echo "Available frameworks:"
+        local available_frameworks=()
+        read_lines_to_array available_frameworks < <(get_available_frameworks)
+        print_list "${available_frameworks[@]}"
+        echo ""
+        echo "Usage:"
+        print_command "${ZD_CMD:-./znuny-dev.sh} cpanm <framework> [cpanm options] <Module::Name> ..."
+        return 1
+    fi
+
+    if [ $# -eq 0 ]; then
+        print_error "At least one cpanm option or CPAN module is required"
+        echo ""
+        echo "Usage:"
+        print_command "${ZD_CMD:-./znuny-dev.sh} cpanm <framework> [cpanm options] <Module::Name> ..."
+        print_command "${ZD_CMD:-./znuny-dev.sh} cpanm dev CGI::Struct" ""
+        print_command "${ZD_CMD:-./znuny-dev.sh} cpanm dev --notest CGI::Struct" ""
+        return 1
+    fi
+
+    local container_name
+    container_name=$(get_instance_container_name "$framework")
+
+    print_status "Running cpanm in framework container: $framework"
+    if docker exec -t "$container_name" cpanm "$@" 2> >(filter_docker_stderr >&2); then
+        return 0
+    else
+        print_error "cpanm failed"
+        return 1
+    fi
+}

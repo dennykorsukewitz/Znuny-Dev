@@ -14,6 +14,85 @@ filter_docker_stderr() {
     grep -v -e "What's next" -e "Try Docker Debug" -e "Learn more at" || true
 }
 
+# Strip Znuny- or Znuny4OTRS- prefix (e.g. Znuny4OTRS-FAQ -> FAQ).
+_sopm_module_suffix() {
+    local module="$1"
+
+    if [[ "$module" == Znuny4OTRS-* ]]; then
+        echo "${module#Znuny4OTRS-}"
+    elif [[ "$module" == Znuny-* ]]; then
+        echo "${module#Znuny-}"
+    else
+        echo "$module"
+    fi
+}
+
+# Candidate SOPM basenames: only Znuny-* and Znuny4OTRS-* (user prefix first when given).
+_sopm_module_candidates() {
+    local module="$1"
+    local suffix
+    suffix=$(_sopm_module_suffix "$module")
+
+    if [[ "$module" == Znuny4OTRS-* ]]; then
+        echo "$module"
+        echo "Znuny-${suffix}"
+    elif [[ "$module" == Znuny-* ]]; then
+        echo "$module"
+        echo "Znuny4OTRS-${suffix}"
+    else
+        echo "$module"
+    fi
+}
+
+# Resolve module argument to an existing /opt/znuny/<name>.sopm basename inside the container.
+resolve_module_sopm_name() {
+    local framework="$1"
+    local module="$2"
+
+    if [ -z "$framework" ]; then
+        print_error "Framework name is required"
+        return 1
+    fi
+
+    if [ -z "$module" ]; then
+        print_error "Package/module name is required"
+        return 1
+    fi
+
+    local container_name
+    container_name=$(get_instance_container_name "$framework")
+
+    local candidate
+    while IFS= read -r candidate; do
+        if [ -z "$candidate" ]; then
+            continue
+        fi
+        if docker exec "$container_name" test -f "/opt/znuny/${candidate}.sopm" 2>/dev/null; then
+            if [ "$candidate" != "$module" ]; then
+                print_status "Resolved package '$module' -> ${candidate}.sopm"
+            fi
+            echo "$candidate"
+            return 0
+        fi
+    done < <(_sopm_module_candidates "$module")
+
+    print_error "SOPM file not found for package: $module"
+    print_status "Checked in /opt/znuny:"
+    local checked=""
+    while IFS= read -r candidate; do
+        if [ -z "$candidate" ]; then
+            continue
+        fi
+        checked="${checked} ${candidate}.sopm"
+    done < <(_sopm_module_candidates "$module")
+    print_status "${checked# }"
+    echo ""
+    echo "Available SOPM files in /opt/znuny:"
+    docker exec "$container_name" su -s /bin/bash -c 'cd /opt/znuny && ls -1 *.sopm 2>/dev/null' znuny 2>/dev/null \
+        | sed 's/^/  /' || print_status "  (none or container not running)"
+    return 1
+}
+
 # Function to execute console command
 execute_console_command() {
     local framework="$1"

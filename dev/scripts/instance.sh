@@ -479,60 +479,97 @@ rmlink() {
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 }
 
+# Resolve module to /opt/znuny/<name>.sopm (Znuny-* or Znuny4OTRS-* only).
+module_sopm_path() {
+    local framework="$1"
+    local module="$2"
+    local resolved_module
+
+    resolved_module=$(resolve_module_sopm_name "$framework" "$module") || return 1
+    echo "/opt/znuny/${resolved_module}.sopm"
+}
+
 install() {
     local framework="$1"
     local module="$2"
-    execute_module_tools_command "$framework" Module::Database::Install "/opt/znuny/${module}.sopm"
-    execute_module_tools_command "$framework" Module::Code::Install "/opt/znuny/${module}.sopm"
+    local sopm_path
+
+    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
+    execute_module_tools_command "$framework" Module::Database::Install "$sopm_path"
+    execute_module_tools_command "$framework" Module::Code::Install "$sopm_path"
 }
 
 uninstall() {
     local framework="$1"
     local module="$2"
-    execute_module_tools_command "$framework" Module::Database::Uninstall "/opt/znuny/${module}.sopm"
-    execute_module_tools_command "$framework" Module::Code::Uninstall "/opt/znuny/${module}.sopm"
+    local sopm_path
+
+    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
+    execute_module_tools_command "$framework" Module::Database::Uninstall "$sopm_path"
+    execute_module_tools_command "$framework" Module::Code::Uninstall "$sopm_path"
 }
 
 dbinstall() {
     local framework="$1"
     local module="$2"
-    execute_module_tools_command "$framework" Module::Database::Install "/opt/znuny/${module}.sopm"
+    local sopm_path
+
+    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
+    execute_module_tools_command "$framework" Module::Database::Install "$sopm_path"
 }
 
 dbupgrade() {
     local framework="$1"
     local module="$2"
-    execute_module_tools_command "$framework" Module::Database::Upgrade "/opt/znuny/${module}.sopm"
+    local sopm_path
+
+    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
+    execute_module_tools_command "$framework" Module::Database::Upgrade "$sopm_path"
 }
 
 dbuninstall() {
     local framework="$1"
     local module="$2"
-    execute_module_tools_command "$framework" Module::Database::Uninstall "/opt/znuny/${module}.sopm"
+    local sopm_path
+
+    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
+    execute_module_tools_command "$framework" Module::Database::Uninstall "$sopm_path"
 }
 
 codeinstall() {
     local framework="$1"
     local module="$2"
-    execute_module_tools_command "$framework" Module::Code::Install "/opt/znuny/${module}.sopm"
+    local sopm_path
+
+    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
+    execute_module_tools_command "$framework" Module::Code::Install "$sopm_path"
 }
 
 codereinstall() {
     local framework="$1"
     local module="$2"
-    execute_module_tools_command "$framework" Module::Code::Reinstall "/opt/znuny/${module}.sopm"
+    local sopm_path
+
+    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
+    execute_module_tools_command "$framework" Module::Code::Reinstall "$sopm_path"
 }
 
 codeuninstall() {
     local framework="$1"
     local module="$2"
-    execute_module_tools_command "$framework" Module::Code::Uninstall "/opt/znuny/${module}.sopm"
+    local sopm_path
+
+    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
+    execute_module_tools_command "$framework" Module::Code::Uninstall "$sopm_path"
 }
 
 codeupgrade() {
     local framework="$1"
     local module="$2"
-    execute_module_tools_command "$framework" Module::Code::Upgrade "/opt/znuny/${module}.sopm"
+    local sopm_path
+
+    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
+    execute_module_tools_command "$framework" Module::Code::Upgrade "$sopm_path"
 }
 
 module_tools() {

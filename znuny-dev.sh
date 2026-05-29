@@ -451,6 +451,9 @@ main() {
         delete-rebuild|delreb)
             "$SCRIPTS_DIR/instance.sh" delete-rebuild "${@:2}"
             ;;
+        delete-rebuild-restart|delrebres)
+            "$SCRIPTS_DIR/instance.sh" delete-rebuild-restart "${@:2}"
+            ;;
         rebuild|reb)
             "$SCRIPTS_DIR/instance.sh" rebuild "${@:2}"
             ;;

@@ -359,9 +359,14 @@ build() {
 
 delete_rebuild() {
     local framework="$1"
-    execute_console_command "$framework" Maint::Cache::Delete
-    execute_console_command "$framework" Maint::Loader::CacheCleanup
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    delete "$framework"
+    rebuild "$framework"
+}
+
+delete_rebuild_restart() {
+    local framework="$1"
+
+    delete_rebuild "$framework"
     restart_instance "$framework"
 }
 
@@ -2202,6 +2207,9 @@ main() {
         # ========================================
         delete-rebuild|delreb)
             delete_rebuild "$framework"
+            ;;
+        delete-rebuild-restart|delrebres)
+            delete_rebuild_restart "$framework"
             ;;
         rebuild|reb)
             rebuild "$framework"

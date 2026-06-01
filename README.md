@@ -174,7 +174,7 @@ Optional host-side configuration lives in the **`configs/`** directory at the pr
 3. **Port conflicts**: The system automatically assigns free ports for each instance (see instance `.env`)
 4. **Volumes**: Each instance has separate Docker volumes for data and logs
 5. **Isolation**: Complete separation between instances
-6. **Apache**: Per-instance container uses Znuny’s Apache setup from `startup-instance.sh`
+6. **Apache**: CGI mode by default (`ZNUNY_USE_MOD_PERL=false` in instance `.env`). Znuny’s `apache2-httpd.include.conf` is used, but `mod_perl` stays disabled so each request runs fresh Perl (stable after `git checkout`). Set `ZNUNY_USE_MOD_PERL=true` only if you explicitly want mod_perl.
 
 ## 📁 Directory Structure
 

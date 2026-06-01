@@ -55,6 +55,7 @@ services:
       - MARIADB_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD:-root}
       - ZNUNY_PORT=${FRAMEWORK_PORT}
       - FRAMEWORK_NAME=${FRAMEWORK_NAME}
+      - ZNUNY_USE_MOD_PERL=${ZNUNY_USE_MOD_PERL:-false}
     depends_on:
       - znuny-mariadb
     networks:

@@ -104,10 +104,10 @@ RUN cpanm --notest --force Jq Data::UUID Ref::Util && \
 # Configure nullmailer
 RUN echo "smtp.unibas.ch" > /etc/nullmailer/remotes
 
-# Enable required Apache modules (use mpm_prefork for mod_perl)
-RUN a2dismod mpm_event && \
-    a2enmod mpm_prefork perl headers deflate filter cgi rewrite && \
-    a2enmod ssl
+# Apache: CGI by default (mod_perl off). Set ZNUNY_USE_MOD_PERL=true at runtime to enable mod_perl.
+ENV ZNUNY_USE_MOD_PERL=false
+RUN a2dismod mpm_prefork perl 2>/dev/null || true; \
+    a2enmod mpm_event cgi headers deflate filter rewrite ssl
 
 # Create directories
 RUN mkdir -p /opt/znuny \

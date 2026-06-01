@@ -42,6 +42,7 @@ services:
       - ZNUNY_PORT=${FRAMEWORK_PORT}
       # Environment-specific settings
       - FRAMEWORK_NAME=${FRAMEWORK_NAME}
+      - ZNUNY_USE_MOD_PERL=${ZNUNY_USE_MOD_PERL:-false}
     depends_on:
       - znuny-${FRAMEWORK_SLUG}-mysql
     networks:

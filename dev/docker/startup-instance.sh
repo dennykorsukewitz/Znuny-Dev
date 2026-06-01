@@ -526,9 +526,29 @@ setup_code_policy() {
     fi
 }
 
+# Enable mod_perl (mpm_prefork) or CGI-only (mpm_event, mod_perl disabled). Default: CGI.
+configure_apache_mpm_and_perl() {
+    local use_mod_perl="${ZNUNY_USE_MOD_PERL:-false}"
+
+    case "$use_mod_perl" in
+        true | TRUE | 1 | yes | YES)
+            log "Apache: mod_perl enabled (mpm_prefork)"
+            a2dismod mpm_event 2>/dev/null || true
+            a2enmod mpm_prefork perl 2>/dev/null || true
+            ;;
+        *)
+            log "Apache: CGI mode (mod_perl disabled, mpm_event)"
+            a2dismod perl mpm_prefork 2>/dev/null || true
+            a2enmod mpm_event cgi 2>/dev/null || true
+            ;;
+    esac
+}
+
 # Function to setup Apache configuration for Znuny
 setup_apache_config() {
     log "Setting up Apache configuration for Znuny..."
+
+    configure_apache_mpm_and_perl
 
     # Suppress AH00558: set ServerName globally if not already set
     if ! grep -q '^ServerName ' /etc/apache2/apache2.conf 2>/dev/null; then

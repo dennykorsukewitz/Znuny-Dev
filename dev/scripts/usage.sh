@@ -76,8 +76,8 @@ show_usage() {
     # ModuleTools Commands
     # ========================================
     print_subheader "ModuleTools Commands:"
-    print_command "$ZD_CMD link <framework> <package> [package ...]"   "Module::File::Link (mehrere Pakete möglich)"
-    print_command "$ZD_CMD unlink <framework> <package> [package ...]" "Module::File::Unlink (mehrere Pakete möglich)"
+    print_command "$ZD_CMD link <framework> <package> [package ...] [--only]" "Module::File::Link (mehrere Pakete möglich; --only: nur verlinken)"
+    print_command "$ZD_CMD unlink <framework> <package> [package ...] [--only]" "Module::File::Unlink (mehrere Pakete möglich; --only: nur entlinken)"
     print_command "$ZD_CMD rmlinks <framework>"                   "Module::File::Unlink --all"
     echo ""
     print_command "$ZD_CMD install <framework> <package>"         "Package Install (dbinstall, codeinstall)"
@@ -177,7 +177,9 @@ show_usage_examples() {
     print_subheader "Link Example:"
     echo ""
     print_command "$ZD_CMD link dev FAQ" ""
+    print_command "$ZD_CMD link dev FAQ --only" ""
     print_command "$ZD_CMD unlink dev FAQ" ""
+    print_command "$ZD_CMD unlink dev FAQ --only" ""
     print_command "$ZD_CMD rmlinks dev" ""
     echo ""
 

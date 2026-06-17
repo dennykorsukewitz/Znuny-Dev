@@ -401,6 +401,50 @@ contributors() {
     execute_console_command "$framework" Dev::Code::ContributorsListUpdate --generate
 }
 
+sql_schema() {
+    local framework="$1"
+    local container_name
+    container_name=$(get_instance_container_name "$framework")
+
+    local schema_file
+    schema_file=$(docker exec "$container_name" su -s /bin/bash -c 'cd /opt/znuny && find scripts/database -type f -name "*schema.xml" 2>/dev/null | head -1' znuny 2>/dev/null | tr -d '\r')
+
+    if [ -z "$schema_file" ]; then
+        print_error "No *schema.xml file found in scripts/database"
+        return 1
+    fi
+
+    local schema_file_name
+    schema_file_name=$(basename "${schema_file%.xml}")
+
+    print_status "Source: $schema_file"
+    print_status "Target filename: $schema_file_name"
+
+    execute_console_command "$framework" Dev::Tools::Database::XML2SQL --database-type=all --source-path="$schema_file" --target-directory=scripts/database --target-filename="$schema_file_name" --split-files
+}
+
+sql_initial_insert() {
+    local framework="$1"
+    local container_name
+    container_name=$(get_instance_container_name "$framework")
+
+    local initial_insert_file
+    initial_insert_file=$(docker exec "$container_name" su -s /bin/bash -c 'cd /opt/znuny && find scripts/database -type f -name "*initial_insert.xml" 2>/dev/null | head -1' znuny 2>/dev/null | tr -d '\r')
+
+    if [ -z "$initial_insert_file" ]; then
+        print_error "No *initial_insert.xml file found in scripts/database"
+        return 1
+    fi
+
+    local initial_insert_file_name
+    initial_insert_file_name=$(basename "${initial_insert_file%.xml}")
+
+    print_status "Source: $initial_insert_file"
+    print_status "Target filename: $initial_insert_file_name"
+
+    execute_console_command "$framework" Dev::Tools::Database::XML2SQL --database-type=all --source-path="$initial_insert_file" --target-directory=scripts/database --target-filename="$initial_insert_file_name"
+}
+
 cpanm() {
     local framework="$1"
     shift
@@ -2268,6 +2312,12 @@ main() {
             ;;
         contributors)
             contributors "$framework"
+            ;;
+        sql-schema)
+            sql_schema "$framework"
+            ;;
+        sql-initial-insert)
+            sql_initial_insert "$framework"
             ;;
         cpanm)
             cpanm "$framework" "${@:3}"

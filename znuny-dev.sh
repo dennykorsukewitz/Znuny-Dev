@@ -469,6 +469,12 @@ main() {
         contributors)
             "$SCRIPTS_DIR/instance.sh" contributors "${@:2}"
             ;;
+        sql-schema)
+            "$SCRIPTS_DIR/instance.sh" sql-schema "${@:2}"
+            ;;
+        sql-initial-insert)
+            "$SCRIPTS_DIR/instance.sh" sql-initial-insert "${@:2}"
+            ;;
         cpanm)
             "$SCRIPTS_DIR/instance.sh" cpanm "${@:2}"
             ;;

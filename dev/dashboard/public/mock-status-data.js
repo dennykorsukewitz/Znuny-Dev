@@ -7,7 +7,88 @@
  * Created / start times: port 10000 = oldest (2026-04-07), each +1 day through 10009 (2026-04-16).
  * UI shows started_at when set (see formatCreated in app.js). Mock generated_at is 2026-04-17.
  */
+
+function mockLoginUrl(entryUrl, login, password) {
+    if (!entryUrl || !login) {
+        return "";
+    }
+    var sep = entryUrl.indexOf("?") >= 0 ? "&" : "?";
+    var url =
+        entryUrl +
+        sep +
+        "Action=Login&User=" +
+        encodeURIComponent(login);
+    if (password) {
+        url += "&Password=" + encodeURIComponent(password);
+    }
+    return url;
+}
+
+function mockPaths(port) {
+    var base = "http://localhost:" + port;
+    return {
+        znuny_script_alias: "/dev/",
+        apache_script_alias: "/znuny/",
+        config_script_alias: "znuny/",
+        frontend_web_path: "/znuny-web/",
+        agent: base + "/znuny/index.pl",
+        customer: base + "/znuny/customer.pl",
+        public: base + "/znuny/public.pl",
+    };
+}
+
+function mockAccess(paths) {
+    return {
+        root: {
+            login: "root@localhost",
+            password: "root",
+            login_url: mockLoginUrl(
+                paths.agent,
+                "root@localhost",
+                "root"
+            ),
+        },
+        agent: {
+            login: "agent",
+            password: "agent",
+            login_url: mockLoginUrl(paths.agent, "agent", "agent"),
+        },
+        customer: {
+            login: "customer",
+            password: "customer",
+            company_id: "DevCompany",
+            login_url: mockLoginUrl(
+                paths.customer,
+                "customer",
+                "customer"
+            ),
+        },
+    };
+}
+
+function mockCli(framework) {
+    return {
+        zd_cmd: "zd",
+        console: "zd console " + framework,
+        shell: "zd shell " + framework,
+    };
+}
+
+/** paths, access, cli, host_workspace, framework_version for mock instances. */
+function mockRuntimeFields(framework, port, frameworkVersion) {
+    var paths = mockPaths(port);
+    return {
+        host_workspace:
+            "/Users/example/workspace/znuny/frameworks/" + framework,
+        framework_version: frameworkVersion,
+        paths: paths,
+        access: mockAccess(paths),
+        cli: mockCli(framework),
+    };
+}
+
 function getZnunyDashboardStatusMock() {
+    var devPaths = mockPaths("10000");
     return {
         generated_at: "2026-04-17T14:00:00Z",
         instances: [
@@ -41,30 +122,19 @@ function getZnunyDashboardStatusMock() {
                     git_branch: "dev",
                     directory: "/znuny-dev/instances/dev",
                     host_workspace: "/Users/example/workspace/znuny/frameworks/dev",
+                    framework_version: "7.3.x",
                 },
-                paths: {
-                    znuny_script_alias: "/dev/",
-                    apache_script_alias: "/znuny/",
-                    config_script_alias: "znuny/",
-                    frontend_web_path: "/znuny-web/",
-                    agent: "http://localhost:10000/znuny/index.pl",
-                    customer: "http://localhost:10000/znuny/customer.pl",
-                    public: "http://localhost:10000/znuny/public.pl",
-                },
-                access: {
-                    root: { login: "root@localhost", password: "root" },
-                    agent: { login: "agent", password: "agent" },
-                    customer: {
-                        login: "customer",
-                        password: "customer",
-                        company_id: "DevCompany",
-                    },
-                },
+                paths: devPaths,
+                access: mockAccess(devPaths),
+                cli: mockCli("dev"),
                 verbose: null,
             },
             /* 2 — lts (green) */
-            {
-                framework: "lts",
+            (function () {
+                var fw = "lts";
+                var paths = mockPaths("10001");
+                return {
+                framework: fw,
                 port: "10001",
                 container_name: "znuny-lts-instance",
                 instance: {
@@ -82,7 +152,7 @@ function getZnunyDashboardStatusMock() {
                 },
                 configuration: {
                     framework_index: "1",
-                    framework_name: "lts",
+                    framework_name: fw,
                     web_interface: "http://localhost:10001",
                     http_port: "10001",
                     database: "mariadb (Port: 3306)",
@@ -91,12 +161,21 @@ function getZnunyDashboardStatusMock() {
                     instance_mode: "shared",
                     git_branch: "lts",
                     directory: "/znuny-dev/instances/lts",
+                    host_workspace: "/Users/example/workspace/znuny/frameworks/lts",
+                    framework_version: "7.2.x",
                 },
+                paths: paths,
+                access: mockAccess(paths),
+                cli: mockCli(fw),
                 verbose: null,
-            },
+                };
+            })(),
             /* 3 — rel-6_5-dev (green) */
-            {
-                framework: "rel-6_5-dev",
+            (function () {
+                var fw = "rel-6_5-dev";
+                var rt = mockRuntimeFields(fw, "10002", "6.5.x");
+                return {
+                framework: fw,
                 port: "10002",
                 container_name: "znuny-rel-6_5-dev-instance",
                 instance: {
@@ -114,7 +193,7 @@ function getZnunyDashboardStatusMock() {
                 },
                 configuration: {
                     framework_index: "2",
-                    framework_name: "rel-6_5-dev",
+                    framework_name: fw,
                     web_interface: "http://localhost:10002",
                     http_port: "10002",
                     database: "mariadb (Port: 3306)",
@@ -123,12 +202,21 @@ function getZnunyDashboardStatusMock() {
                     instance_mode: "shared",
                     git_branch: "dev",
                     directory: "/znuny-dev/instances/rel-6_5-dev",
+                    host_workspace: rt.host_workspace,
+                    framework_version: rt.framework_version,
                 },
+                paths: rt.paths,
+                access: rt.access,
+                cli: rt.cli,
                 verbose: null,
-            },
+                };
+            })(),
             /* 4 — rel-7_3-dev */
-            {
-                framework: "rel-7_3-dev",
+            (function () {
+                var fw = "rel-7_3-dev";
+                var rt = mockRuntimeFields(fw, "10003", "7.3.x");
+                return {
+                framework: fw,
                 port: "10003",
                 container_name: "znuny-rel-7_3-dev-instance",
                 instance: {
@@ -146,7 +234,7 @@ function getZnunyDashboardStatusMock() {
                 },
                 configuration: {
                     framework_index: "3",
-                    framework_name: "rel-7_3-dev",
+                    framework_name: fw,
                     web_interface: "http://localhost:10003",
                     http_port: "10003",
                     database: "mariadb (Port: 3306)",
@@ -155,12 +243,21 @@ function getZnunyDashboardStatusMock() {
                     instance_mode: "dedicated",
                     git_branch: "main",
                     directory: "/znuny-dev/instances/rel-7_3-dev",
+                    host_workspace: rt.host_workspace,
+                    framework_version: rt.framework_version,
                 },
+                paths: rt.paths,
+                access: rt.access,
+                cli: rt.cli,
                 verbose: null,
-            },
+                };
+            })(),
             /* 5 — demo */
-            {
-                framework: "demo",
+            (function () {
+                var fw = "demo";
+                var rt = mockRuntimeFields(fw, "10004", "7.3.x");
+                return {
+                framework: fw,
                 port: "10004",
                 container_name: "znuny-demo-instance",
                 instance: {
@@ -178,7 +275,7 @@ function getZnunyDashboardStatusMock() {
                 },
                 configuration: {
                     framework_index: "4",
-                    framework_name: "demo",
+                    framework_name: fw,
                     web_interface: "http://localhost:10004",
                     http_port: "10004",
                     database: "mariadb (Port: 3306)",
@@ -187,12 +284,21 @@ function getZnunyDashboardStatusMock() {
                     instance_mode: "shared",
                     git_branch: "main",
                     directory: "/znuny-dev/instances/demo",
+                    host_workspace: rt.host_workspace,
+                    framework_version: rt.framework_version,
                 },
+                paths: rt.paths,
+                access: rt.access,
+                cli: rt.cli,
                 verbose: null,
-            },
+                };
+            })(),
             /* 6 — itsm */
-            {
-                framework: "itsm",
+            (function () {
+                var fw = "itsm";
+                var rt = mockRuntimeFields(fw, "10005", "7.3.x");
+                return {
+                framework: fw,
                 port: "10005",
                 container_name: "znuny-itsm-instance",
                 instance: {
@@ -210,7 +316,7 @@ function getZnunyDashboardStatusMock() {
                 },
                 configuration: {
                     framework_index: "5",
-                    framework_name: "itsm",
+                    framework_name: fw,
                     web_interface: "http://localhost:10005",
                     http_port: "10005",
                     database: "mariadb (Port: 3306)",
@@ -219,12 +325,21 @@ function getZnunyDashboardStatusMock() {
                     instance_mode: "shared",
                     git_branch: "develop",
                     directory: "/znuny-dev/instances/itsm",
+                    host_workspace: rt.host_workspace,
+                    framework_version: rt.framework_version,
                 },
+                paths: rt.paths,
+                access: rt.access,
+                cli: rt.cli,
                 verbose: null,
-            },
+                };
+            })(),
             /* 7 — sandbox */
-            {
-                framework: "sandbox-qa",
+            (function () {
+                var fw = "sandbox-qa";
+                var rt = mockRuntimeFields(fw, "10006", "7.3.x");
+                return {
+                framework: fw,
                 port: "10006",
                 container_name: "znuny-sandbox-qa-instance",
                 instance: {
@@ -242,7 +357,7 @@ function getZnunyDashboardStatusMock() {
                 },
                 configuration: {
                     framework_index: "6",
-                    framework_name: "sandbox-qa",
+                    framework_name: fw,
                     web_interface: "http://localhost:10006",
                     http_port: "10006",
                     database: "mariadb (Port: 3310)",
@@ -251,12 +366,21 @@ function getZnunyDashboardStatusMock() {
                     instance_mode: "dedicated",
                     git_branch: "develop",
                     directory: "/znuny-dev/instances/sandbox-qa",
+                    host_workspace: rt.host_workspace,
+                    framework_version: rt.framework_version,
                 },
+                paths: rt.paths,
+                access: rt.access,
+                cli: rt.cli,
                 verbose: null,
-            },
+                };
+            })(),
             /* 8 — bugfix */
-            {
-                framework: "bugfix",
+            (function () {
+                var fw = "bugfix";
+                var rt = mockRuntimeFields(fw, "10007", "7.3.x");
+                return {
+                framework: fw,
                 port: "10007",
                 container_name: "znuny-bugfix-instance",
                 instance: {
@@ -275,7 +399,7 @@ function getZnunyDashboardStatusMock() {
                 },
                 configuration: {
                     framework_index: "7",
-                    framework_name: "bugfix",
+                    framework_name: fw,
                     web_interface: "http://localhost:10007",
                     http_port: "10007",
                     database: "mariadb (Port: 3306)",
@@ -284,12 +408,21 @@ function getZnunyDashboardStatusMock() {
                     instance_mode: "shared",
                     git_branch: "main",
                     directory: "/znuny-dev/instances/bugfix",
+                    host_workspace: rt.host_workspace,
+                    framework_version: rt.framework_version,
                 },
+                paths: rt.paths,
+                access: rt.access,
+                cli: rt.cli,
                 verbose: null,
-            },
+                };
+            })(),
             /* 9 — customer */
-            {
-                framework: "customer-dk",
+            (function () {
+                var fw = "customer-dk";
+                var rt = mockRuntimeFields(fw, "10008", "7.3.x");
+                return {
+                framework: fw,
                 port: "10008",
                 container_name: "znuny-customer-dk-instance",
                 instance: {
@@ -307,7 +440,7 @@ function getZnunyDashboardStatusMock() {
                 },
                 configuration: {
                     framework_index: "8",
-                    framework_name: "customer-dk",
+                    framework_name: fw,
                     web_interface: "http://localhost:10008",
                     http_port: "10008",
                     database: "mariadb (Port: 3306)",
@@ -316,12 +449,21 @@ function getZnunyDashboardStatusMock() {
                     instance_mode: "shared",
                     git_branch: "feature/tickets-42",
                     directory: "/znuny-dev/instances/customer-dk",
+                    host_workspace: rt.host_workspace,
+                    framework_version: rt.framework_version,
                 },
+                paths: rt.paths,
+                access: rt.access,
+                cli: rt.cli,
                 verbose: null,
-            },
+                };
+            })(),
             /* 10 — customer */
-            {
-                framework: "customer-ak",
+            (function () {
+                var fw = "customer-ak";
+                var rt = mockRuntimeFields(fw, "10009", "7.3.x");
+                return {
+                framework: fw,
                 port: "10009",
                 container_name: "znuny-customer-ak-instance",
                 instance: {
@@ -339,7 +481,7 @@ function getZnunyDashboardStatusMock() {
                 },
                 configuration: {
                     framework_index: "9",
-                    framework_name: "customer-ak",
+                    framework_name: fw,
                     web_interface: "http://localhost:10009",
                     http_port: "10009",
                     database: "postgresql (Port: 5432)",
@@ -348,9 +490,15 @@ function getZnunyDashboardStatusMock() {
                     instance_mode: "shared",
                     git_branch: "partner/custom-theme",
                     directory: "/znuny-dev/instances/customer-ak",
+                    host_workspace: rt.host_workspace,
+                    framework_version: rt.framework_version,
                 },
+                paths: rt.paths,
+                access: rt.access,
+                cli: rt.cli,
                 verbose: null,
-            },
+                };
+            })(),
         ],
     };
 }

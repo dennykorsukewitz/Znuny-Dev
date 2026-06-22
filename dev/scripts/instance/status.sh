@@ -297,6 +297,9 @@ show_all_instance_status() {
 #   _get_git_branch_display           Branch name or detached@<sha> for FRAMEWORK_DIR checkout.
 #   _get_kernel_config_pm_value      Read ScriptAlias / Frontend::WebPath from Kernel/Config.pm.
 #   _normalize_url_path             Ensure leading and trailing slash on URL path segments.
+#   _urlencode_query_component      Percent-encode a URL query value (User, Password, …).
+#   _build_znuny_login_url          Agent/customer entry URL with Action=Login query params.
+#   _get_release_version            VERSION from host RELEASE or /opt/znuny/RELEASE in container.
 #   _emit_one_instance_json         Build one instance JSON object (used in a loop by the collector).
 
 emit_status_json_collection() {
@@ -468,6 +471,65 @@ _get_kernel_config_pm_value() {
         | tr -d '\n\r'
 }
 
+# Percent-encode a URL query component (login, password, …).
+_urlencode_query_component() {
+    local value="$1"
+    if [ -z "$value" ]; then
+        printf ''
+        return 0
+    fi
+    if command -v python3 >/dev/null 2>&1; then
+        python3 -c 'import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1], safe=""))' "$value" 2>/dev/null && return 0
+    fi
+    if command -v perl >/dev/null 2>&1; then
+        perl -MURI::Escape -e 'print uri_escape($ARGV[0]);' "$value" 2>/dev/null && return 0
+    fi
+    printf '%s' "$value"
+}
+
+# Agent/customer login URL with User and Password query params (Action=Login).
+_build_znuny_login_url() {
+    local entry_url="$1"
+    local login="$2"
+    local password="$3"
+    if [ -z "$entry_url" ] || [ -z "$login" ]; then
+        printf ''
+        return 0
+    fi
+    local sep='?'
+    case "$entry_url" in
+    *\?*) sep='&' ;;
+    esac
+    local url="${entry_url}${sep}Action=Login&User=$(_urlencode_query_component "$login")"
+    if [ -n "$password" ]; then
+        url="${url}&Password=$(_urlencode_query_component "$password")"
+    fi
+    printf '%s' "$url"
+}
+
+# VERSION from {host_workspace}/RELEASE or /opt/znuny/RELEASE via docker exec when running.
+_get_release_version() {
+    local framework_dir="$1"
+    local container_name="$2"
+    local inst_running="$3"
+    local version=""
+
+    if [ -n "$framework_dir" ] && [ -f "$framework_dir/RELEASE" ]; then
+        version=$(grep -E '^\s*VERSION\s*=' "$framework_dir/RELEASE" 2>/dev/null \
+            | sed -e 's/VERSION = //' \
+            | head -1 \
+            | tr -d '\n\r' \
+            || true)
+    elif [ "$inst_running" = true ] && [ -n "$container_name" ]; then
+        version=$(docker exec "$container_name" grep -E '^\s*VERSION\s*=' /opt/znuny/RELEASE 2>/dev/null \
+            | sed -e 's/VERSION = //' \
+            | head -1 \
+            | tr -d '\n\r' \
+            || true)
+    fi
+    printf '%s' "$version"
+}
+
 # Ensure leading and trailing slash on URL path segments (e.g. /znuny/).
 _normalize_url_path() {
     local path="$1"
@@ -617,6 +679,20 @@ _emit_one_instance_json() {
     local customer_url="${web_interface}${apache_script_alias}customer.pl"
     local public_url="${web_interface}${apache_script_alias}public.pl"
 
+    local framework_version
+    framework_version=$(_get_release_version "$framework_dir" "$container_name" "$inst_running")
+
+    local zd_cmd="${ZD_CMD:-zd}"
+    local cli_console="${zd_cmd} console ${framework}"
+    local cli_shell="${zd_cmd} shell ${framework}"
+
+    local root_login_url
+    local agent_login_url
+    local customer_login_url
+    root_login_url=$(_build_znuny_login_url "$agent_url" "$ZNUNY_DEV_ROOT_LOGIN" "$ZNUNY_DEV_ROOT_PASSWORD")
+    agent_login_url=$(_build_znuny_login_url "$agent_url" "$ZNUNY_DEV_AGENT_LOGIN" "$ZNUNY_DEV_AGENT_PASSWORD")
+    customer_login_url=$(_build_znuny_login_url "$customer_url" "$ZNUNY_DEV_CUSTOMER_LOGIN" "$ZNUNY_DEV_CUSTOMER_PASSWORD")
+
     printf '{'
     printf '"framework":"%s",' "$(json_escape_string "$framework")"
     printf '"port":"%s",' "$(json_escape_string "${port:-}")"
@@ -648,7 +724,8 @@ _emit_one_instance_json() {
     printf '"instance_mode":"%s",' "$(json_escape_string "${instance_mode:-}")"
     printf '"git_branch":"%s",' "$(json_escape_string "${git_branch:-}")"
     printf '"directory":"%s",' "$(json_escape_string "${INSTANCES_DIR}/${framework}")"
-    printf '"host_workspace":"%s"' "$(json_escape_string "${host_workspace:-}")"
+    printf '"host_workspace":"%s",' "$(json_escape_string "${host_workspace:-}")"
+    printf '"framework_version":"%s"' "$(json_escape_string "${framework_version:-}")"
     printf '},'
     printf '"paths":{'
     printf '"znuny_script_alias":"%s",' "$(json_escape_string "${znuny_script_alias:-}")"
@@ -662,17 +739,25 @@ _emit_one_instance_json() {
     printf '"access":{'
     printf '"root":{'
     printf '"login":"%s",' "$(json_escape_string "$ZNUNY_DEV_ROOT_LOGIN")"
-    printf '"password":"%s"' "$(json_escape_string "$ZNUNY_DEV_ROOT_PASSWORD")"
+    printf '"password":"%s",' "$(json_escape_string "$ZNUNY_DEV_ROOT_PASSWORD")"
+    printf '"login_url":"%s"' "$(json_escape_string "${root_login_url:-}")"
     printf '},'
     printf '"agent":{'
     printf '"login":"%s",' "$(json_escape_string "$ZNUNY_DEV_AGENT_LOGIN")"
-    printf '"password":"%s"' "$(json_escape_string "$ZNUNY_DEV_AGENT_PASSWORD")"
+    printf '"password":"%s",' "$(json_escape_string "$ZNUNY_DEV_AGENT_PASSWORD")"
+    printf '"login_url":"%s"' "$(json_escape_string "${agent_login_url:-}")"
     printf '},'
     printf '"customer":{'
     printf '"login":"%s",' "$(json_escape_string "$ZNUNY_DEV_CUSTOMER_LOGIN")"
     printf '"password":"%s",' "$(json_escape_string "$ZNUNY_DEV_CUSTOMER_PASSWORD")"
-    printf '"company_id":"%s"' "$(json_escape_string "$ZNUNY_DEV_CUSTOMER_COMPANY_ID")"
+    printf '"company_id":"%s",' "$(json_escape_string "$ZNUNY_DEV_CUSTOMER_COMPANY_ID")"
+    printf '"login_url":"%s"' "$(json_escape_string "${customer_login_url:-}")"
     printf '}'
+    printf '},'
+    printf '"cli":{'
+    printf '"zd_cmd":"%s",' "$(json_escape_string "${zd_cmd:-}")"
+    printf '"console":"%s",' "$(json_escape_string "${cli_console:-}")"
+    printf '"shell":"%s"' "$(json_escape_string "${cli_shell:-}")"
     printf '}'
 
     if [[ "$verbose_mode" == "true" ]] && check_command docker && docker info >/dev/null 2>&1; then

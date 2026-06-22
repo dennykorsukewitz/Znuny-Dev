@@ -19,6 +19,8 @@ realign_znuny_paths
 # shellcheck source=dev/scripts/common.sh
 source "$ZNUNY_DEV_DIR/dev/scripts/common.sh"
 load_environment
+set_zd_cmd
+export ZD_CMD
 # .env may set ZNUNY_DEV_DIR / INSTANCES_DIR to host paths (not valid inside the dashboard container).
 realign_znuny_paths
 

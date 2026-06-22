@@ -282,7 +282,83 @@ show_all_instance_status() {
 
 # --- JSON export for dashboard / zd status --json ---
 # shellcheck disable=SC2034
+#
+# Public entry:
+#   emit_status_json_collection [framework] [verbose]
+#     Prints {"generated_at", "instances":[...]} to stdout. Optional framework name;
+#     omit or "all" for every instance under INSTANCES_DIR.
+#
+# Private helpers (do not call from outside this file):
+#   json_escape_string              Escape a string for JSON string values.
+#   _emit_bool_json                 Bash true/false → JSON true/false.
+#   _status_json_docker_cache_load  One docker ps/volume/network snapshot per request.
+#   _status_json_docker_cache_clear Unset cache variables after the collection is emitted.
+#   _sjc_ps_running_status          Docker Status column for a container name from cache.
+#   _get_git_branch_display           Branch name or detached@<sha> for FRAMEWORK_DIR checkout.
+#   _get_kernel_config_pm_value      Read ScriptAlias / Frontend::WebPath from Kernel/Config.pm.
+#   _normalize_url_path             Ensure leading and trailing slash on URL path segments.
+#   _emit_one_instance_json         Build one instance JSON object (used in a loop by the collector).
 
+emit_status_json_collection() {
+    local framework="${1:-}"
+    local verbose_mode="${2:-false}"
+
+    if ! check_command docker || ! docker info >/dev/null 2>&1; then
+        printf '{"error":"%s","instances":[]}' "$(json_escape_string "Docker is not available or not running")"
+        printf '\n'
+        return 0
+    fi
+
+    if [ -z "$INSTANCES_DIR" ] || [ ! -d "$INSTANCES_DIR" ]; then
+        printf '{"error":"%s","instances":[]}' "$(json_escape_string "Instances directory not found")"
+        printf '\n'
+        return 0
+    fi
+
+    local generated_at
+    generated_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    if [ -n "$framework" ] && [ "$framework" != "all" ]; then
+        local instance_env_file="$INSTANCES_DIR/$framework/$framework.env"
+        if [ ! -f "$instance_env_file" ]; then
+            printf '{"error":"%s","framework":"%s","instances":[]}' "$(json_escape_string "Framework not found")" "$(json_escape_string "$framework")"
+            printf '\n'
+            return 1
+        fi
+        printf '{"generated_at":"%s","instances":[' "$generated_at"
+        _status_json_docker_cache_load "$verbose_mode"
+        _emit_one_instance_json "$framework" "$verbose_mode"
+        printf ']}\n'
+        _status_json_docker_cache_clear
+        return 0
+    fi
+
+    local instances=()
+    read_lines_to_array instances < <(get_available_instances)
+    _status_json_docker_cache_load "$verbose_mode"
+    printf '{"generated_at":"%s","instances":[' "$generated_at"
+    local first=true
+    local inst
+    for inst in "${instances[@]}"; do
+        [ "$first" = true ] || printf ','
+        first=false
+        _emit_one_instance_json "$inst" "$verbose_mode"
+    done
+    printf ']}\n'
+    _status_json_docker_cache_clear
+}
+
+# znuny-dev default development credentials (keep in sync with dev/docker/startup-instance.sh).
+ZNUNY_DEV_ROOT_LOGIN='root@localhost'
+ZNUNY_DEV_ROOT_PASSWORD='root'
+ZNUNY_DEV_AGENT_LOGIN='agent'
+ZNUNY_DEV_AGENT_PASSWORD='agent'
+ZNUNY_DEV_CUSTOMER_LOGIN='customer'
+ZNUNY_DEV_CUSTOMER_PASSWORD='customer'
+ZNUNY_DEV_CUSTOMER_COMPANY_ID='DevCompany'
+ZNUNY_DEV_APACHE_SCRIPT_ALIAS='/znuny/'
+
+# Escape a string for use inside JSON string values.
 json_escape_string() {
     local Input="$1"
     local Output=""
@@ -309,6 +385,7 @@ json_escape_string() {
     printf '%s' "$Output"
 }
 
+# Bash true/false → JSON true/false.
 _emit_bool_json() {
     if [ "$1" = "true" ] || [ "$1" = "1" ]; then
         printf 'true'
@@ -317,7 +394,7 @@ _emit_bool_json() {
     fi
 }
 
-# Populate once per dashboard / JSON status request (avoids N× docker ps / volume ls / network ls).
+# One docker ps/volume/network snapshot per JSON request.
 _status_json_docker_cache_load() {
     local verbose="$1"
     _SJC_PS_NAMES=$(docker ps --format '{{.Names}}' 2>/dev/null || true)
@@ -334,16 +411,18 @@ _status_json_docker_cache_load() {
     fi
 }
 
+# Unset docker cache variables after emit_status_json_collection finishes.
 _status_json_docker_cache_clear() {
     unset _SJC_PS_NAMES _SJC_PS_NAME_STATUS _SJC_PS_ALL_NAMES _SJC_PS_ALL_LINES _SJC_VOL_ALL _SJC_NET_ALL
 }
 
+# Docker Status column for a container name (from _status_json_docker_cache_load).
 _sjc_ps_running_status() {
     local n="$1"
     printf '%s\n' "$_SJC_PS_NAME_STATUS" | awk -F'\t' -v name="$n" '$1 == name { print $2; exit }'
 }
 
-# Current branch name, or detached@<short_sha> when not on a branch (Znuny checkout: FRAMEWORK_DIR in .env).
+# Branch name or detached@<short_sha> for a framework checkout directory.
 _get_git_branch_display() {
     local dir="${1:-}"
     if [ -z "$dir" ] || [ ! -d "$dir" ]; then
@@ -375,7 +454,37 @@ _get_git_branch_display() {
     printf ''
 }
 
-# Emit one instance as JSON object to stdout (no newline before/after; caller adds comma separation)
+# Read ScriptAlias, Frontend::WebPath, etc. from Kernel/Config.pm on disk.
+_get_kernel_config_pm_value() {
+    local config_file="$1"
+    local setting_key="$2"
+    if [ -z "$config_file" ] || [ ! -f "$config_file" ]; then
+        printf ''
+        return 0
+    fi
+    grep -E "^\s*\\\$Self->\{'${setting_key}'\}" "$config_file" 2>/dev/null \
+        | sed -n "s/.*= '\([^']*\)'.*/\1/p" \
+        | head -1 \
+        | tr -d '\n\r'
+}
+
+# Ensure leading and trailing slash on URL path segments (e.g. /znuny/).
+_normalize_url_path() {
+    local path="$1"
+    path=$(printf '%s' "$path" | tr -d '\n\r')
+    [ -z "$path" ] && printf '' && return 0
+    case "$path" in
+    /*) ;;
+    *) path="/$path" ;;
+    esac
+    case "$path" in
+    */) ;;
+    *) path="${path}/" ;;
+    esac
+    printf '%s' "$path"
+}
+
+# Build one instance JSON object; caller adds comma separation between instances.
 _emit_one_instance_json() {
     local framework="$1"
     local verbose_mode="${2:-false}"
@@ -462,10 +571,51 @@ _emit_one_instance_json() {
     fi
 
     local framework_index=""
+    local znuny_script_alias=""
+    local fqdn=""
     if [ -f "$instance_env_file" ]; then
         framework_index=$(grep "^FRAMEWORK_INDEX=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d ' "' || true)
         framework_index=$(printf '%s' "$framework_index" | tr -d '\n\r')
+        znuny_script_alias=$(grep "^ZNUNY_SCRIPT_ALIAS=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || true)
+        znuny_script_alias=$(printf '%s' "$znuny_script_alias" | tr -d '\n\r')
+        fqdn=$(grep "^FQDN=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || true)
+        fqdn=$(printf '%s' "$fqdn" | tr -d '\n\r')
     fi
+
+    local host_workspace="$framework_dir"
+    local config_script_alias=""
+    local frontend_web_path=""
+    local config_pm_file=""
+    if [ -n "$framework_dir" ]; then
+        config_pm_file="$framework_dir/Kernel/Config.pm"
+        config_script_alias=$(_get_kernel_config_pm_value "$config_pm_file" 'ScriptAlias')
+        frontend_web_path=$(_get_kernel_config_pm_value "$config_pm_file" 'Frontend::WebPath')
+    fi
+    if [ "$inst_running" = true ] && { [ -z "$config_script_alias" ] || [ -z "$frontend_web_path" ]; }; then
+        local container_config_pm="/opt/znuny/Kernel/Config.pm"
+        if [ -z "$config_script_alias" ]; then
+            config_script_alias=$(docker exec "$container_name" grep -E "^\s*\\\$Self->\{'ScriptAlias'\}" "$container_config_pm" 2>/dev/null \
+                | sed -n "s/.*= '\([^']*\)'.*/\1/p" \
+                | head -1 \
+                | tr -d '\n\r' || true)
+        fi
+        if [ -z "$frontend_web_path" ]; then
+            frontend_web_path=$(docker exec "$container_name" grep -E "^\s*\\\$Self->\{'Frontend::WebPath'\}" "$container_config_pm" 2>/dev/null \
+                | sed -n "s/.*= '\([^']*\)'.*/\1/p" \
+                | head -1 \
+                | tr -d '\n\r' || true)
+        fi
+    fi
+    [ -z "$znuny_script_alias" ] && znuny_script_alias="/${framework}/"
+    local apache_script_alias
+    apache_script_alias=$(_normalize_url_path "${ZNUNY_DEV_APACHE_SCRIPT_ALIAS:-/znuny/}")
+    local web_interface="http://localhost:${http_port:-}"
+    if [ -n "$fqdn" ] && [ "$fqdn" != "localhost" ]; then
+        web_interface="http://${fqdn}:${http_port:-}"
+    fi
+    local agent_url="${web_interface}${apache_script_alias}index.pl"
+    local customer_url="${web_interface}${apache_script_alias}customer.pl"
+    local public_url="${web_interface}${apache_script_alias}public.pl"
 
     printf '{'
     printf '"framework":"%s",' "$(json_escape_string "$framework")"
@@ -491,13 +641,38 @@ _emit_one_instance_json() {
     printf '"configuration":{'
     printf '"framework_index":"%s",' "$(json_escape_string "${framework_index:-}")"
     printf '"framework_name":"%s",' "$(json_escape_string "$framework_name")"
-    printf '"web_interface":"%s",' "$(json_escape_string "http://localhost:${http_port:-}")"
+    printf '"web_interface":"%s",' "$(json_escape_string "${web_interface:-}")"
     printf '"http_port":"%s",' "$(json_escape_string "${http_port:-}")"
     printf '"database":"%s",' "$(json_escape_string "$db_label")"
     printf '"database_url":"%s",' "$(json_escape_string "${db_url:-}")"
     printf '"instance_mode":"%s",' "$(json_escape_string "${instance_mode:-}")"
     printf '"git_branch":"%s",' "$(json_escape_string "${git_branch:-}")"
-    printf '"directory":"%s"' "$(json_escape_string "${INSTANCES_DIR}/${framework}")"
+    printf '"directory":"%s",' "$(json_escape_string "${INSTANCES_DIR}/${framework}")"
+    printf '"host_workspace":"%s"' "$(json_escape_string "${host_workspace:-}")"
+    printf '},'
+    printf '"paths":{'
+    printf '"znuny_script_alias":"%s",' "$(json_escape_string "${znuny_script_alias:-}")"
+    printf '"apache_script_alias":"%s",' "$(json_escape_string "${apache_script_alias:-}")"
+    printf '"config_script_alias":"%s",' "$(json_escape_string "${config_script_alias:-}")"
+    printf '"frontend_web_path":"%s",' "$(json_escape_string "${frontend_web_path:-}")"
+    printf '"agent":"%s",' "$(json_escape_string "${agent_url:-}")"
+    printf '"customer":"%s",' "$(json_escape_string "${customer_url:-}")"
+    printf '"public":"%s"' "$(json_escape_string "${public_url:-}")"
+    printf '},'
+    printf '"access":{'
+    printf '"root":{'
+    printf '"login":"%s",' "$(json_escape_string "$ZNUNY_DEV_ROOT_LOGIN")"
+    printf '"password":"%s"' "$(json_escape_string "$ZNUNY_DEV_ROOT_PASSWORD")"
+    printf '},'
+    printf '"agent":{'
+    printf '"login":"%s",' "$(json_escape_string "$ZNUNY_DEV_AGENT_LOGIN")"
+    printf '"password":"%s"' "$(json_escape_string "$ZNUNY_DEV_AGENT_PASSWORD")"
+    printf '},'
+    printf '"customer":{'
+    printf '"login":"%s",' "$(json_escape_string "$ZNUNY_DEV_CUSTOMER_LOGIN")"
+    printf '"password":"%s",' "$(json_escape_string "$ZNUNY_DEV_CUSTOMER_PASSWORD")"
+    printf '"company_id":"%s"' "$(json_escape_string "$ZNUNY_DEV_CUSTOMER_COMPANY_ID")"
+    printf '}'
     printf '}'
 
     if [[ "$verbose_mode" == "true" ]] && check_command docker && docker info >/dev/null 2>&1; then
@@ -576,53 +751,4 @@ _emit_one_instance_json() {
         printf '"verbose":null'
     fi
     printf '}'
-}
-
-emit_status_json_collection() {
-    local framework="${1:-}"
-    local verbose_mode="${2:-false}"
-
-    if ! check_command docker || ! docker info >/dev/null 2>&1; then
-        printf '{"error":"%s","instances":[]}' "$(json_escape_string "Docker is not available or not running")"
-        printf '\n'
-        return 0
-    fi
-
-    if [ -z "$INSTANCES_DIR" ] || [ ! -d "$INSTANCES_DIR" ]; then
-        printf '{"error":"%s","instances":[]}' "$(json_escape_string "Instances directory not found")"
-        printf '\n'
-        return 0
-    fi
-
-    local generated_at
-    generated_at=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-    if [ -n "$framework" ] && [ "$framework" != "all" ]; then
-        local instance_env_file="$INSTANCES_DIR/$framework/$framework.env"
-        if [ ! -f "$instance_env_file" ]; then
-            printf '{"error":"%s","framework":"%s","instances":[]}' "$(json_escape_string "Framework not found")" "$(json_escape_string "$framework")"
-            printf '\n'
-            return 1
-        fi
-        printf '{"generated_at":"%s","instances":[' "$generated_at"
-        _status_json_docker_cache_load "$verbose_mode"
-        _emit_one_instance_json "$framework" "$verbose_mode"
-        printf ']}\n'
-        _status_json_docker_cache_clear
-        return 0
-    fi
-
-    local instances=()
-    read_lines_to_array instances < <(get_available_instances)
-    _status_json_docker_cache_load "$verbose_mode"
-    printf '{"generated_at":"%s","instances":[' "$generated_at"
-    local first=true
-    local inst
-    for inst in "${instances[@]}"; do
-        [ "$first" = true ] || printf ','
-        first=false
-        _emit_one_instance_json "$inst" "$verbose_mode"
-    done
-    printf ']}\n'
-    _status_json_docker_cache_clear
 }

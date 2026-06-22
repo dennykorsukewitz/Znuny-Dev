@@ -453,13 +453,48 @@ rebuild_framework_config() {
     log "Znuny configuration rebuilt successfully"
 }
 
-# Function to set initial password
-set_initial_password() {
-    log "Setting initial password for root user..."
+# Development credentials for znuny-dev instances (password equals login unless noted).
+DEV_ROOT_LOGIN="root@localhost"
+DEV_ROOT_PASSWORD="root"
+DEV_AGENT_LOGIN="agent"
+DEV_AGENT_PASSWORD="agent"
+DEV_CUSTOMER_LOGIN="customer"
+DEV_CUSTOMER_PASSWORD="customer"
+DEV_CUSTOMER_COMPANY_ID="DevCompany"
 
-    su -s /bin/bash -c "perl '$CONSOLE_PL' Admin::User::SetPassword root@localhost root" "$FRAMEWORK_USER"
+# Function to ensure standard development users exist with known passwords
+setup_development_users() {
+    log "Setting up development users (root, agent, customer)..."
 
-    log "Initial password set successfully"
+    if su -s /bin/bash -c "perl '$CONSOLE_PL' Admin::User::SetPassword '$DEV_ROOT_LOGIN' '$DEV_ROOT_PASSWORD'" "$FRAMEWORK_USER"; then
+        log "Root password set: $DEV_ROOT_LOGIN"
+    else
+        log "WARNING: Could not set root password for $DEV_ROOT_LOGIN"
+    fi
+
+    if su -s /bin/bash -c "perl '$CONSOLE_PL' Admin::CustomerCompany::Add --customer-id '$DEV_CUSTOMER_COMPANY_ID' --name 'Dev Company' --city Dev" "$FRAMEWORK_USER"; then
+        log "Development customer company created: $DEV_CUSTOMER_COMPANY_ID"
+    else
+        log "Development customer company already exists or could not be created: $DEV_CUSTOMER_COMPANY_ID"
+    fi
+
+    if su -s /bin/bash -c "perl '$CONSOLE_PL' Admin::User::Add --user-name '$DEV_AGENT_LOGIN' --first-name Agent --last-name Dev --email-address agent@localhost --password '$DEV_AGENT_PASSWORD' --group admin" "$FRAMEWORK_USER"; then
+        log "Development agent user created: $DEV_AGENT_LOGIN"
+    elif su -s /bin/bash -c "perl '$CONSOLE_PL' Admin::User::SetPassword '$DEV_AGENT_LOGIN' '$DEV_AGENT_PASSWORD'" "$FRAMEWORK_USER"; then
+        log "Development agent password reset: $DEV_AGENT_LOGIN"
+    else
+        log "WARNING: Could not create or update development agent user: $DEV_AGENT_LOGIN"
+    fi
+
+    if su -s /bin/bash -c "perl '$CONSOLE_PL' Admin::CustomerUser::Add --user-name '$DEV_CUSTOMER_LOGIN' --first-name Customer --last-name Dev --email-address customer@localhost --customer-id '$DEV_CUSTOMER_COMPANY_ID' --password '$DEV_CUSTOMER_PASSWORD'" "$FRAMEWORK_USER"; then
+        log "Development customer user created: $DEV_CUSTOMER_LOGIN"
+    elif su -s /bin/bash -c "perl '$CONSOLE_PL' Admin::CustomerUser::SetPassword '$DEV_CUSTOMER_LOGIN' '$DEV_CUSTOMER_PASSWORD'" "$FRAMEWORK_USER"; then
+        log "Development customer password reset: $DEV_CUSTOMER_LOGIN"
+    else
+        log "WARNING: Could not create or update development customer user: $DEV_CUSTOMER_LOGIN"
+    fi
+
+    log "Development user setup completed"
 }
 
 # Function to initialize database
@@ -710,8 +745,8 @@ main() {
     # Rebuild framework configuration
     rebuild_framework_config
 
-    # Set initial password
-    set_initial_password
+    # Ensure development users (root, agent, customer) with known passwords
+    setup_development_users
 
     # Setup development tools (module-tools: cpanfile deps + symlinks)
     setup_module_tools

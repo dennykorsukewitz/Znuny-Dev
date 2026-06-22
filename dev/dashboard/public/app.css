@@ -906,6 +906,11 @@ a.cell-port-link:hover {
   margin-top: 4px;
 }
 
+.instance-card .instance-actions {
+  justify-content: center;
+  align-items: center;
+}
+
 /* In-place progress while zd runs (card: between title and status dot) */
 .instance-zd-progress {
   min-width: 0;

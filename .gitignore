@@ -35,6 +35,7 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+.opener.pid
 .DS_Store
 Thumbs.db
 

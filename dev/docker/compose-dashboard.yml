@@ -21,6 +21,8 @@ services:
     environment:
       ZNUNY_DEV_DIR: /znuny-dev
       PORT: "3000"
+      OPENER_PORT: "${OPENER_PORT:-9998}"
+      OPENER_HOST: host.docker.internal
     networks:
       - znuny-network
 

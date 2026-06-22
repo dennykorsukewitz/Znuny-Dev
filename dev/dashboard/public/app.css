@@ -783,6 +783,52 @@ a.cell-port-link:hover {
   color: var(--zn-orange-hover);
 }
 
+.login-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.login-links .btn,
+.host-workspace-actions .btn,
+.instances-table .cell-login .btn {
+  text-decoration: none;
+}
+
+.btn-accent {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface));
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.btn-accent:hover {
+  color: var(--accent-hover);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+
+.host-workspace-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.host-workspace-actions .host-workspace-path {
+  font-size: 0.82rem;
+  word-break: break-all;
+}
+
+.instance-extra .host-workspace-path {
+  word-break: break-all;
+}
+
+.instances-table .cell-login,
+.instances-table .cell-workspace {
+  white-space: nowrap;
+}
+
 .instances-table tbody tr.instance-table-row-expandable {
   cursor: pointer;
 }
@@ -934,7 +980,10 @@ a.cell-port-link:hover {
   }
 }
 
-.instance-actions .btn-compact {
+.instance-actions .btn-compact,
+.login-links .btn-compact,
+.host-workspace-actions .btn-compact,
+.instances-table .cell-login .btn-compact {
   padding: 5px 10px;
   font-size: 0.75rem;
 }

@@ -6,6 +6,11 @@
 
     var lastData = null;
     var nextOperationId = 1;
+    var dashboardConfig = {
+        default_ide: null,
+        default_ide_cmd: null,
+        default_ide_label: null,
+    };
 
     /** Toast card (bottom-right): concurrent zd / status — returns id for endOperation. */
     function beginOperation(label) {
@@ -500,11 +505,31 @@
             (cfg.database && String(cfg.database).trim()) ||
             (cfg.instance_mode && String(cfg.instance_mode).trim()) ||
             (cfg.git_branch && String(cfg.git_branch).trim()) ||
-            (cfg.directory && String(cfg.directory).trim())
+            (cfg.directory && String(cfg.directory).trim()) ||
+            (cfg.host_workspace && String(cfg.host_workspace).trim()) ||
+            (row.paths && (row.paths.agent || row.paths.customer)) ||
+            (row.access && (row.access.root || row.access.agent || row.access.customer))
         ) {
             return true;
         }
         return false;
+    }
+
+    /** Agent/customer/public URL in detail view — opens in new tab. */
+    function pathLineHtml(label, url) {
+        if (!url) {
+            return "";
+        }
+        return (
+            escapeHtml(label) +
+            ': <a href="' +
+            escapeHtml(url) +
+            '" target="_blank" rel="noopener noreferrer" title="' +
+            escapeHtml("Open in new tab: " + url) +
+            '"><code>' +
+            escapeHtml(url) +
+            "</code></a><br>"
+        );
     }
 
     function renderInstanceExtraHtml(row) {
@@ -535,6 +560,23 @@
             "Directory",
             "<code>" + escapeHtml(cfg.directory || "") + "</code>"
         );
+        if (cfg.host_workspace && String(cfg.host_workspace).trim()) {
+            html += detailRow(
+                "Host workspace",
+                "<code>" + escapeHtml(String(cfg.host_workspace).trim()) + "</code>"
+            );
+        }
+        var paths = row.paths || {};
+        if (paths.agent || paths.customer || paths.public) {
+            var pathLines = [
+                pathLineHtml("Agent", paths.agent),
+                pathLineHtml("Customer", paths.customer),
+                pathLineHtml("Public", paths.public),
+            ]
+                .filter(Boolean)
+                .join("");
+            html += detailRow("Paths", pathLines);
+        }
         html += detailRow("Mode", escapeHtml(cfg.instance_mode || ""));
         if (cfg.database && String(cfg.database).trim()) {
             html += detailRow(
@@ -803,6 +845,8 @@
             "<th>Database</th>" +
             "<th>Created</th>" +
             "<th>Port</th>" +
+            "<th>Login</th>" +
+            "<th>Workspace</th>" +
             '<th class="cell-actions" scope="col">Actions</th>' +
             "</tr></thead><tbody>";
 
@@ -855,6 +899,11 @@
         lines += "</td>";
         lines += "<td>" + formatCreated(inst) + "</td>";
         lines += "<td>" + portStackHtml(row) + "</td>";
+        lines += '<td class="cell-login">' + renderLoginLinksHtml(row) + "</td>";
+        lines +=
+            '<td class="cell-workspace">' +
+            hostWorkspaceButtonsHtml(row) +
+            "</td>";
         lines +=
             '<td class="cell-actions">' +
             renderInstanceActionsHtml(fw, !!inst.running) +
@@ -867,7 +916,7 @@
                 '<tr class="table-more-row" id="' +
                 moreId +
                 '" hidden>' +
-                '<td colspan="7">' +
+                '<td colspan="9">' +
                 '<div class="table-more-inner">' +
                 renderInstanceExtraHtml(row) +
                 "</div></td></tr>";
@@ -882,7 +931,6 @@
         renderView();
     }
 
-    /** Port as clickable link to the web UI when URL is known (tooltip on hover). */
     function portStackHtml(row) {
         var cfg = row.configuration || {};
         var web = cfg.web_interface || "";
@@ -916,6 +964,220 @@
             );
         }
         return escapeHtml(fw);
+    }
+
+    /** Folder + IDE buttons (DEFAULT_IDE from configs/instance/my.env). */
+    function hostWorkspaceButtonsHtml(row) {
+        var cfg = row.configuration || {};
+        var ws = cfg.host_workspace;
+        var fw = row.framework || "";
+        if (!ws || !String(ws).trim() || !fw) {
+            return '<span class="cell-muted">—</span>';
+        }
+        var wsTrim = String(ws).trim();
+        var html =
+            '<span class="host-workspace-actions">' +
+            '<button type="button" class="btn btn-accent btn-compact open-workspace-link" data-framework="' +
+            escapeHtml(fw) +
+            '" title="' +
+            escapeHtml("Open in Finder / Explorer: " + wsTrim) +
+            '">Folder</button>';
+        if (dashboardConfig.default_ide_cmd && dashboardConfig.default_ide_label) {
+            html +=
+                '<button type="button" class="btn btn-accent btn-compact open-ide-link" data-framework="' +
+                escapeHtml(fw) +
+                '" title="Open in ' +
+                escapeHtml(dashboardConfig.default_ide_label) +
+                ": " +
+                escapeHtml(wsTrim) +
+                '">' +
+                escapeHtml(dashboardConfig.default_ide_label) +
+                "</button>";
+        }
+        html += "</span>";
+        return html;
+    }
+
+    function openHostWorkspace(framework) {
+        var banner = document.getElementById("error-banner");
+        if (!framework) {
+            return Promise.resolve();
+        }
+        return fetch(
+            "/api/open-workspace?framework=" +
+                encodeURIComponent(framework),
+            { method: "POST" }
+        )
+            .then(function (r) {
+                return r.text().then(function (text) {
+                    var data = null;
+                    if (text) {
+                        try {
+                            data = JSON.parse(text);
+                        } catch (ignore) {
+                            throw new Error(
+                                "Invalid response: " + text.trim().slice(0, 200)
+                            );
+                        }
+                    }
+                    if (!r.ok) {
+                        throw new Error(
+                            (data && (data.detail || data.error)) ||
+                                "HTTP " + r.status
+                        );
+                    }
+                    return data;
+                });
+            })
+            .then(function () {
+                if (banner) {
+                    banner.hidden = true;
+                    banner.textContent = "";
+                }
+            })
+            .catch(function (e) {
+                if (banner) {
+                    banner.hidden = false;
+                    banner.textContent =
+                        (e && e.message) ||
+                        "Could not open host workspace. Run: zd dashboard start";
+                }
+            });
+    }
+
+    function openHostIde(framework) {
+        var banner = document.getElementById("error-banner");
+        if (!framework) {
+            return Promise.resolve();
+        }
+        return fetch(
+            "/api/open-ide?framework=" + encodeURIComponent(framework),
+            { method: "POST" }
+        )
+            .then(function (r) {
+                return r.text().then(function (text) {
+                    var data = null;
+                    if (text) {
+                        try {
+                            data = JSON.parse(text);
+                        } catch (ignore) {
+                            throw new Error(
+                                "Invalid response: " + text.trim().slice(0, 200)
+                            );
+                        }
+                    }
+                    if (!r.ok) {
+                        throw new Error(
+                            (data && (data.detail || data.error)) ||
+                                "HTTP " + r.status
+                        );
+                    }
+                    return data;
+                });
+            })
+            .then(function () {
+                if (banner) {
+                    banner.hidden = true;
+                    banner.textContent = "";
+                }
+            })
+            .catch(function (e) {
+                if (banner) {
+                    banner.hidden = false;
+                    banner.textContent =
+                        (e && e.message) ||
+                        "Could not open IDE. Run: zd dashboard restart";
+                }
+            });
+    }
+
+    function loadDashboardConfig() {
+        if (window.location.protocol === "file:") {
+            return Promise.resolve();
+        }
+        return fetch("/api/config")
+            .then(function (r) {
+                return r.json();
+            })
+            .then(function (cfg) {
+                if (cfg && cfg.default_ide_cmd) {
+                    dashboardConfig = cfg;
+                }
+            })
+            .catch(function () {});
+    }
+
+    /** Agent/customer login URL with User and Password query params (Action=Login). */
+    function znunyLoginUrl(entryUrl, cred) {
+        if (!entryUrl || !cred || !cred.login) {
+            return "";
+        }
+        var sep = String(entryUrl).indexOf("?") >= 0 ? "&" : "?";
+        var url =
+            String(entryUrl) +
+            sep +
+            "Action=Login&User=" +
+            encodeURIComponent(String(cred.login));
+        if (cred.password) {
+            url +=
+                "&Password=" + encodeURIComponent(String(cred.password));
+        }
+        return url;
+    }
+
+    function loginLinkTitle(cred) {
+        if (!cred || !cred.login) {
+            return "";
+        }
+        var parts = [String(cred.login)];
+        if (cred.password) {
+            parts.push(String(cred.password));
+        }
+        if (cred.company_id) {
+            parts.push("company: " + String(cred.company_id));
+        }
+        return "Login · " + parts.join(" / ");
+    }
+
+    /** root / agent / customer — opens Znuny login with User prefilled; tooltip shows dev password. */
+    function renderLoginLinksHtml(row) {
+        var paths = row.paths || {};
+        var access = row.access || {};
+        var agentBase = paths.agent || "";
+        var customerBase = paths.customer || "";
+        var parts = [];
+
+        function pushLink(label, url, cred) {
+            if (!url || !cred || !cred.login) {
+                return;
+            }
+            parts.push(
+                '<a class="btn btn-accent btn-compact login-link" href="' +
+                    escapeHtml(url) +
+                    '" target="_blank" rel="noopener noreferrer" title="' +
+                    escapeHtml(loginLinkTitle(cred)) +
+                    '">' +
+                    escapeHtml(label) +
+                    "</a>"
+            );
+        }
+
+        pushLink("root", znunyLoginUrl(agentBase, access.root), access.root);
+        pushLink(
+            "agent",
+            znunyLoginUrl(agentBase, access.agent),
+            access.agent
+        );
+        pushLink(
+            "customer",
+            znunyLoginUrl(customerBase, access.customer),
+            access.customer
+        );
+
+        if (parts.length === 0) {
+            return '<span class="cell-muted">—</span>';
+        }
+        return '<span class="login-links">' + parts.join("") + "</span>";
     }
 
     /** Toggle extra-details panel on a card (card background click). */
@@ -979,6 +1241,10 @@
         }
         lines += detailRow("Created", formatCreated(inst));
         lines += detailRow("Port", portStackHtml(row));
+        lines += detailRow("Login", renderLoginLinksHtml(row));
+        if (cfg.host_workspace && String(cfg.host_workspace).trim()) {
+            lines += detailRow("Workspace", hostWorkspaceButtonsHtml(row));
+        }
         lines += "</tbody></table></div>";
 
         lines += renderInstanceActionsHtml(fw, !!inst.running);
@@ -1140,6 +1406,22 @@
         .addEventListener("change", onThemeSwitchChange);
 
     document.getElementById("instances").addEventListener("click", function (e) {
+        var wsLink = e.target.closest(".open-workspace-link");
+        if (wsLink) {
+            e.preventDefault();
+            e.stopPropagation();
+            openHostWorkspace(wsLink.getAttribute("data-framework") || "");
+            return;
+        }
+
+        var ideBtn = e.target.closest(".open-ide-link");
+        if (ideBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            openHostIde(ideBtn.getAttribute("data-framework") || "");
+            return;
+        }
+
         var zdBtn = e.target.closest(".zd-action-btn");
         if (zdBtn) {
             e.preventDefault();
@@ -1188,5 +1470,7 @@
 
     initTheme();
     initToolbar();
-    loadStatus();
+    loadDashboardConfig().then(function () {
+        loadStatus();
+    });
 })();

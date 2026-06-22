@@ -39,6 +39,85 @@ compose_dashboard() {
 remove_dashboard() {
     compose_dashboard down
     docker rm -f znuny-dashboard znuny-dev-dashboard 2>/dev/null || true
+    stop_opener
+}
+
+opener_pidfile() {
+    echo "${ZNUNY_DEV_DIR:?}/.opener.pid"
+}
+
+stop_opener() {
+    local pidfile
+    pidfile=$(opener_pidfile)
+    if [ -f "$pidfile" ]; then
+        local pid
+        pid=$(cat "$pidfile" 2>/dev/null || true)
+        if [ -n "$pid" ]; then
+            kill "$pid" 2>/dev/null || true
+        fi
+        rm -f "$pidfile"
+    fi
+    if [ -n "${ZNUNY_DEV_DIR:-}" ]; then
+        pkill -f "${ZNUNY_DEV_DIR}/dev/dashboard/host-opener.mjs" 2>/dev/null || true
+    fi
+}
+
+opener_health_ok() {
+    local port="${1:-9998}"
+    if ! check_command curl; then
+        return 1
+    fi
+    curl -sf "http://127.0.0.1:${port}/config" >/dev/null 2>&1
+}
+
+start_opener() {
+    if [ -f /.dockerenv ]; then
+        return 0
+    fi
+    if ! check_command node; then
+        print_warning "node not found — workspace links need opener (install Node.js)"
+        return 0
+    fi
+    local pidfile
+    pidfile=$(opener_pidfile)
+    rm -f "${ZNUNY_DEV_DIR:?}/.host-opener.pid"
+    local port="${OPENER_PORT:-9998}"
+
+    if [ -f "$pidfile" ]; then
+        local pid
+        pid=$(cat "$pidfile" 2>/dev/null || true)
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && opener_health_ok "$port"; then
+            return 0
+        fi
+        if [ -n "$pid" ]; then
+            kill "$pid" 2>/dev/null || true
+        fi
+        rm -f "$pidfile"
+    fi
+
+    if [ -n "${ZNUNY_DEV_DIR:-}" ]; then
+        pkill -f "${ZNUNY_DEV_DIR}/dev/dashboard/host-opener.mjs" 2>/dev/null || true
+    fi
+
+    if opener_health_ok "$port"; then
+        print_warning "Opener port ${port} in use; restarting stale process..."
+        if check_command lsof; then
+            lsof -ti "tcp:${port}" -sTCP:LISTEN 2>/dev/null | while read -r stale_pid; do
+                [ -n "$stale_pid" ] && kill "$stale_pid" 2>/dev/null || true
+            done
+        fi
+        sleep 1
+    fi
+
+    export ZNUNY_DEV_DIR OPENER_PORT="$port"
+    nohup node "$ZNUNY_DEV_DIR/dev/dashboard/opener.mjs" >/dev/null 2>&1 &
+    echo $! >"$pidfile"
+    sleep 0.3
+    if opener_health_ok "$port"; then
+        print_status "Opener: 127.0.0.1:${port}"
+    else
+        print_warning "Opener failed to start on 127.0.0.1:${port} (IDE / Folder buttons need it)"
+    fi
 }
 
 ensure_dashboard_started() {
@@ -71,6 +150,7 @@ dashboard() {
         fi
         print_status "Starting dashboard container..."
         compose_dashboard up -d --build
+        start_opener
         print_success "Dashboard: http://127.0.0.1:${DASHBOARD_PORT:-9999}/"
         ;;
     stop)
@@ -80,6 +160,7 @@ dashboard() {
         fi
         print_status "Stopping dashboard container..."
         compose_dashboard down
+        stop_opener
         print_success "Dashboard stopped."
         ;;
     remove)
@@ -107,6 +188,7 @@ dashboard() {
         fi
         print_status "Restarting dashboard container..."
         compose_dashboard restart
+        start_opener
         print_success "Dashboard: http://127.0.0.1:${DASHBOARD_PORT:-9999}/"
         ;;
     status)

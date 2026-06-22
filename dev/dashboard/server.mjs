@@ -1,11 +1,12 @@
 /**
- * Minimal static server: GET /api/status, POST /api/zd, static UI (znuny-dev dashboard).
+ * Minimal static server: GET /api/status, POST /api/zd, GET|POST /api/open-workspace, static UI.
  */
 import http from "http";
 import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
+import { readDefaultIde } from "./ide.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
@@ -30,6 +31,8 @@ const DASHBOARD_STATUS_SCRIPT = path.join(
 const ZD_BODY_MAX = 16384;
 /** Safe framework directory basename (matches typical frameworks/* names). */
 const FRAMEWORK_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const OPENER_PORT = Number(process.env.OPENER_PORT || 9998);
+const OPENER_HOST = process.env.OPENER_HOST || "host.docker.internal";
 
 /**
  * Registered dashboard commands: extend here for sync-indices, create, remove, etc.
@@ -108,6 +111,231 @@ function runInstanceScript(argv, res) {
             res.end(JSON.stringify({ ok: true }));
         });
     });
+}
+
+function readFrameworkDirFromEnv(framework) {
+    const envFile = path.join(
+        ZNUNY_DEV_DIR,
+        "instances",
+        framework,
+        `${framework}.env`,
+    );
+    let raw;
+    try {
+        raw = fs.readFileSync(envFile, "utf8");
+    } catch {
+        return null;
+    }
+    const match = raw.match(/^FRAMEWORK_DIR=(.+)$/m);
+    if (!match) {
+        return null;
+    }
+    let dir = match[1].trim().replace(/^["']|["']$/g, "");
+    if (!dir || dir.includes("..")) {
+        return null;
+    }
+    return path.resolve(dir);
+}
+
+function openPathNative(hostPath) {
+    if (process.platform === "darwin") {
+        spawn("open", [hostPath], { detached: true, stdio: "ignore" }).unref();
+        return true;
+    }
+    if (process.platform === "win32") {
+        spawn("explorer.exe", [hostPath], {
+            detached: true,
+            stdio: "ignore",
+        }).unref();
+        return true;
+    }
+    if (process.platform === "linux") {
+        spawn("xdg-open", [hostPath], {
+            detached: true,
+            stdio: "ignore",
+        }).unref();
+        return true;
+    }
+    return false;
+}
+
+async function proxyOpener(pathSuffix, res, fallbackBody) {
+    const url =
+        "http://" +
+        OPENER_HOST +
+        ":" +
+        OPENER_PORT +
+        pathSuffix;
+    try {
+        const upstream = await fetch(url, {
+            method: "GET",
+            signal: AbortSignal.timeout(8000),
+        });
+        const text = await upstream.text();
+        let data = null;
+        if (text) {
+            try {
+                data = JSON.parse(text);
+            } catch {
+                jsonError(
+                    res,
+                    502,
+                    "opener invalid response",
+                    text.slice(0, 300),
+                );
+                return;
+            }
+        }
+        if (!upstream.ok) {
+            jsonError(
+                res,
+                upstream.status >= 400 ? upstream.status : 502,
+                (data && data.error) || "opener failed",
+                data && data.detail,
+            );
+            return;
+        }
+        res.writeHead(200, {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-store",
+        });
+        res.end(JSON.stringify(data || fallbackBody || { ok: true }));
+    } catch (e) {
+        jsonError(
+            res,
+            503,
+            "opener unavailable",
+            "Start the dashboard with zd dashboard start (opener on 127.0.0.1:" +
+                OPENER_PORT +
+                "). " +
+                String(e && e.message ? e.message : e).slice(0, 200),
+        );
+    }
+}
+
+function openIdeNative(hostPath, ide) {
+    spawn(ide.cmd, [hostPath], {
+        detached: true,
+        stdio: "ignore",
+        shell: process.platform === "win32",
+    }).unref();
+}
+
+function handleDashboardConfig(res) {
+    const ide = readDefaultIde(getZnunyDevDir());
+    res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+    });
+    res.end(
+        JSON.stringify({
+            default_ide: ide ? ide.id : null,
+            default_ide_cmd: ide ? ide.cmd : null,
+            default_ide_label: ide ? ide.label : null,
+        }),
+    );
+}
+
+async function handleOpenWorkspace(req, res, framework) {
+    const hostPath = readFrameworkDirFromEnv(framework);
+    if (!hostPath) {
+        jsonError(res, 404, "framework not found");
+        return;
+    }
+
+    const inDocker = fs.existsSync("/.dockerenv");
+
+    if (!inDocker) {
+        try {
+            fs.accessSync(hostPath, fs.constants.R_OK);
+        } catch {
+            jsonError(res, 404, "host workspace path not found");
+            return;
+        }
+        if (!openPathNative(hostPath)) {
+            jsonError(res, 500, "unsupported platform for open");
+            return;
+        }
+        res.writeHead(200, {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-store",
+        });
+        res.end(JSON.stringify({ ok: true, path: hostPath }));
+        return;
+    }
+
+    await proxyOpener(
+        "/open?framework=" + encodeURIComponent(framework),
+        res,
+        { ok: true, path: hostPath },
+    );
+}
+
+async function handleOpenIde(req, res, framework) {
+    const hostPath = readFrameworkDirFromEnv(framework);
+    if (!hostPath) {
+        jsonError(res, 404, "framework not found");
+        return;
+    }
+
+    const ide = readDefaultIde(getZnunyDevDir());
+    if (!ide) {
+        jsonError(
+            res,
+            503,
+            "no default IDE configured",
+            "Set DEFAULT_IDE in configs/instance/my.env (e.g. cursor or code)",
+        );
+        return;
+    }
+
+    const inDocker = fs.existsSync("/.dockerenv");
+
+    if (!inDocker) {
+        try {
+            fs.accessSync(hostPath, fs.constants.R_OK);
+        } catch {
+            jsonError(res, 404, "host workspace path not found");
+            return;
+        }
+        try {
+            openIdeNative(hostPath, ide);
+        } catch (e) {
+            jsonError(
+                res,
+                500,
+                "IDE open failed",
+                String(e && e.message ? e.message : e).slice(0, 300),
+            );
+            return;
+        }
+        res.writeHead(200, {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-store",
+        });
+        res.end(
+            JSON.stringify({
+                ok: true,
+                path: hostPath,
+                framework,
+                ide: ide.id,
+                label: ide.label,
+            }),
+        );
+        return;
+    }
+
+    await proxyOpener(
+        "/open-ide?framework=" + encodeURIComponent(framework),
+        res,
+        {
+            ok: true,
+            path: hostPath,
+            framework,
+            ide: ide.id,
+            label: ide.label,
+        },
+    );
 }
 
 function handlePostZd(req, res) {
@@ -237,6 +465,58 @@ const server = http.createServer((req, res) => {
             "Cache-Control": "no-store",
         });
         res.end(JSON.stringify({ error: "method not allowed" }));
+        return;
+    }
+
+    if (pathname === "/api/config") {
+        if (req.method !== "GET") {
+            res.writeHead(405, {
+                "Content-Type": "application/json; charset=utf-8",
+                Allow: "GET",
+                "Cache-Control": "no-store",
+            });
+            res.end(JSON.stringify({ error: "method not allowed" }));
+            return;
+        }
+        handleDashboardConfig(res);
+        return;
+    }
+
+    if (pathname === "/api/open-workspace") {
+        if (req.method !== "GET" && req.method !== "POST") {
+            res.writeHead(405, {
+                "Content-Type": "application/json; charset=utf-8",
+                Allow: "GET, POST",
+                "Cache-Control": "no-store",
+            });
+            res.end(JSON.stringify({ error: "method not allowed" }));
+            return;
+        }
+        const framework = u.searchParams.get("framework") || "";
+        if (!FRAMEWORK_NAME_RE.test(framework)) {
+            jsonError(res, 400, "invalid or missing framework");
+            return;
+        }
+        handleOpenWorkspace(req, res, framework);
+        return;
+    }
+
+    if (pathname === "/api/open-ide") {
+        if (req.method !== "GET" && req.method !== "POST") {
+            res.writeHead(405, {
+                "Content-Type": "application/json; charset=utf-8",
+                Allow: "GET, POST",
+                "Cache-Control": "no-store",
+            });
+            res.end(JSON.stringify({ error: "method not allowed" }));
+            return;
+        }
+        const framework = u.searchParams.get("framework") || "";
+        if (!FRAMEWORK_NAME_RE.test(framework)) {
+            jsonError(res, 400, "invalid or missing framework");
+            return;
+        }
+        handleOpenIde(req, res, framework);
         return;
     }
 

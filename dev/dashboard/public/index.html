@@ -54,6 +54,18 @@
 
       <p class="error-banner" id="error-banner" hidden></p>
 
+      <div id="confirm-dialog" class="confirm-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+        <div class="confirm-dialog-backdrop" data-confirm="0"></div>
+        <div class="confirm-dialog-panel">
+          <h2 id="confirm-dialog-title" class="confirm-dialog-title">Delete instance?</h2>
+          <p id="confirm-dialog-message" class="confirm-dialog-message"></p>
+          <div class="confirm-dialog-actions">
+            <button type="button" class="btn btn-secondary" data-confirm="0">Cancel</button>
+            <button type="button" class="btn btn-danger" data-confirm="1">Delete</button>
+          </div>
+        </div>
+      </div>
+
       <section id="instances" class="instances-view" aria-live="polite"></section>
 
       <footer class="site-footer">

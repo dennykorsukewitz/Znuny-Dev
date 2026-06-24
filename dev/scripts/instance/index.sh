@@ -154,8 +154,8 @@ unset_instance_index_used() {
     local env_file="$ZNUNY_DEV_DIR/.env"
 
     if [ ! -f "$env_file" ]; then
-        print_error "Global .env file not found: $env_file"
-        return 1
+        print_status "Global .env file not found — skipping index unset"
+        return 0
     fi
 
     # Get current used indices

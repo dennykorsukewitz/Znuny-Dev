@@ -1010,6 +1010,71 @@ a.cell-port-link:hover {
   color: var(--zn-orange);
 }
 
+.btn-danger {
+  background: transparent;
+  color: var(--bad);
+  border: 1px solid color-mix(in srgb, var(--bad) 55%, var(--border));
+}
+
+.btn-danger:hover {
+  background: color-mix(in srgb, var(--bad) 12%, var(--surface));
+  border-color: var(--bad);
+}
+
+.confirm-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.confirm-dialog[hidden] {
+  display: none;
+}
+
+.confirm-dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--zn-blackish-950) 55%, transparent);
+}
+
+.confirm-dialog-panel {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  padding: 20px 22px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 16px 48px var(--shadow);
+}
+
+.confirm-dialog-title {
+  margin: 0 0 10px;
+  font-size: 1.05rem;
+  color: var(--heading);
+}
+
+.confirm-dialog-message {
+  margin: 0 0 18px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+body.confirm-dialog-open {
+  overflow: hidden;
+}
+
 .instances-table .cell-actions {
   vertical-align: top;
   white-space: normal;

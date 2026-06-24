@@ -43,6 +43,7 @@ const ZD_REGISTRY = {
     stop: { buildArgv: (framework) => ["stop", framework] },
     restart: { buildArgv: (framework) => ["restart", framework] },
     build: { buildArgv: (framework) => ["build", framework] },
+    remove: { buildArgv: (framework) => ["remove", framework, "--force"] },
 };
 
 function jsonError(res, status, error, detail) {

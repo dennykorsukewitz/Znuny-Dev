@@ -898,17 +898,41 @@ a.cell-port-link:hover {
 
 /* zd actions (start/stop/restart/build) — matches hero .btn-secondary */
 .instance-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: repeat(4, 4.85rem);
+  justify-content: space-between;
+  align-items: stretch;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0 12px 12px;
   margin-top: 4px;
 }
 
+.instance-actions-slot {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.instance-actions-slot .btn-compact {
+  width: 100%;
+  flex: 1;
+}
+
+.instance-actions-placeholder {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+  visibility: hidden;
+}
+
 .instance-card .instance-actions {
-  justify-content: center;
-  align-items: center;
+  justify-content: space-between;
 }
 
 /* In-place progress while zd runs (card: between title and status dot) */

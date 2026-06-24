@@ -302,31 +302,42 @@
         var safeFw = escapeHtml(fw);
         var lines =
             '<div class="instance-actions" role="group" aria-label="Instance actions">';
-        if (!running) {
-            /* Start temporarily hidden (use CLI `zd start` or Restart when appropriate).
-            lines +=
-                '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="start" data-framework="' +
-                safeFw +
-                '">Start</button>';
-            */
-        } else {
+
+        lines += '<div class="instance-actions-slot">';
+        if (running) {
             lines +=
                 '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="stop" data-framework="' +
                 safeFw +
                 '">Stop</button>';
+        } else {
+            lines +=
+                '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="start" data-framework="' +
+                safeFw +
+                '">Start</button>';
         }
+        lines += "</div>";
+
+        lines += '<div class="instance-actions-slot">';
+        if (running) {
+            lines +=
+                '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="restart" data-framework="' +
+                safeFw +
+                '">Restart</button>';
+        } else {
+            lines += '<span class="instance-actions-placeholder" aria-hidden="true"></span>';
+        }
+        lines += "</div>";
+
         lines +=
-            '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="restart" data-framework="' +
+            '<div class="instance-actions-slot"><button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="build" data-framework="' +
             safeFw +
-            '">Restart</button>';
+            '">Build</button></div>';
+
         lines +=
-            '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="build" data-framework="' +
+            '<div class="instance-actions-slot instance-actions-slot--delete"><button type="button" class="btn btn-danger btn-compact zd-action-btn" data-zd-command="remove" data-framework="' +
             safeFw +
-            '">Build</button>';
-        lines +=
-            '<button type="button" class="btn btn-danger btn-compact zd-action-btn" data-zd-command="remove" data-framework="' +
-            safeFw +
-            '">Delete</button>';
+            '">Delete</button></div>';
+
         lines += "</div>";
         return lines;
     }

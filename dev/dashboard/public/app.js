@@ -297,7 +297,7 @@
         );
     }
 
-    /** Buttons: Start (stopped) / Stop (running), Restart, Build — same as zd start|stop|restart|build. */
+    /** Buttons: Start (stopped) / Stop (running), Restart, Build, Delete — same as zd start|stop|restart|build|remove. */
     function renderInstanceActionsHtml(fw, running) {
         var safeFw = escapeHtml(fw);
         var lines =
@@ -323,8 +323,41 @@
             '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="build" data-framework="' +
             safeFw +
             '">Build</button>';
+        lines +=
+            '<button type="button" class="btn btn-danger btn-compact zd-action-btn" data-zd-command="remove" data-framework="' +
+            safeFw +
+            '">Delete</button>';
         lines += "</div>";
         return lines;
+    }
+
+    var confirmDone = null;
+
+    function confirmDelete(framework) {
+        var dlg = document.getElementById("confirm-dialog");
+        var msg = document.getElementById("confirm-dialog-message");
+        msg.textContent =
+            "Delete " +
+            framework +
+            "? This permanently removes containers, database, instance config, and the framework folder (frameworks/" +
+            framework +
+            ").";
+        dlg.hidden = false;
+        document.body.classList.add("confirm-dialog-open");
+        return new Promise(function (resolve) {
+            confirmDone = resolve;
+        });
+    }
+
+    function finishConfirm(ok) {
+        var dlg = document.getElementById("confirm-dialog");
+        dlg.hidden = true;
+        document.body.classList.remove("confirm-dialog-open");
+        if (confirmDone) {
+            var done = confirmDone;
+            confirmDone = null;
+            done(!!ok);
+        }
     }
 
     function setInstanceActionsBusy(actionsEl, busy) {
@@ -1401,6 +1434,18 @@
         e.preventDefault();
         location.reload();
     });
+    document.getElementById("confirm-dialog").addEventListener("click", function (e) {
+        var t = e.target.closest("[data-confirm]");
+        if (t) {
+            finishConfirm(t.getAttribute("data-confirm") === "1");
+        }
+    });
+    document.addEventListener("keydown", function (e) {
+        var dlg = document.getElementById("confirm-dialog");
+        if (!dlg.hidden && e.key === "Escape") {
+            finishConfirm(false);
+        }
+    });
     document
         .getElementById("theme-toggle")
         .addEventListener("change", onThemeSwitchChange);
@@ -1430,7 +1475,15 @@
             var fw = zdBtn.getAttribute("data-framework") || "";
             var actions = zdBtn.closest(".instance-actions");
             if (cmd && fw && actions) {
-                postZdCommand(cmd, fw, actions);
+                if (cmd === "remove") {
+                    confirmDelete(fw).then(function (ok) {
+                        if (ok) {
+                            postZdCommand(cmd, fw, actions);
+                        }
+                    });
+                } else {
+                    postZdCommand(cmd, fw, actions);
+                }
             }
             return;
         }

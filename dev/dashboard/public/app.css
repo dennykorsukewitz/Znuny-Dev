@@ -1063,6 +1063,12 @@ a.cell-port-link:hover {
   font-size: 0.9rem;
   line-height: 1.5;
   color: var(--text);
+  white-space: pre-line;
+}
+
+.confirm-dialog-framework {
+  font-weight: 700;
+  color: var(--bad);
 }
 
 .confirm-dialog-actions {

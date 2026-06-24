@@ -336,12 +336,13 @@
     function confirmDelete(framework) {
         var dlg = document.getElementById("confirm-dialog");
         var msg = document.getElementById("confirm-dialog-message");
-        msg.textContent =
-            "Delete " +
-            framework +
-            "? This permanently removes containers, database, instance config, and the framework folder (frameworks/" +
-            framework +
-            ").";
+        var safeFw = escapeHtml(framework);
+        msg.innerHTML =
+            "Delete <span class=\"confirm-dialog-framework\">" +
+            safeFw +
+            "</span>?\nThis permanently removes containers, database, instance config, and the framework folder (frameworks/<span class=\"confirm-dialog-framework\">" +
+            safeFw +
+            "</span>).";
         dlg.hidden = false;
         document.body.classList.add("confirm-dialog-open");
         return new Promise(function (resolve) {

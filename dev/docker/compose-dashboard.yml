@@ -1,4 +1,4 @@
-# Local dev dashboard (experimental): http://127.0.0.1:${DASHBOARD_PORT:-9999}/
+# Local dev dashboard: http://127.0.0.1:${DASHBOARD_PORT:-9999}/
 # Same Compose project as instances: docker compose -p znuny (see dev/scripts/instance/compose.sh).
 # Never use `compose down --remove-orphans` for this file: other project containers would count as orphans and be removed.
 # Shares named network znuny-network with instances (see dev/templates/compose/shared).

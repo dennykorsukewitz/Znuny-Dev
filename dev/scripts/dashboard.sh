@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# znuny-dev local dashboard (Docker Compose on 127.0.0.1, experimental)
+# znuny-dev local dashboard (Docker Compose on 127.0.0.1)
 
 set -e
 

@@ -48,7 +48,7 @@ show_status() {
     done
 
     if [[ "$json_output" == "true" ]]; then
-        emit_status_json_collection "$framework" "$verbose_mode"
+        print_status_json_collection "$framework" "$verbose_mode"
         return 0
     fi
 
@@ -284,25 +284,25 @@ show_all_instance_status() {
 # shellcheck disable=SC2034
 #
 # Public entry:
-#   emit_status_json_collection [framework] [verbose]
+#   print_status_json_collection [framework] [verbose]
 #     Prints {"generated_at", "instances":[...]} to stdout. Optional framework name;
 #     omit or "all" for every instance under INSTANCES_DIR.
 #
 # Private helpers (do not call from outside this file):
 #   json_escape_string              Escape a string for JSON string values.
-#   _emit_bool_json                 Bash true/false → JSON true/false.
+#   _print_bool_json                 Bash true/false → JSON true/false.
 #   _status_json_docker_cache_load  One docker ps/volume/network snapshot per request.
 #   _status_json_docker_cache_clear Unset cache variables after the collection is emitted.
 #   _sjc_ps_running_status          Docker Status column for a container name from cache.
-#   _get_git_branch_display           Branch name or detached@<sha> for FRAMEWORK_DIR checkout.
-#   _get_kernel_config_pm_value      Read ScriptAlias / Frontend::WebPath from Kernel/Config.pm.
+#   _get_git_branch_display         Branch name or detached@<sha> for FRAMEWORK_DIR checkout.
+#   _get_kernel_config_pm_value     Read ScriptAlias / Frontend::WebPath from Kernel/Config.pm.
 #   _normalize_url_path             Ensure leading and trailing slash on URL path segments.
 #   _urlencode_query_component      Percent-encode a URL query value (User, Password, …).
 #   _build_znuny_login_url          Agent/customer entry URL with Action=Login query params.
 #   _get_release_version            VERSION from host RELEASE or /opt/znuny/RELEASE in container.
-#   _emit_one_instance_json         Build one instance JSON object (used in a loop by the collector).
+#   _print_one_instance_json         Build one instance JSON object (used in a loop by the collector).
 
-emit_status_json_collection() {
+print_status_json_collection() {
     local framework="${1:-}"
     local verbose_mode="${2:-false}"
 
@@ -330,7 +330,7 @@ emit_status_json_collection() {
         fi
         printf '{"generated_at":"%s","instances":[' "$generated_at"
         _status_json_docker_cache_load "$verbose_mode"
-        _emit_one_instance_json "$framework" "$verbose_mode"
+        _print_one_instance_json "$framework" "$verbose_mode"
         printf ']}\n'
         _status_json_docker_cache_clear
         return 0
@@ -345,7 +345,7 @@ emit_status_json_collection() {
     for inst in "${instances[@]}"; do
         [ "$first" = true ] || printf ','
         first=false
-        _emit_one_instance_json "$inst" "$verbose_mode"
+        _print_one_instance_json "$inst" "$verbose_mode"
     done
     printf ']}\n'
     _status_json_docker_cache_clear
@@ -389,7 +389,7 @@ json_escape_string() {
 }
 
 # Bash true/false → JSON true/false.
-_emit_bool_json() {
+_print_bool_json() {
     if [ "$1" = "true" ] || [ "$1" = "1" ]; then
         printf 'true'
     else
@@ -414,7 +414,7 @@ _status_json_docker_cache_load() {
     fi
 }
 
-# Unset docker cache variables after emit_status_json_collection finishes.
+# Unset docker cache variables after print_status_json_collection finishes.
 _status_json_docker_cache_clear() {
     unset _SJC_PS_NAMES _SJC_PS_NAME_STATUS _SJC_PS_ALL_NAMES _SJC_PS_ALL_LINES _SJC_VOL_ALL _SJC_NET_ALL
 }
@@ -547,7 +547,7 @@ _normalize_url_path() {
 }
 
 # Build one instance JSON object; caller adds comma separation between instances.
-_emit_one_instance_json() {
+_print_one_instance_json() {
     local framework="$1"
     local verbose_mode="${2:-false}"
     local container_name
@@ -698,7 +698,7 @@ _emit_one_instance_json() {
     printf '"port":"%s",' "$(json_escape_string "${port:-}")"
     printf '"container_name":"%s",' "$(json_escape_string "$container_name")"
     printf '"instance":{'
-    printf '"running":%s,' "$(_emit_bool_json "$inst_running")"
+    printf '"running":%s,' "$(_print_bool_json "$inst_running")"
     printf '"docker_status":"%s",' "$(json_escape_string "${inst_status:-}")"
     printf '"started_at":"%s",' "$(json_escape_string "${inst_started_at:-}")"
     printf '"created_at":"%s",' "$(json_escape_string "${inst_created_at:-}")"
@@ -710,7 +710,7 @@ _emit_one_instance_json() {
     else
         printf '"container":null,'
     fi
-    printf '"running":%s,' "$(_emit_bool_json "$db_running")"
+    printf '"running":%s,' "$(_print_bool_json "$db_running")"
     printf '"docker_status":"%s",' "$(json_escape_string "${db_status:-}")"
     printf '"health":"%s"' "$(json_escape_string "${db_health:-}")"
     printf '},'

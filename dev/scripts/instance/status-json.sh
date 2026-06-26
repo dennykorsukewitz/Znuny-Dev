@@ -60,4 +60,4 @@ if [ "$FRAMEWORK" = "all" ]; then
     FRAMEWORK=""
 fi
 
-emit_status_json_collection "$FRAMEWORK" "$VERBOSE_MODE"
+print_status_json_collection "$FRAMEWORK" "$VERBOSE_MODE"

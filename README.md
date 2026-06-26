@@ -29,7 +29,7 @@ A comprehensive Docker-based development environment for Znuny that enables work
 - **Developer Tools**: Fred for debugging, ZnunyCodePolicy for code quality
 - **Environment Variables Management**: Template-based configuration with automatic backup system
 - **Bash Scripts**: Cross-platform compatibility
-- **Optional local dashboard** (experimental): `zd dashboard start` / `zd dashboard restart` / `zd dashboard stop` — UI is served from your repo mount (`dev/dashboard/public`), so CSS/JS changes apply after a **restart** (no rebuild). Use `zd dashboard build` when you change the **Dockerfile** (base image). Same data as `zd status`; `http://127.0.0.1:9999/`
+- **Optional local dashboard**: `zd dashboard start` / `zd dashboard restart` / `zd dashboard stop` — UI is served from your repo mount (`dev/dashboard/public`), so CSS/JS changes apply after a **restart** (no rebuild). Use `zd dashboard build` when you change the **Dockerfile** (base image). Same data as `zd status`; `http://127.0.0.1:9999/`
 
 ## 📋 Prerequisites
 

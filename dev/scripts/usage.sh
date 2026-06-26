@@ -80,6 +80,8 @@ show_usage() {
     print_subheader "ModuleTools Commands:"
     print_command "$ZD_CMD link <framework> <package> [package ...] [--only]" "Module::File::Link (mehrere Pakete möglich; --only: nur verlinken)"
     print_command "$ZD_CMD unlink <framework> <package> [package ...] [--only]" "Module::File::Unlink (mehrere Pakete möglich; --only: nur entlinken)"
+    print_command "$ZD_CMD link-tool <framework> <tool> [tool ...] [--only]" "Module::File::Link from /opt/tools/ (mehrere Tools möglich; --only: nur verlinken)"
+    print_command "$ZD_CMD unlink-tool <framework> <tool> [tool ...] [--only]" "Module::File::Unlink from /opt/tools/ (mehrere Tools möglich; --only: nur entlinken)"
     print_command "$ZD_CMD rmlinks <framework>"                   "Module::File::Unlink --all"
     echo ""
     print_command "$ZD_CMD install <framework> <package>"         "Package Install (dbinstall, codeinstall)"
@@ -101,16 +103,16 @@ show_usage() {
     # CodePolicy Commands
     # ========================================
     print_subheader "Link/Unlink CodePolicy Commands:"
-    print_command "$ZD_CMD link-codepolicy <framework>"           "Link ZnunyCodePolicy module into framework"
-    print_command "$ZD_CMD unlink-codepolicy <framework>"         "Unlink ZnunyCodePolicy module from framework"
+    print_command "$ZD_CMD link-codepolicy <framework>"           "Shortcut for link-tool <framework> ZnunyCodePolicy (often used)"
+    print_command "$ZD_CMD unlink-codepolicy <framework>"         "Shortcut for unlink-tool <framework> ZnunyCodePolicy (often used)"
     echo ""
 
     # ========================================
     # Fred
     # ========================================
     print_subheader "Link/Unlink Fred Commands:"
-    print_command "$ZD_CMD link-fred <framework>"                 "Link Fred module into framework"
-    print_command "$ZD_CMD unlink-fred <framework>"               "Unlink Fred module from framework"
+    print_command "$ZD_CMD link-fred <framework>"                 "Shortcut for link-tool <framework> Fred (often used)"
+    print_command "$ZD_CMD unlink-fred <framework>"               "Shortcut for unlink-tool <framework> Fred (often used)"
     echo ""
 }
 
@@ -182,6 +184,9 @@ show_usage_examples() {
     print_command "$ZD_CMD link dev FAQ --only" ""
     print_command "$ZD_CMD unlink dev FAQ" ""
     print_command "$ZD_CMD unlink dev FAQ --only" ""
+    print_command "$ZD_CMD link-tool dev Fred" ""
+    print_command "$ZD_CMD link-tool dev ZnunyCodePolicy" ""
+    print_command "$ZD_CMD unlink-tool dev Fred" ""
     print_command "$ZD_CMD rmlinks dev" ""
     echo ""
 
@@ -226,12 +231,13 @@ show_usage_examples() {
     print_command "$ZD_CMD codepolicy dev --directory Kernel/System" ""
 
     print_subheader "Link/Unlink CodePolicy Example:"
+    print_status "Shortcut for link-tool dev ZnunyCodePolicy — often used, shorter command."
     print_command "$ZD_CMD link-codepolicy dev" ""
     print_command "$ZD_CMD unlink-codepolicy dev" ""
     echo ""
 
     print_subheader "Link/Unlink Fred Example:"
-    echo ""
+    print_status "Shortcut for link-tool dev Fred — often used, shorter command."
     print_command "$ZD_CMD link-fred dev" ""
     print_command "$ZD_CMD unlink-fred dev" ""
     echo ""

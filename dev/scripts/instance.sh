@@ -563,6 +563,87 @@ unlink() {
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 }
 
+link_tool() {
+    local framework="$1"
+    shift
+    local link_only=false
+    local tools=()
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --only)
+                link_only=true
+                shift
+                ;;
+            *)
+                tools+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    if [ ${#tools[@]} -eq 0 ]; then
+        print_error "Missing tool name. Usage: ${ZD_CMD:-zd} link-tool <framework> <tool> [tool ...] [--only]"
+        return 1
+    fi
+
+    local tool
+    for tool in "${tools[@]}"; do
+        if [ -n "${TOOLS_DIR:-}" ] && [ ! -d "$TOOLS_DIR/$tool" ]; then
+            print_warning "Tool not found in $TOOLS_DIR: $tool"
+        fi
+        print_status "Linking tool: $tool"
+        execute_module_tools_command "$framework" Module::File::Link "/opt/tools/$tool" "/opt/znuny"
+    done
+
+    if [ "$link_only" = true ]; then
+        return 0
+    fi
+
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    execute_console_command "$framework" Maint::Cache::Delete
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+}
+
+unlink_tool() {
+    local framework="$1"
+    shift
+    local unlink_only=false
+    local tools=()
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --only)
+                unlink_only=true
+                shift
+                ;;
+            *)
+                tools+=("$1")
+                shift
+                ;;
+        esac
+    done
+
+    if [ ${#tools[@]} -eq 0 ]; then
+        print_error "Missing tool name. Usage: ${ZD_CMD:-zd} unlink-tool <framework> <tool> [tool ...] [--only]"
+        return 1
+    fi
+
+    local tool
+    for tool in "${tools[@]}"; do
+        print_status "Unlinking tool: $tool"
+        execute_module_tools_command "$framework" Module::File::Unlink "/opt/tools/$tool" "/opt/znuny"
+    done
+
+    if [ "$unlink_only" = true ]; then
+        return 0
+    fi
+
+    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    execute_console_command "$framework" Maint::Cache::Delete
+    execute_console_command "$framework" Maint::Loader::CacheCleanup
+}
+
 rmlink() {
     local framework="$1"
     execute_module_tools_command "$framework" Module::File::Unlink --all "/opt/znuny"
@@ -2337,6 +2418,12 @@ main() {
             ;;
         unlink)
             unlink "$framework" "${@:3}"
+            ;;
+        link-tool)
+            link_tool "$framework" "${@:3}"
+            ;;
+        unlink-tool)
+            unlink_tool "$framework" "${@:3}"
             ;;
         rmlink|rmlinks)
             rmlink "$framework"

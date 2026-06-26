@@ -448,17 +448,17 @@ main() {
         # ========================================
         # Common Commands
         # ========================================
+        delete|del)
+            "$SCRIPTS_DIR/instance.sh" delete "${@:2}"
+            ;;
+        rebuild|reb)
+            "$SCRIPTS_DIR/instance.sh" rebuild "${@:2}"
+            ;;
         delete-rebuild|delreb)
             "$SCRIPTS_DIR/instance.sh" delete-rebuild "${@:2}"
             ;;
         delete-rebuild-restart|delrebres)
             "$SCRIPTS_DIR/instance.sh" delete-rebuild-restart "${@:2}"
-            ;;
-        rebuild|reb)
-            "$SCRIPTS_DIR/instance.sh" rebuild "${@:2}"
-            ;;
-        delete|del)
-            "$SCRIPTS_DIR/instance.sh" delete "${@:2}"
             ;;
         unittest|unit)
             "$SCRIPTS_DIR/instance.sh" unittest "${@:2}"
@@ -490,6 +490,12 @@ main() {
             ;;
         unlink)
             "$SCRIPTS_DIR/instance.sh" unlink "${@:2}"
+            ;;
+        link-tool)
+            "$SCRIPTS_DIR/instance.sh" link-tool "${@:2}"
+            ;;
+        unlink-tool)
+            "$SCRIPTS_DIR/instance.sh" unlink-tool "${@:2}"
             ;;
         rmlinks)
             "$SCRIPTS_DIR/instance.sh" rmlinks "${@:2}"
@@ -544,6 +550,7 @@ main() {
         unlink-fred)
             "$SCRIPTS_DIR/instance.sh" unlink-fred "${@:2}"
             ;;
+
         # ========================================
         # Test and Release Commands
         # ========================================

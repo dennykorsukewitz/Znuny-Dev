@@ -290,8 +290,8 @@ setup_alias() {
     local shell_name=""
     local config_file=""
     read -r -a shell_info <<< "$(detect_shell)"
-    shell_name="${shell_info[0]}"
-    config_file="${shell_info[1]}"
+    shell_name="${shell_info[0]:-}"
+    config_file="${shell_info[1]:-}"
 
     if [ -z "$config_file" ]; then
         print_warning "Could not detect shell type. Skipping alias setup."
@@ -369,8 +369,8 @@ remove_alias() {
     local shell_name=""
     local config_file=""
     read -r -a shell_info <<< "$(detect_shell)"
-    shell_name="${shell_info[0]}"
-    config_file="${shell_info[1]}"
+    shell_name="${shell_info[0]:-}"
+    config_file="${shell_info[1]:-}"
 
     if [ -n "$config_file" ] && [ -f "$config_file" ]; then
         if grep -q "zd()" "$config_file" || grep -q "alias zd=" "$config_file"; then

@@ -352,10 +352,10 @@ detect_shell() {
             ;;
         *)
             # Fallback to shell version detection
-            if [ -n "$ZSH_VERSION" ]; then
+            if [ -n "${ZSH_VERSION:-}" ]; then
                 shell_name="zsh"
                 config_file="$HOME/.zshrc"
-            elif [ -n "$BASH_VERSION" ]; then
+            elif [ -n "${BASH_VERSION:-}" ]; then
                 shell_name="bash"
                 config_file="$HOME/.bashrc"
             else
@@ -374,7 +374,7 @@ check_zd_alias_configured() {
     local shell_line shell_info
     shell_line=$(detect_shell)
     read -r -a shell_info <<< "$shell_line"
-    local config_file="${shell_info[1]}"
+    local config_file="${shell_info[1]:-}"
 
     if [ -z "$config_file" ] || [ ! -f "$config_file" ]; then
         return 1

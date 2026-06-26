@@ -500,7 +500,8 @@ _build_znuny_login_url() {
     case "$entry_url" in
     *\?*) sep='&' ;;
     esac
-    local url="${entry_url}${sep}Action=Login&User=$(_urlencode_query_component "$login")"
+    local url
+    url="${entry_url}${sep}Action=Login&User=$(_urlencode_query_component "$login")"
     if [ -n "$password" ]; then
         url="${url}&Password=$(_urlencode_query_component "$password")"
     fi

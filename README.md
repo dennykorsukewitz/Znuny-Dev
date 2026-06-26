@@ -25,7 +25,7 @@ A comprehensive Docker-based development environment for Znuny that enables work
 - **Individual Configuration**: Each instance has its own environment file
 - **Dynamic Docker Compose**: Automatic generation of docker-compose.yml
 - **Complete Isolation**: Separate volumes and containers for each instance
-- **Live-Linking**: Module-Tools for live synchronization between Framework and Packages
+- **Live-Linking**: Module-Tools for live synchronization between framework, packages (`/opt/packages/`), and developer tools (`/opt/tools/`)
 - **Developer Tools**: Fred for debugging, ZnunyCodePolicy for code quality
 - **Environment Variables Management**: Template-based configuration with automatic backup system
 - **Bash Scripts**: Cross-platform compatibility
@@ -53,8 +53,8 @@ cd znuny-dev
 chmod -R +x dev/scripts
 chmod +x znuny-dev.sh
 
-# Setup complete environment
-./znuny-dev.sh setup-all (zd setup-all)
+# Setup complete environment (or: zd setup-all after alias is configured)
+./znuny-dev.sh setup-all
 ```
 
 ## 🎯 Usage
@@ -111,16 +111,56 @@ zd container-log <framework> 100
 zd container-log
 ```
 
+### Local dashboard
+
+Optional web UI for instance overview (same data as `zd status`). Default: `http://127.0.0.1:9999/`
+
+```bash
+zd dashboard start              # Start container (opens browser)
+zd dashboard restart            # Pick up UI changes in dev/dashboard/public
+zd dashboard stop               # Stop container
+zd dashboard remove             # Stop and remove stack
+zd dashboard build [--no-cache] # Rebuild image when Dockerfile changes
+zd dashboard status             # Show container state
+```
+
+UI files are mounted from `dev/dashboard/public` — edit CSS/JS on the host, then **`zd dashboard restart`** (no rebuild). Use **`zd dashboard build`** only when the dashboard **Dockerfile** changes.
+
 ### Module-Tools
 
-Module-Tools provide live linking between packages and the framework and package install/uninstall operations. Commands are run inside the instance container via `znuny.ModuleTools.pl`. Replace `<framework>` with your instance name (e.g. `dev`) and `<package>` with the package name (e.g. `FAQ`).
+Module-Tools provide live linking between packages/tools and the framework and package install/uninstall operations. Commands are run inside the instance container via `znuny.ModuleTools.pl`. Replace `<framework>` with your instance name (e.g. `dev`), `<package>` with the package name (e.g. `FAQ`), and `<tool>` with a directory name under `tools/` (e.g. `Fred`, `ZnunyCodePolicy`).
 
-**File linking (live sync):**
+**Package linking (live sync from `/opt/packages/`):**
 
 ```bash
 zd link <framework> <package>           # Link package into framework
 zd unlink <framework> <package>         # Unlink package
 zd rmlinks <framework>                  # Unlink all packages
+```
+
+**Tool linking (live sync from `/opt/tools/`):**
+
+```bash
+zd link-tool <framework> <tool>         # Link tool repository into framework
+zd unlink-tool <framework> <tool>       # Unlink tool
+# Examples:
+zd link-tool dev Fred
+zd link-tool dev ZnunyCodePolicy
+```
+
+**Shortcuts (same as `link-tool`, often used):**
+
+```bash
+zd link-fred <framework>                # link-tool <framework> Fred
+zd unlink-fred <framework>
+zd link-codepolicy <framework>          # link-tool <framework> ZnunyCodePolicy
+zd unlink-codepolicy <framework>
+```
+
+**Code quality (host-side, optional framework arg):**
+
+```bash
+zd codepolicy <framework> [--all-files | --file-path ... | --directory ...]
 ```
 
 **Package install/uninstall:**
@@ -142,14 +182,6 @@ zd codeupgrade <framework> <package>
 ```bash
 zd module-tools <framework>             # List available commands
 zd module-tools <framework> <command> [args...]
-```
-
-**Fred (debugging):**
-Link or unlink the Fred tool into a framework.
-
-```bash
-zd link-fred <framework>
-zd unlink-fred <framework>
 ```
 
 ## ⚙️ Configuration
@@ -180,53 +212,65 @@ Optional host-side configuration lives in the **`configs/`** directory at the pr
 
 ```text
 Znuny-Dev/
-├── znuny-dev.sh                     # Main script
-├── .env                             # Global config (from dev/templates/env/)
-├── RELEASE                          # Version and build information
-├── instances/                       # Instance configs (same level as dev/)
-│   ├── my_instance/        # Per-instance: .env, compose, logs/
+├── znuny-dev.sh                          # Main script
+├── .env                                  # Global config (from dev/templates/env/)
+├── RELEASE                               # Version and build information
+├── configs/                              # Optional host overrides (see Configuration)
+│   ├── instance/my.env                   # Overrides global .env
+│   └── framework/Config.pm               # Snippet injected into Kernel/Config.pm
+├── instances/                            # Instance configs (same level as dev/)
+│   ├── my_instance/                      # Per-instance: .env, compose, logs/
 │   │   ├── my_instance.env
 │   │   ├── compose-<framework_slug>.yml  # Auto-generated
 │   │   └── logs/
 │   ├── dev/
 │   └── test/
-├── dev/                             # Development configuration
-│   ├── docker/                      # Docker configuration
-│   │   ├── compose/                 # Optional extra compose snippets (optional)
-│   │   ├── Dockerfile               # Docker image definition
-│   │   ├── startup-instance.sh     # Instance startup script
-│   │   └── configs/                 # Database configurations
-│   ├── templates/                   # Templates
-│   │   └── env/                     # Environment templates
-│   │       ├── global.env.template  # Global .env template
+├── dev/                                  # Development configuration
+│   ├── dashboard/                        # Local web UI (zd dashboard)
+│   │   ├── public/                       # HTML, CSS, JS (repo mount)
+│   │   ├── server.mjs                    # API server
+│   │   └── Dockerfile                    # Dashboard container image
+│   ├── docker/                           # Docker configuration
+│   │   ├── compose-dashboard.yml         # Dashboard compose stack
+│   │   ├── compose/                      # Optional extra compose snippets
+│   │   ├── Dockerfile                    # Instance image definition
+│   │   ├── startup-instance.sh           # Instance startup script
+│   │   └── configs/                      # Database configurations
+│   ├── templates/                        # Templates
+│   │   └── env/                          # Environment templates
+│   │       ├── global.env.template       # Global .env template
 │   │       ├── instance.env.template
 │   │       └── docker.env.template
-│   ├── scripts/                     # Management scripts
-│   │   ├── common.sh                # Common functions and utilities
-│   │   ├── env.sh                   # Environment management
-│   │   ├── repository.sh            # Repository operations
-│   │   ├── release.sh               # Version & release management
-│   │   ├── instance.sh              # Framework & instance CRUD + Lifecycle
-│   │   └── instance/                # Instance-specific modules
-│   │       ├── compose.sh           # Compose generation & execution
-│   │       ├── network.sh           # Port & network management
-│   │       └── index.sh             # Framework index allocation
-│   └── test/                        # Test suite
-│       ├── run.sh                   # Run all tests (entry point)
-│       ├── tests/                   # Test scripts
-│       └── utils/                   # Test utilities (assertions.sh)
-├── frameworks/                      # Znuny frameworks (path from .env)
-│   ├── my_instance/         # Custom framework repository
-│   ├── dev/                         # Development version
-│   ├── test/                        # Test version
-│   └── prod/                        # Production version
-├── packages/                        # Znuny packages
+│   ├── scripts/                          # Management scripts
+│   │   ├── common.sh                     # Common functions and utilities
+│   │   ├── dashboard.sh                  # zd dashboard commands
+│   │   ├── env.sh                        # Environment management
+│   │   ├── repository.sh                 # Repository operations
+│   │   ├── release.sh                    # Version & release management
+│   │   ├── version.sh                    # zd version / update check
+│   │   ├── instance.sh                   # Framework & instance CRUD + Lifecycle
+│   │   └── instance/                     # Instance-specific modules
+│   │       ├── compose.sh                # Compose generation & execution
+│   │       ├── network.sh                # Port & network management
+│   │       ├── index.sh                  # Framework index allocation
+│   │       ├── status.sh                 # zd status (text + JSON)
+│   │       └── status-json.sh            # JSON status entry point
+│   └── test/                             # Test suite
+│       ├── run.sh                        # Run all tests (entry point)
+│       ├── tests/                        # Test scripts
+│       └── utils/                        # Test utilities (assertions.sh)
+├── frameworks/                           # Znuny frameworks (path from .env)
+│   ├── my_instance/                      # Custom framework repository
+│   ├── dev/                              # Development version
+│   ├── test/                             # Test version
+│   └── prod/                             # Production version
+├── packages/                             # Znuny packages
 │   └── [Your packages]
-├── tools/                           # Developer tools
-│   ├── module-tools/                # Module tools for linking
-│   ├── Fred/                        # Fred debugging tool
-│   └── ZnunyCodePolicy/             # Code quality checker
-└── README.md                        # This file
+├── tools/                                # Developer tools
+│   ├── module-tools/                     # Module tools CLI (not linked into framework)
+│   ├── Fred/                             # Fred debugging tool
+│   └── ZnunyCodePolicy/                  # Code quality checker
+└── README.md                             # This file
 ```
 
 ## 🤝 Contributing

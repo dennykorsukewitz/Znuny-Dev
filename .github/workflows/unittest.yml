@@ -32,8 +32,8 @@ jobs:
         # Create required directories
         mkdir -p frameworks instances compose packages tools
 
-        # Setup minimal environment
-        cp dev/templates/env/global.env.template .env
+        # Generate .env with resolved paths (raw template breaks load_environment)
+        bash dev/scripts/env.sh setup-env
 
         # Set test mode (skips instance-create: git clone + zd create --start need Docker)
         echo "CI_MODE=true" >> .env

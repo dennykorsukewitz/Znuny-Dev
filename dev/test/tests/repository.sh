@@ -22,7 +22,7 @@ run_repository_check_framework_name() {
     local name="$2"
     local root="${ZNUNY_DEV_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
     ( export ZNUNY_DEV_DIR="$root" FRAMEWORKS_DIR="$frameworks_dir"
-      exec -a "$SCRIPT_DIR/repository.sh" bash -c 'export FRAMEWORKS_DIR="'"$frameworks_dir"'"; cd "'"$SCRIPT_DIR"'" && source ./common.sh && load_environment 2>/dev/null; source ./repository.sh 2>/dev/null; check_framework_name "'"$name"'"' )
+      exec -a "$SCRIPT_DIR/repository.sh" bash -c 'export FRAMEWORKS_DIR="'"$frameworks_dir"'"; cd "'"$SCRIPT_DIR"'" && source ./common.sh && load_environment 2>/dev/null; export FRAMEWORKS_DIR="'"$frameworks_dir"'"; source ./repository.sh 2>/dev/null; export FRAMEWORKS_DIR="'"$frameworks_dir"'"; check_framework_name "'"$name"'"' )
 }
 
 run_repository_sort_branches() {

@@ -4,17 +4,17 @@
 
 A comprehensive Docker-based development environment for Znuny that enables working on multiple Znuny Framework instances simultaneously, each with its own database and configuration.
 
-| Repository| GitHub   |
-|-----------|----------|
-| Release   | ![GitHub release (latest by date)](https://img.shields.io/github/v/release/dennykorsukewitz/Znuny-Dev)                                                                                                                         |
-| Issues    | ![GitHub open issues](https://img.shields.io/github/issues/dennykorsukewitz/Znuny-Dev) ![GitHub closed issues](https://img.shields.io/github/issues-closed/dennykorsukewitz/Znuny-Dev?color=#44CC44)                           |
-| PRs       | ![GitHub pull requests](https://img.shields.io/github/issues-pr/dennykorsukewitz/Znuny-Dev?label=PR) ![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/dennykorsukewitz/Znuny-Dev?color=g&label=PR)|
-| Languages | ![GitHub language count](https://img.shields.io/github/languages/count/dennykorsukewitz/Znuny-Dev?style=flat&label=language) ![GitHub contributors](https://img.shields.io/github/contributors/dennykorsukewitz/Znuny-Dev)     |
-| Code size | ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/dennykorsukewitz/Znuny-Dev) ![GitHub downloads](https://img.shields.io/github/downloads/dennykorsukewitz/Znuny-Dev/total?style=flat)            |
+| Repository | GitHub |
+| --- | --- |
+| Release | ![GitHub release (latest by date)](https://img.shields.io/github/v/release/dennykorsukewitz/Znuny-Dev) |
+| Issues | ![GitHub open issues](https://img.shields.io/github/issues/dennykorsukewitz/Znuny-Dev) ![GitHub closed issues](https://img.shields.io/github/issues-closed/dennykorsukewitz/Znuny-Dev?color=#44CC44) |
+| PRs | ![GitHub pull requests](https://img.shields.io/github/issues-pr/dennykorsukewitz/Znuny-Dev?label=PR) ![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/dennykorsukewitz/Znuny-Dev?color=g&label=PR) |
+| Languages | ![GitHub language count](https://img.shields.io/github/languages/count/dennykorsukewitz/Znuny-Dev?style=flat&label=language) ![GitHub contributors](https://img.shields.io/github/contributors/dennykorsukewitz/Znuny-Dev) |
+| Code size | ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/dennykorsukewitz/Znuny-Dev) ![GitHub downloads](https://img.shields.io/github/downloads/dennykorsukewitz/Znuny-Dev/total?style=flat) |
 
-| Versions| Status    |
-|---------|---------- |
-| dev     | ![GitHub label version](https://img.shields.io/github/labels/dennykorsukewitz/dennykorsukewitz/dev) [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/dennykorsukewitz/Znuny-Dev/0.0.1/dev)](https://github.com/dennykorsukewitz/Znuny-Dev/compare/0.0.1...dev) ![GitHub Workflow Lint](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/lint.yml/badge.svg?branch=dev&style=flat&label=Lint) ![GitHub Workflow UnitTest](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/unittest.yml/badge.svg?branch=dev&style=flat&label=UnitTest) ![GitHub Workflow Pages](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/pages.yml/badge.svg?branch=dev&style=flat&label=GitHub%20Pages)|
+| Versions | Status |
+| --- | --- |
+| dev | ![GitHub label version](https://img.shields.io/github/labels/dennykorsukewitz/dennykorsukewitz/dev) [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/dennykorsukewitz/Znuny-Dev/0.0.1/dev)](https://github.com/dennykorsukewitz/Znuny-Dev/compare/0.0.1...dev) ![GitHub Workflow Lint](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/lint.yml/badge.svg?branch=dev&style=flat&label=Lint) ![GitHub Workflow UnitTest](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/unittest.yml/badge.svg?branch=dev&style=flat&label=UnitTest) ![GitHub Workflow Pages](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/pages.yml/badge.svg?branch=dev&style=flat&label=GitHub%20Pages) |
 
 ## 🚀 Features
 

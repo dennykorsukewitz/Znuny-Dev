@@ -70,8 +70,10 @@ test_load_environment() {
 
     local tmpdir
     tmpdir=$(mktemp -d /tmp/znuny-common-test.XXXXXX)
-    export ZNUNY_DEV_DIR="$tmpdir"
-    if load_environment 2>/dev/null; then
+    if (
+        export ZNUNY_DEV_DIR="$tmpdir"
+        load_environment 2>/dev/null
+    ); then
         print_test_result "load_environment no .env" "PASS" "Succeeds without .env"
         TESTS_PASSED=$((TESTS_PASSED + 1))
     else

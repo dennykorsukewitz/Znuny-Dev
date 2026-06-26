@@ -25,7 +25,7 @@ ENV NLS_DATE_FORMAT="YYYY-MM-DD HH24:MI:SS"
 ENV NLS_LANG="GERMAN_GERMANY.AL32UTF8"
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     apache2 \
     apache2-utils \
     libapache2-mod-perl2 \

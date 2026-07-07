@@ -93,6 +93,91 @@ resolve_module_sopm_name() {
     return 1
 }
 
+# VERSION from host FRAMEWORKS_DIR/<framework>/RELEASE or /opt/znuny/RELEASE in container.
+get_framework_version() {
+    local framework="$1"
+    local version=""
+    local framework_dir="${FRAMEWORKS_DIR:-}/$framework"
+
+    if [ -f "$framework_dir/RELEASE" ]; then
+        version=$(grep -E '^\s*VERSION\s*=' "$framework_dir/RELEASE" 2>/dev/null \
+            | sed -e 's/VERSION = //' | head -1 | tr -d '\n\r' || true)
+    fi
+
+    if [ -z "$version" ]; then
+        local container_name=""
+        container_name=$(get_instance_container_name "$framework" 2>/dev/null) || true
+        if [ -n "$container_name" ]; then
+            version=$(docker exec "$container_name" grep -E '^\s*VERSION\s*=' /opt/znuny/RELEASE 2>/dev/null \
+                | sed -e 's/VERSION = //' | head -1 | tr -d '\n\r' || true)
+        fi
+    fi
+
+    printf '%s' "$version"
+}
+
+# Compare framework VERSION (from RELEASE) against major.minor.
+# Usage: framework_version_compare <framework> <op> <major> [minor]
+# Operators: ge|gte|>=  gt|>  le|lte|<=  lt|<  eq|==|=
+# Returns 0 when the comparison is true.
+framework_version_compare() {
+    local framework="$1"
+    local op="$2"
+    local target_major="$3"
+    local target_minor="${4:-0}"
+    local version fw_major="" fw_minor="0" cmp=0
+
+    version=$(get_framework_version "$framework")
+
+    if [[ "$version" =~ ^([0-9]+)\.([0-9]+) ]]; then
+        fw_major="${BASH_REMATCH[1]}"
+        fw_minor="${BASH_REMATCH[2]}"
+    elif [[ "$version" =~ ^([0-9]+) ]]; then
+        fw_major="${BASH_REMATCH[1]}"
+    fi
+
+    if [ -z "$fw_major" ] || ! [[ "$fw_major" =~ ^[0-9]+$ ]] || ! [[ "$fw_minor" =~ ^[0-9]+$ ]]; then
+        return 1
+    fi
+    if ! [[ "$target_major" =~ ^[0-9]+$ ]] || ! [[ "$target_minor" =~ ^[0-9]+$ ]]; then
+        return 1
+    fi
+
+    if [ "$fw_major" -gt "$target_major" ]; then
+        cmp=1
+    elif [ "$fw_major" -lt "$target_major" ]; then
+        cmp=-1
+    elif [ "$fw_minor" -gt "$target_minor" ]; then
+        cmp=1
+    elif [ "$fw_minor" -lt "$target_minor" ]; then
+        cmp=-1
+    else
+        cmp=0
+    fi
+
+    case "$op" in
+        ge | gte | '>=')
+            [ "$cmp" -ge 0 ]
+            ;;
+        gt | '>')
+            [ "$cmp" -gt 0 ]
+            ;;
+        le | lte | '<=')
+            [ "$cmp" -le 0 ]
+            ;;
+        lt | '<')
+            [ "$cmp" -lt 0 ]
+            ;;
+        eq | '==' | '=')
+            [ "$cmp" -eq 0 ]
+            ;;
+        *)
+            print_error "framework_version_compare: unknown operator '$op' (use ge, gt, le, lt, eq)"
+            return 1
+            ;;
+    esac
+}
+
 # Function to execute console command
 execute_console_command() {
     local framework="$1"

@@ -372,6 +372,16 @@ delete_rebuild_restart() {
 
 rebuild() {
     local framework="$1"
+    if framework_version_compare "$framework" ge 7 0; then
+        rebuild_cleanup "$framework"
+    else
+        execute_console_command "$framework" Maint::Config::Rebuild
+    fi
+}
+
+# Maint::Config::Rebuild --cleanup (Znuny 7+ only; removes orphaned SysConfig DB entries).
+rebuild_cleanup() {
+    local framework="$1"
     execute_console_command "$framework" Maint::Config::Rebuild --cleanup
 }
 
@@ -392,7 +402,7 @@ translate() {
     execute_console_command "$framework" Maint::Cache::Delete || return $?
     execute_console_command "$framework" Maint::Loader::CacheCleanup
     execute_console_command "$framework" Maint::Config::Sync
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    rebuild "$framework"
     execute_console_command "$framework" Dev::Tools::TranslationsUpdate --generate-po
 }
 
@@ -478,7 +488,7 @@ link() {
         return 0
     fi
 
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    rebuild "$framework"
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 
@@ -558,7 +568,7 @@ unlink() {
         return 0
     fi
 
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    rebuild "$framework"
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 }
@@ -600,7 +610,7 @@ link_tool() {
         return 0
     fi
 
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    rebuild "$framework"
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 }
@@ -639,7 +649,7 @@ unlink_tool() {
         return 0
     fi
 
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    rebuild "$framework"
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 }
@@ -647,7 +657,7 @@ unlink_tool() {
 rmlink() {
     local framework="$1"
     execute_module_tools_command "$framework" Module::File::Unlink --all "/opt/znuny"
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    rebuild "$framework"
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 }
@@ -790,7 +800,7 @@ code_policy() {
 link_codepolicy() {
     local framework="$1"
     execute_module_tools_command "$framework" Module::File::Link "/opt/tools/ZnunyCodePolicy" "/opt/znuny"
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    rebuild "$framework"
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 }
@@ -798,7 +808,7 @@ link_codepolicy() {
 unlink_codepolicy() {
     local framework="$1"
     execute_module_tools_command "$framework" Module::File::Unlink "/opt/tools/ZnunyCodePolicy" "/opt/znuny"
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    rebuild "$framework"
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 }
@@ -806,7 +816,7 @@ unlink_codepolicy() {
 link_fred() {
     local framework="$1"
     execute_module_tools_command "$framework" Module::File::Link "/opt/tools/Fred" "/opt/znuny"
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    rebuild "$framework"
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 }
@@ -814,7 +824,7 @@ link_fred() {
 unlink_fred() {
     local framework="$1"
     execute_module_tools_command "$framework" Module::File::Unlink "/opt/tools/Fred" "/opt/znuny"
-    execute_console_command "$framework" Maint::Config::Rebuild --cleanup
+    rebuild "$framework"
     execute_console_command "$framework" Maint::Cache::Delete
     execute_console_command "$framework" Maint::Loader::CacheCleanup
 }

@@ -60,12 +60,12 @@ show_usage() {
     # Common Commands
     # ========================================
     print_subheader "Common Commands:"
-    print_command "$ZD_CMD delreb <framework>"                 "Maint::Cache::Delete + Maint::Loader::CacheCleanup + Maint::Config::Rebuild --cleanup"
+    print_command "$ZD_CMD delreb <framework>"                 "Maint::Cache::Delete + Maint::Loader::CacheCleanup + Maint::Config::Rebuild"
     print_command "$ZD_CMD delrebres <framework>"              "Same as delreb, then restart instance (Apache)"
-    print_command "$ZD_CMD reb <framework>"                    "Maint::Config::Rebuild --cleanup"
+    print_command "$ZD_CMD reb <framework>"                    "Maint::Config::Rebuild (--cleanup on Znuny 7+)"
     print_command "$ZD_CMD del <framework>"                    "Maint::Cache::Delete + Maint::Loader::CacheCleanup"
     print_command "$ZD_CMD unit <framework>"                   "Dev::UnitTest::Run --verbose --test"
-    print_command "$ZD_CMD translate <framework>"              "Maint::Config::Sync + Maint::Config::Rebuild --cleanup + Dev::Tools::TranslationsUpdate --generate-po"
+    print_command "$ZD_CMD translate <framework>"              "Maint::Config::Sync + Maint::Config::Rebuild + Dev::Tools::TranslationsUpdate --generate-po"
     print_command "$ZD_CMD contributors <framework>"          "Dev::Code::ContributorsListUpdate"
     print_command "$ZD_CMD sql-schema <framework>"              "Dev::Tools::Database::XML2SQL (*schema.xml -> SQL, --split-files)"
     print_command "$ZD_CMD sql-initial-insert <framework>"    "Dev::Tools::Database::XML2SQL (*initial_insert.xml -> SQL)"

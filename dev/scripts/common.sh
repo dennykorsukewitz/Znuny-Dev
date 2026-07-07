@@ -25,6 +25,7 @@ read_lines_to_array() {
     while IFS= read -r line || [ -n "$line" ]; do
         [ -n "$line" ] && eval "${_r2a_name}+=(\"\$line\")"
     done
+    return 0
 }
 
 # ========================================
@@ -507,7 +508,9 @@ get_available_frameworks() {
         done
     fi
 
-    printf '%s\n' "${frameworks[@]}"
+    if [ ${#frameworks[@]} -gt 0 ]; then
+        printf '%s\n' "${frameworks[@]}"
+    fi
 }
 
 # Resolve user input to actual framework directory name (case-insensitive).

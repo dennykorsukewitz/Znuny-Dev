@@ -132,7 +132,7 @@ setup_status() {
         local frameworks=()
         read_lines_to_array frameworks < <(find "$FRAMEWORKS_DIR" -maxdepth 1 -type d -not -name "frameworks" -not -name "." | sed 's|.*/||' | sort)
         if [ ${#frameworks[@]} -eq 0 ]; then
-            print "   ❌ No frameworks found"
+            print "   ❌ No frameworks found ($FRAMEWORKS_DIR)"
         else
             for framework in "${frameworks[@]}"; do
                 if [ -d "$FRAMEWORKS_DIR/$framework" ]; then

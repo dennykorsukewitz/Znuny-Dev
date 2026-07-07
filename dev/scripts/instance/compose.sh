@@ -260,7 +260,7 @@ create_all_compose_files() {
     read_lines_to_array frameworks < <("$SCRIPTS_DIR/instance.sh" get_available_frameworks 2>/dev/null)
 
     if [ ${#frameworks[@]} -eq 0 ]; then
-        print_warning "No frameworks found. Please run setup-framework first."
+        print_warning "No frameworks found ($FRAMEWORKS_DIR). Please run setup-framework first."
         return 1
     fi
 

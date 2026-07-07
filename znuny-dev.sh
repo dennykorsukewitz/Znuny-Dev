@@ -111,7 +111,7 @@ setup_all() {
             local frameworks=()
             read_lines_to_array frameworks < <("$SCRIPTS_DIR/instance.sh" get_available_frameworks)
             if [ ${#frameworks[@]} -eq 0 ]; then
-                print_warning "No frameworks found. Please run 'zd setup-framework' first."
+                print_warning "No frameworks found ($FRAMEWORKS_DIR). Please run 'zd setup-framework' first."
                 print_status "Step 5 skipped."
             else
                 local default_framework="dev"

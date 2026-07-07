@@ -224,7 +224,7 @@ show_all_frameworks() {
     local frameworks=()
     read_lines_to_array frameworks < <(get_available_frameworks)
     if [ ${#frameworks[@]} -eq 0 ]; then
-        print_warning "No frameworks found"
+        print_warning "No frameworks found ($FRAMEWORKS_DIR)"
         return 1
     fi
 
@@ -1054,7 +1054,7 @@ create_instance() {
     read_lines_to_array frameworks < <(get_available_frameworks)
     # Check if framework is available
     if [ ${#frameworks[@]} -eq 0 ]; then
-        print_error "No frameworks found"
+        print_error "No frameworks found ($FRAMEWORKS_DIR)"
 
         echo "Available frameworks:"
         print_list "${frameworks[@]}"

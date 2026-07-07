@@ -176,8 +176,8 @@ body.font-open input {
   font-family: "Open Sans", "Segoe UI", system-ui, sans-serif;
 }
 
-/* In-flight ops: toast stack (bottom-right), no layout shift */
-.zd-progress-toasts {
+/* In-flight ops: message stack (bottom-right), no layout shift */
+.zd-messages {
   position: fixed;
   bottom: max(16px, env(safe-area-inset-bottom, 0px));
   right: max(16px, env(safe-area-inset-right, 0px));
@@ -194,11 +194,11 @@ body.font-open input {
   pointer-events: none;
 }
 
-.zd-progress-toasts[hidden] {
+.zd-messages[hidden] {
   display: none !important;
 }
 
-.zd-progress-toast {
+.zd-message {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -212,25 +212,25 @@ body.font-open input {
   box-shadow:
     0 4px 24px color-mix(in srgb, var(--zn-blackish-950) 12%, transparent),
     0 1px 0 color-mix(in srgb, #ffffff 40%, transparent);
-  animation: zd-toast-in 0.24s ease-out;
+  animation: zd-message-in 0.24s ease-out;
   pointer-events: none;
 }
 
-body.theme-dark .zd-progress-toast {
+body.theme-dark .zd-message {
   box-shadow:
     0 8px 28px rgba(0, 0, 0, 0.45),
     0 1px 0 color-mix(in srgb, #ffffff 6%, transparent);
 }
 
 @media (prefers-color-scheme: dark) {
-  body:not(.theme-light) .zd-progress-toast {
+  body:not(.theme-light) .zd-message {
     box-shadow:
       0 8px 28px rgba(0, 0, 0, 0.45),
       0 1px 0 color-mix(in srgb, #ffffff 6%, transparent);
   }
 }
 
-@keyframes zd-toast-in {
+@keyframes zd-message-in {
   from {
     opacity: 0;
     transform: translateY(8px) scale(0.98);
@@ -241,7 +241,15 @@ body.theme-dark .zd-progress-toast {
   }
 }
 
-.zd-progress-toast-spinner {
+.zd-message-ok {
+  border-left-color: var(--ok);
+}
+
+.zd-message-error {
+  border-left-color: var(--bad);
+}
+
+.zd-message-spinner {
   flex-shrink: 0;
   width: 16px;
   height: 16px;
@@ -257,7 +265,7 @@ body.theme-dark .zd-progress-toast {
   }
 }
 
-.zd-progress-toast-label {
+.zd-message-label {
   flex: 1 1 auto;
   min-width: 0;
   font-size: 0.78rem;
@@ -268,7 +276,7 @@ body.theme-dark .zd-progress-toast {
 }
 
 @media (max-width: 520px) {
-  .zd-progress-toasts {
+  .zd-messages {
     left: 16px;
     right: 16px;
     max-width: none;
@@ -277,11 +285,11 @@ body.theme-dark .zd-progress-toast {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .zd-progress-toast {
+  .zd-message {
     animation: none;
   }
 
-  .zd-progress-toast-spinner {
+  .zd-message-spinner {
     animation: none;
     border-color: color-mix(in srgb, var(--zn-orange) 45%, transparent);
     border-top-color: var(--zn-orange);
@@ -1250,6 +1258,30 @@ body.confirm-dialog-open {
 
 .detail-value a:hover {
   color: var(--zn-orange-hover);
+}
+
+.copy-on-click {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  max-width: 100%;
+}
+
+.copy-on-click code {
+  cursor: pointer;
+  word-break: break-all;
+}
+
+.copy-on-click:hover code,
+.copy-on-click:focus-visible code {
+  color: var(--zn-orange);
+  text-decoration: underline dotted;
 }
 
 .muted-inline {

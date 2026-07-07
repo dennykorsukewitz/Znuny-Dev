@@ -12,23 +12,31 @@
         default_ide_label: null,
     };
 
-    /** Toast card (bottom-right): concurrent zd / status — returns id for endOperation. */
-    function beginOperation(label) {
+    /** Message card (bottom-right): concurrent zd / status — returns id for endOperation. */
+    function beginOperation(label, opt) {
+        opt = opt || {};
         var id = nextOperationId++;
-        var panel = document.getElementById("global-progress-panel");
+        var panel = document.getElementById("global-message-panel");
         if (!panel) {
             return id;
         }
         var item = document.createElement("div");
-        item.className = "zd-progress-toast";
+        item.className = "zd-message";
+        if (opt.tone === "ok") {
+            item.classList.add("zd-message-ok");
+        } else if (opt.tone === "error") {
+            item.classList.add("zd-message-error");
+        }
         item.setAttribute("data-op-id", String(id));
-        var spin = document.createElement("span");
-        spin.className = "zd-progress-toast-spinner";
-        spin.setAttribute("aria-hidden", "true");
+        if (opt.spinner !== false) {
+            var spin = document.createElement("span");
+            spin.className = "zd-message-spinner";
+            spin.setAttribute("aria-hidden", "true");
+            item.appendChild(spin);
+        }
         var lab = document.createElement("span");
-        lab.className = "zd-progress-toast-label";
+        lab.className = "zd-message-label";
         lab.textContent = label;
-        item.appendChild(spin);
         item.appendChild(lab);
         panel.appendChild(item);
         panel.hidden = false;
@@ -36,8 +44,21 @@
         return id;
     }
 
+    /** Short message in the same message stack as loadStatus (no spinner). */
+    function showBriefMessage(label, opt) {
+        opt = opt || {};
+        var id = beginOperation(label, {
+            spinner: false,
+            tone: opt.tone || "ok",
+        });
+        window.setTimeout(function () {
+            endOperation(id);
+        }, opt.durationMs || 2000);
+        return id;
+    }
+
     function endOperation(id) {
-        var panel = document.getElementById("global-progress-panel");
+        var panel = document.getElementById("global-message-panel");
         if (!panel) {
             return;
         }
@@ -130,6 +151,75 @@
             .replace(/</g, "&lt;")
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;");
+    }
+
+    function copyTextToClipboard(text) {
+        if (!text) {
+            return Promise.reject(new Error("empty"));
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+        }
+        return new Promise(function (resolve, reject) {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            ta.setAttribute("readonly", "");
+            ta.style.position = "fixed";
+            ta.style.left = "-9999px";
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                if (document.execCommand("copy")) {
+                    resolve();
+                } else {
+                    reject(new Error("copy failed"));
+                }
+            } catch (err) {
+                reject(err);
+            } finally {
+                document.body.removeChild(ta);
+            }
+        });
+    }
+
+    function copyableValueHtml(text, opt) {
+        opt = opt || {};
+        var t = text && String(text).trim();
+        if (!t) {
+            return '<span class="cell-muted">—</span>';
+        }
+        var messageLabel = opt.label || "Copied";
+        return (
+            '<button type="button" class="copy-on-click" data-copy-text="' +
+            escapeHtml(t) +
+            '" data-copy-label="' +
+            escapeHtml(messageLabel) +
+            '" title="Click to copy">' +
+            "<code>" +
+            escapeHtml(t) +
+            "</code></button>"
+        );
+    }
+
+    function copyableDetailRow(label, text, copyMessageLabel) {
+        return detailRow(
+            label,
+            copyableValueHtml(text, {
+                label: copyMessageLabel || label + " copied",
+            })
+        );
+    }
+
+    function handleCopyClick(btn) {
+        var copyText = btn.getAttribute("data-copy-text") || "";
+        var messageLabel = btn.getAttribute("data-copy-label") || "Copied";
+        return copyTextToClipboard(copyText)
+            .then(function () {
+                showBriefMessage(messageLabel, { tone: "ok" });
+            })
+            .catch(function () {
+                showBriefMessage("Copy failed", { tone: "error" });
+            });
     }
 
     function getStored(key, allowed, fallback) {
@@ -601,14 +691,11 @@
                 ? "<code>" + escapeHtml(cfg.git_branch) + "</code>"
                 : '<span class="cell-muted">—</span>'
         );
-        html += detailRow(
-            "Directory",
-            "<code>" + escapeHtml(cfg.directory || "") + "</code>"
-        );
+        html += copyableDetailRow("Directory", cfg.directory || "");
         if (cfg.host_workspace && String(cfg.host_workspace).trim()) {
-            html += detailRow(
+            html += copyableDetailRow(
                 "Host workspace",
-                "<code>" + escapeHtml(String(cfg.host_workspace).trim()) + "</code>"
+                String(cfg.host_workspace).trim()
             );
         }
         var paths = row.paths || {};
@@ -641,10 +728,7 @@
                 escapeHtml(db.docker_status)
             );
         }
-        html += detailRow(
-            "DB URL",
-            "<code>" + escapeHtml(cfg.database_url || "") + "</code>"
-        );
+        html += copyableDetailRow("DB URL", cfg.database_url || "");
         html += "</tbody></table>";
         if (row.verbose) {
             html += '<div class="verbose-block">';
@@ -1463,6 +1547,14 @@
         .addEventListener("change", onThemeSwitchChange);
 
     document.getElementById("instances").addEventListener("click", function (e) {
+        var copyBtn = e.target.closest(".copy-on-click");
+        if (copyBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCopyClick(copyBtn);
+            return;
+        }
+
         var wsLink = e.target.closest(".open-workspace-link");
         if (wsLink) {
             e.preventDefault();

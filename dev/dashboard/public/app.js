@@ -1106,14 +1106,14 @@
         var wsTrim = String(ws).trim();
         var html =
             '<span class="host-workspace-actions">' +
-            '<button type="button" class="btn btn-accent btn-compact open-workspace-link" data-framework="' +
+            '<button type="button" class="btn btn-accent-folder btn-compact open-workspace-link" data-framework="' +
             escapeHtml(fw) +
             '" title="' +
             escapeHtml("Open in Finder / Explorer: " + wsTrim) +
             '">Folder</button>';
         if (dashboardConfig.default_ide_cmd && dashboardConfig.default_ide_label) {
             html +=
-                '<button type="button" class="btn btn-accent btn-compact open-ide-link" data-framework="' +
+                '<button type="button" class="btn btn-accent-secondary btn-compact open-ide-link" data-framework="' +
                 escapeHtml(fw) +
                 '" title="Open in ' +
                 escapeHtml(dashboardConfig.default_ide_label) +

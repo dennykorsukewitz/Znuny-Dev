@@ -22,6 +22,8 @@
   --zn-orange-hover: #ea7a1a;
   --zn-purple: #8a4fff;
   --zn-purple-hover: #711ee3;
+  --zn-blue: #2563eb;
+  --zn-blue-hover: #1d4ed8;
 
   --heading: var(--zn-blackish-950);
   --text: var(--zn-blackish-900);
@@ -39,6 +41,8 @@
   --accent-hover: var(--zn-orange-hover);
   --accent-secondary: var(--zn-purple);
   --accent-secondary-hover: var(--zn-purple-hover);
+  --accent-folder: var(--zn-blue);
+  --accent-folder-hover: var(--zn-blue-hover);
 
   --ok: #22c55e;
   --warn: #f59e0b;
@@ -814,6 +818,30 @@ a.cell-port-link:hover {
   color: var(--accent-hover);
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 14%, var(--surface));
+}
+
+.btn-accent-secondary {
+  background: color-mix(in srgb, var(--accent-secondary) 8%, var(--surface));
+  color: var(--accent-secondary);
+  border: 1px solid color-mix(in srgb, var(--accent-secondary) 45%, var(--border));
+}
+
+.btn-accent-secondary:hover {
+  color: var(--accent-secondary-hover);
+  border-color: var(--accent-secondary);
+  background: color-mix(in srgb, var(--accent-secondary) 14%, var(--surface));
+}
+
+.btn-accent-folder {
+  background: color-mix(in srgb, var(--accent-folder) 8%, var(--surface));
+  color: var(--accent-folder);
+  border: 1px solid color-mix(in srgb, var(--accent-folder) 45%, var(--border));
+}
+
+.btn-accent-folder:hover {
+  color: var(--accent-folder-hover);
+  border-color: var(--accent-folder);
+  background: color-mix(in srgb, var(--accent-folder) 14%, var(--surface));
 }
 
 .host-workspace-actions {

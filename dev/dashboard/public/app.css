@@ -940,7 +940,7 @@ a.cell-port-link:hover {
 }
 
 .instance-card .instance-actions {
-  justify-content: space-between;
+  justify-content: center;
 }
 
 /* In-place progress while zd runs (card: between title and status dot) */

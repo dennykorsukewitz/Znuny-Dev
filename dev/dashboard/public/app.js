@@ -12,6 +12,158 @@
         default_ide_label: null,
     };
 
+    /**
+     * All UI tooltips (title attributes and brief messages). Dynamic values use {placeholders}.
+     */
+    var TOOLTIPS = {
+        ui: {
+            reloadPage: "Reload the dashboard page",
+            refreshStatus:
+                "Fetch latest instance status (zd status JSON — Docker health, ports, paths)",
+            themeDark:
+                "Toggle light / dark dashboard theme (saved in browser)",
+            viewCards:
+                "Card layout — one instance per card, click card to expand details",
+            viewTable:
+                "Table layout — compact rows, click a row to expand details",
+            sortKey: "Choose what to sort instances by",
+            sortDir: "Ascending (A→Z, oldest first) or descending",
+        },
+        copy: {
+            clickToCopy: "Click to copy to clipboard",
+            copiedDefault: "Copied",
+            copyFailed: "Copy failed",
+            directoryCopied: "Directory copied",
+            hostWorkspaceCopied: "Host workspace copied",
+            dbUrlCopied: "DB URL copied",
+        },
+        health: {
+            targetInstance: "Instance container",
+            targetDatabase: "Database container",
+            instanceStopped:
+                "is stopped. Use Start or zd start to run it again.",
+            databaseStopped:
+                "is not running. Shared database containers are started with zd start on any instance.",
+            healthy:
+                "is running. Docker health check passed — service responds as expected.",
+            unhealthy:
+                "is running but Docker health check failed. Check logs (zd log / container-log).",
+            stoppedState: "reports stopped state.",
+            noHealthCheck:
+                "is running. No Docker health check configured for this container.",
+            running: "is running.",
+            statusUnknown: "status: {health}.",
+        },
+        action: {
+            start:
+                "zd start — start Docker containers for this framework instance.",
+            stop: "zd stop — stop containers. Instance data and volumes are kept.",
+            restart:
+                "zd restart — stop and start containers (reload Apache / services).",
+            build:
+                "zd build — rebuild the Docker image for this instance (after Dockerfile changes).",
+            remove:
+                "zd remove — delete instance, containers, volumes, and the framework folder (irreversible).",
+        },
+        link: {
+            openNewTab: "Open in new tab: {url}",
+            openFinder: "Open in Finder / Explorer: {path}",
+            openIde: "Open in {ide}: {path}",
+            frameworkWeb: "Open Znuny web interface: {url}",
+        },
+        login: {
+            titlePrefix: "Login · ",
+            titleSeparator: " / ",
+            companyPrefix: "company: ",
+        },
+        statusDot: {
+            healthy: "Overall status OK — instance running, no critical issues",
+            warning:
+                "Warning — instance stopped, database down, or degraded health",
+            unhealthy: "Error — Docker health check failed for this instance",
+        },
+        expand: {
+            card: "Click card to show or hide details (DB URL, paths, git branch, …)",
+            tableRow:
+                "Click row to show or hide details (DB URL, paths, git branch, …)",
+        },
+        generatedAt: "Status snapshot from last Refresh: {time}",
+        confirm: {
+            cancel: "Close dialog without deleting anything",
+            delete: "Confirm delete — runs zd remove (irreversible)",
+        },
+    };
+
+    function setElementTooltip(el, text) {
+        if (el && text) {
+            el.title = text;
+        }
+    }
+
+    function tooltipFormat(template, vars) {
+        var out = String(template);
+        vars = vars || {};
+        Object.keys(vars).forEach(function (key) {
+            out = out.split("{" + key + "}").join(String(vars[key]));
+        });
+        return out;
+    }
+
+    function applyStaticTooltips() {
+        setElementTooltip(
+            document.getElementById("site-title-reload"),
+            TOOLTIPS.ui.reloadPage
+        );
+        setElementTooltip(
+            document.getElementById("btn-refresh"),
+            TOOLTIPS.ui.refreshStatus
+        );
+
+        var themeLabel = document.querySelector("label.toggle-switch");
+        var themeToggleLabel = document.querySelector(
+            "label.toggle-switch .toggle-label"
+        );
+        setElementTooltip(themeLabel, TOOLTIPS.ui.themeDark);
+        setElementTooltip(themeToggleLabel, TOOLTIPS.ui.themeDark);
+
+        setElementTooltip(
+            document.getElementById("view-cards"),
+            TOOLTIPS.ui.viewCards
+        );
+        setElementTooltip(
+            document.getElementById("view-table"),
+            TOOLTIPS.ui.viewTable
+        );
+        setElementTooltip(
+            document.getElementById("sort-key"),
+            TOOLTIPS.ui.sortKey
+        );
+        setElementTooltip(
+            document.getElementById("sort-dir"),
+            TOOLTIPS.ui.sortDir
+        );
+
+        setElementTooltip(
+            document.querySelector("#confirm-dialog [data-confirm='0']"),
+            TOOLTIPS.confirm.cancel
+        );
+        setElementTooltip(
+            document.querySelector("#confirm-dialog [data-confirm='1']"),
+            TOOLTIPS.confirm.delete
+        );
+    }
+
+    function statusDotTooltip(row) {
+        var dotClass = statusDotClass(row);
+        if (dotClass === "error") {
+            return TOOLTIPS.statusDot.unhealthy;
+        }
+        if (dotClass === "warning") {
+            return TOOLTIPS.statusDot.warning;
+        }
+        return TOOLTIPS.statusDot.healthy;
+    }
+
     /** Message card (bottom-right): concurrent zd / status — returns id for endOperation. */
     function beginOperation(label, opt) {
         opt = opt || {};
@@ -188,13 +340,15 @@
         if (!t) {
             return '<span class="cell-muted">—</span>';
         }
-        var messageLabel = opt.label || "Copied";
+        var messageLabel = opt.label || TOOLTIPS.copy.copiedDefault;
         return (
             '<button type="button" class="copy-on-click" data-copy-text="' +
             escapeHtml(t) +
             '" data-copy-label="' +
             escapeHtml(messageLabel) +
-            '" title="Click to copy">' +
+            '" title="' +
+            escapeHtml(TOOLTIPS.copy.clickToCopy) +
+            '">' +
             "<code>" +
             escapeHtml(t) +
             "</code></button>"
@@ -212,13 +366,13 @@
 
     function handleCopyClick(btn) {
         var copyText = btn.getAttribute("data-copy-text") || "";
-        var messageLabel = btn.getAttribute("data-copy-label") || "Copied";
+        var messageLabel = btn.getAttribute("data-copy-label") || TOOLTIPS.copy.copiedDefault;
         return copyTextToClipboard(copyText)
             .then(function () {
                 showBriefMessage(messageLabel, { tone: "ok" });
             })
             .catch(function () {
-                showBriefMessage("Copy failed", { tone: "error" });
+                showBriefMessage(TOOLTIPS.copy.copyFailed, { tone: "error" });
             });
     }
 
@@ -238,7 +392,43 @@
         } catch (e) {}
     }
 
-    function healthPill(health, running) {
+    function healthStatusTooltip(health, running, kind) {
+        kind = kind || "instance";
+        var target =
+            kind === "database"
+                ? TOOLTIPS.health.targetDatabase
+                : TOOLTIPS.health.targetInstance;
+
+        if (!running) {
+            return (
+                target +
+                " " +
+                (kind === "database"
+                    ? TOOLTIPS.health.databaseStopped
+                    : TOOLTIPS.health.instanceStopped)
+            );
+        }
+
+        var h = (health || "").toLowerCase();
+        if (h === "healthy") {
+            return target + " " + TOOLTIPS.health.healthy;
+        }
+        if (h === "unhealthy") {
+            return target + " " + TOOLTIPS.health.unhealthy;
+        }
+        if (h === "stopped") {
+            return target + " " + TOOLTIPS.health.stoppedState;
+        }
+        if (h === "no-health-check") {
+            return target + " " + TOOLTIPS.health.noHealthCheck;
+        }
+        if (h === "running" || !h) {
+            return target + " " + TOOLTIPS.health.running;
+        }
+        return tooltipFormat(TOOLTIPS.health.statusUnknown, { health: health });
+    }
+
+    function healthPill(health, running, kind) {
         var h = (health || "").toLowerCase();
         var cls = "neutral";
         if (!running) {
@@ -253,9 +443,12 @@
             cls = "ok";
         }
         var label = running ? health || "running" : "stopped";
+        var tooltip = healthStatusTooltip(health, running, kind);
         return (
             '<span class="pill ' +
             cls +
+            '" title="' +
+            escapeHtml(tooltip) +
             '">' +
             escapeHtml(label) +
             "</span>"
@@ -398,11 +591,15 @@
             lines +=
                 '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="stop" data-framework="' +
                 safeFw +
+                '" title="' +
+                escapeHtml(TOOLTIPS.action.stop) +
                 '">Stop</button>';
         } else {
             lines +=
                 '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="start" data-framework="' +
                 safeFw +
+                '" title="' +
+                escapeHtml(TOOLTIPS.action.start) +
                 '">Start</button>';
         }
         lines += "</div>";
@@ -412,6 +609,8 @@
             lines +=
                 '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="restart" data-framework="' +
                 safeFw +
+                '" title="' +
+                escapeHtml(TOOLTIPS.action.restart) +
                 '">Restart</button>';
         } else {
             lines += '<span class="instance-actions-placeholder" aria-hidden="true"></span>';
@@ -421,11 +620,15 @@
         lines +=
             '<div class="instance-actions-slot"><button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="build" data-framework="' +
             safeFw +
+            '" title="' +
+            escapeHtml(TOOLTIPS.action.build) +
             '">Build</button></div>';
 
         lines +=
             '<div class="instance-actions-slot instance-actions-slot--delete"><button type="button" class="btn btn-danger btn-compact zd-action-btn" data-zd-command="remove" data-framework="' +
             safeFw +
+            '" title="' +
+            escapeHtml(TOOLTIPS.action.remove) +
             '">Delete</button></div>';
 
         lines += "</div>";
@@ -660,7 +863,7 @@
             ': <a href="' +
             escapeHtml(url) +
             '" target="_blank" rel="noopener noreferrer" title="' +
-            escapeHtml("Open in new tab: " + url) +
+            escapeHtml(tooltipFormat(TOOLTIPS.link.openNewTab, { url: url })) +
             '"><code>' +
             escapeHtml(url) +
             "</code></a><br>"
@@ -691,11 +894,16 @@
                 ? "<code>" + escapeHtml(cfg.git_branch) + "</code>"
                 : '<span class="cell-muted">—</span>'
         );
-        html += copyableDetailRow("Directory", cfg.directory || "");
+        html += copyableDetailRow(
+            "Directory",
+            cfg.directory || "",
+            TOOLTIPS.copy.directoryCopied
+        );
         if (cfg.host_workspace && String(cfg.host_workspace).trim()) {
             html += copyableDetailRow(
                 "Host workspace",
-                String(cfg.host_workspace).trim()
+                String(cfg.host_workspace).trim(),
+                TOOLTIPS.copy.hostWorkspaceCopied
             );
         }
         var paths = row.paths || {};
@@ -728,7 +936,11 @@
                 escapeHtml(db.docker_status)
             );
         }
-        html += copyableDetailRow("DB URL", cfg.database_url || "");
+        html += copyableDetailRow(
+            "DB URL",
+            cfg.database_url || "",
+            TOOLTIPS.copy.dbUrlCopied
+        );
         html += "</tbody></table>";
         if (row.verbose) {
             html += '<div class="verbose-block">';
@@ -849,8 +1061,15 @@
                 '">' +
                 local +
                 "</time>";
+            setElementTooltip(
+                gen,
+                tooltipFormat(TOOLTIPS.generatedAt, {
+                    time: formatGeneratedAtLocal(data.generated_at),
+                })
+            );
         } else {
             gen.textContent = "";
+            gen.removeAttribute("title");
         }
     }
 
@@ -998,27 +1217,34 @@
         var dotClass = statusDotClass(row);
         var dotExtra = dotClass ? " " + dotClass : "";
 
+        var dotTip = escapeHtml(statusDotTooltip(row));
         var lines =
             '<tr class="instance-table-main-row' +
             (expandable ? " instance-table-row-expandable" : "") +
-            '">';
+            '"' +
+            (expandable
+                ? ' title="' + escapeHtml(TOOLTIPS.expand.tableRow) + '"'
+                : "") +
+            ">";
         lines +=
             '<td class="cell-status">' +
             '<span class="instance-status status-dot' +
             dotExtra +
-            '" aria-hidden="true"></span>' +
+            '" title="' +
+            dotTip +
+            '"></span>' +
             "</td>";
         lines += "<td><strong>" + frameworkNameLinkHtml(fw, web) + "</strong></td>";
         lines +=
             "<td>" +
-            healthPill(inst.health, inst.running) +
+            healthPill(inst.health, inst.running, "instance") +
             ' <code class="cell-muted">' +
             escapeHtml(row.container_name || "") +
             "</code></td>";
         lines += "<td>";
         if (db.container) {
             lines +=
-                healthPill(db.health, db.running) +
+                healthPill(db.health, db.running, "database") +
                 ' <code class="cell-muted">' +
                 escapeHtml(db.container) +
                 "</code>";
@@ -1073,7 +1299,7 @@
                 '<a class="cell-port-link" href="' +
                 escapeHtml(web) +
                 '" target="_blank" rel="noopener noreferrer" title="' +
-                escapeHtml("Open in new tab: " + web) +
+                escapeHtml(tooltipFormat(TOOLTIPS.link.openNewTab, { url: web })) +
                 '">' +
                 label +
                 "</a>"
@@ -1087,7 +1313,9 @@
             return (
                 '<a class="framework-name-link" href="' +
                 escapeHtml(web) +
-                '" target="_blank" rel="noopener">' +
+                '" target="_blank" rel="noopener" title="' +
+                escapeHtml(tooltipFormat(TOOLTIPS.link.frameworkWeb, { url: web })) +
+                '">' +
                 escapeHtml(fw) +
                 "</a>"
             );
@@ -1109,16 +1337,19 @@
             '<button type="button" class="btn btn-accent-folder btn-compact open-workspace-link" data-framework="' +
             escapeHtml(fw) +
             '" title="' +
-            escapeHtml("Open in Finder / Explorer: " + wsTrim) +
+            escapeHtml(tooltipFormat(TOOLTIPS.link.openFinder, { path: wsTrim })) +
             '">Folder</button>';
         if (dashboardConfig.default_ide_cmd && dashboardConfig.default_ide_label) {
             html +=
                 '<button type="button" class="btn btn-accent-secondary btn-compact open-ide-link" data-framework="' +
                 escapeHtml(fw) +
-                '" title="Open in ' +
-                escapeHtml(dashboardConfig.default_ide_label) +
-                ": " +
-                escapeHtml(wsTrim) +
+                '" title="' +
+                escapeHtml(
+                    tooltipFormat(TOOLTIPS.link.openIde, {
+                        ide: dashboardConfig.default_ide_label,
+                        path: wsTrim,
+                    })
+                ) +
                 '">' +
                 escapeHtml(dashboardConfig.default_ide_label) +
                 "</button>";
@@ -1263,9 +1494,11 @@
             parts.push(String(cred.password));
         }
         if (cred.company_id) {
-            parts.push("company: " + String(cred.company_id));
+            parts.push(
+                TOOLTIPS.login.companyPrefix + String(cred.company_id)
+            );
         }
-        return "Login · " + parts.join(" / ");
+        return TOOLTIPS.login.titlePrefix + parts.join(TOOLTIPS.login.titleSeparator);
     }
 
     /** root / agent / customer — opens Znuny login with User prefilled; tooltip shows dev password. */
@@ -1334,10 +1567,13 @@
         var fw = row.framework || "";
         var expandable = hasInstanceExtra(row);
         var lines = "";
+        var dotTip = escapeHtml(statusDotTooltip(row));
         lines +=
             '<article class="instance-card' +
             (expandable ? " instance-card-expandable" : "") +
-            '">';
+            '"' +
+            (expandable ? ' title="' + escapeHtml(TOOLTIPS.expand.card) + '"' : "") +
+            ">";
         lines += '<div class="instance-header">';
         lines += '<div class="instance-name">';
         lines += "<h2>" + frameworkNameLinkHtml(fw, web) + "</h2>";
@@ -1345,6 +1581,8 @@
         lines +=
             '<span class="instance-status status-dot' +
             dotExtra +
+            '" title="' +
+            dotTip +
             '"></span>';
         lines += "</div>";
 
@@ -1352,7 +1590,7 @@
         lines += '<table class="instance-detail-table"><tbody>';
         lines += detailRow(
             "Instance",
-            healthPill(inst.health, inst.running) +
+            healthPill(inst.health, inst.running, "instance") +
                 " <code>" +
                 escapeHtml(row.container_name || "") +
                 "</code>"
@@ -1360,7 +1598,7 @@
         if (db.container) {
             lines += detailRow(
                 "Database",
-                healthPill(db.health, db.running) +
+                healthPill(db.health, db.running, "database") +
                     " <code>" +
                     escapeHtml(db.container) +
                     "</code>"
@@ -1626,6 +1864,7 @@
     });
 
     initTheme();
+    applyStaticTooltips();
     initToolbar();
     loadDashboardConfig().then(function () {
         loadStatus();

@@ -44,6 +44,9 @@ const ZD_REGISTRY = {
     restart: { buildArgv: (framework) => ["restart", framework] },
     build: { buildArgv: (framework) => ["build", framework] },
     remove: { buildArgv: (framework) => ["remove", framework, "--force"] },
+    "db-start": { buildArgv: (framework) => ["db-start", framework] },
+    "db-stop": { buildArgv: (framework) => ["db-stop", framework] },
+    "db-restart": { buildArgv: (framework) => ["db-restart", framework] },
 };
 
 function jsonError(res, status, error, detail) {

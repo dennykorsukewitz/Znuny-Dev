@@ -68,6 +68,15 @@
                 "zd build — rebuild the Docker image for this instance (after Dockerfile changes).",
             remove:
                 "zd remove — delete instance, containers, volumes, and the framework folder (irreversible).",
+            dbStart: "Start the database Docker container for this instance.",
+            dbStop: "Stop the database Docker container for this instance.",
+            dbRestart: "Restart the database Docker container for this instance.",
+            dbSharedNote:
+                "Shared database — start/stop/restart affects all instances using this container.",
+            dbSharedConfirm:
+                "Shared database {container} is used by multiple instances. Continue?",
+            instanceActionsMenu: "Open instance actions",
+            dbActionsMenu: "Open database container actions",
         },
         link: {
             openNewTab: "Open in new tab: {url}",
@@ -784,59 +793,250 @@
         );
     }
 
-    /** Buttons: Start (stopped) / Stop (running), Restart, Build, Delete — same as zd start|stop|restart|build|remove. */
-    function renderInstanceActionsHtml(fw, running) {
+    function actionDropdownItemHtml(cmd, fw, label, tooltip, opt) {
+        opt = opt || {};
+        var cls = "actions-menu-item zd-action-btn";
+        if (opt.danger) {
+            cls += " actions-menu-item-danger";
+        }
+        var html =
+            '<button type="button" class="' +
+            cls +
+            '" role="menuitem" data-zd-command="' +
+            escapeHtml(cmd) +
+            '" data-framework="' +
+            fw +
+            '"';
+        if (opt.sharedDb) {
+            html += ' data-shared-db="1"';
+        }
+        if (opt.dbContainer) {
+            html += ' data-db-container="' + escapeHtml(opt.dbContainer) + '"';
+        }
+        html +=
+            ' title="' +
+            escapeHtml(tooltip) +
+            '">' +
+            escapeHtml(label) +
+            "</button>";
+        return html;
+    }
+
+    function renderActionsDropdown(kind, label, ariaLabel, bodyHtml) {
+        return (
+            '<div class="actions-menu actions-menu-' +
+            kind +
+            '" role="group" aria-label="' +
+            escapeHtml(ariaLabel) +
+            '">' +
+            '<button type="button" class="btn btn-secondary btn-compact actions-menu-toggle" aria-expanded="false" aria-haspopup="menu" title="' +
+            escapeHtml(ariaLabel) +
+            '">' +
+            escapeHtml(label) +
+            "</button>" +
+            '<div class="actions-menu-dropdown" role="menu" hidden>' +
+            bodyHtml +
+            "</div></div>"
+        );
+    }
+
+    function renderTableInstanceActionsDropdown(row) {
+        var fw = row.framework || "";
+        var inst = row.instance || {};
+        var running = !!inst.running;
         var safeFw = escapeHtml(fw);
-        var lines =
-            '<div class="instance-actions" role="group" aria-label="Instance actions">';
-
-        lines += '<div class="instance-actions-slot">';
+        var body = "";
         if (running) {
-            lines +=
-                '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="stop" data-framework="' +
-                safeFw +
-                '" title="' +
-                escapeHtml(TOOLTIPS.action.stop) +
-                '">Stop</button>';
+            body += actionDropdownItemHtml(
+                "stop",
+                safeFw,
+                "Stop",
+                TOOLTIPS.action.stop
+            );
+            body += actionDropdownItemHtml(
+                "restart",
+                safeFw,
+                "Restart",
+                TOOLTIPS.action.restart
+            );
         } else {
-            lines +=
-                '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="start" data-framework="' +
-                safeFw +
-                '" title="' +
-                escapeHtml(TOOLTIPS.action.start) +
-                '">Start</button>';
+            body += actionDropdownItemHtml(
+                "start",
+                safeFw,
+                "Start",
+                TOOLTIPS.action.start
+            );
         }
-        lines += "</div>";
+        body += actionDropdownItemHtml(
+            "build",
+            safeFw,
+            "Build",
+            TOOLTIPS.action.build
+        );
+        body += actionDropdownItemHtml(
+            "remove",
+            safeFw,
+            "Delete",
+            TOOLTIPS.action.remove,
+            { danger: true }
+        );
+        return renderActionsDropdown(
+            "instance",
+            "Instance",
+            TOOLTIPS.action.instanceActionsMenu,
+            body
+        );
+    }
 
-        lines += '<div class="instance-actions-slot">';
-        if (running) {
-            lines +=
-                '<button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="restart" data-framework="' +
-                safeFw +
-                '" title="' +
-                escapeHtml(TOOLTIPS.action.restart) +
-                '">Restart</button>';
+    function renderTableDbActionsDropdown(row) {
+        var fw = row.framework || "";
+        var db = row.database || {};
+        var cfg = row.configuration || {};
+        var dbRunning = !!db.running;
+        var sharedDb =
+            String(cfg.instance_mode || "shared").toLowerCase() === "shared";
+        var safeFw = escapeHtml(fw);
+        var body = "";
+        if (sharedDb) {
+            body +=
+                '<p class="actions-menu-note">' +
+                escapeHtml(TOOLTIPS.action.dbSharedNote) +
+                "</p>";
+        }
+        var dbOpt = {
+            sharedDb: sharedDb,
+            dbContainer: db.container || "",
+        };
+        if (dbRunning) {
+            body += actionDropdownItemHtml(
+                "db-stop",
+                safeFw,
+                "Stop",
+                TOOLTIPS.action.dbStop,
+                dbOpt
+            );
+            body += actionDropdownItemHtml(
+                "db-restart",
+                safeFw,
+                "Restart",
+                TOOLTIPS.action.dbRestart,
+                dbOpt
+            );
         } else {
-            lines += '<span class="instance-actions-placeholder" aria-hidden="true"></span>';
+            body += actionDropdownItemHtml(
+                "db-start",
+                safeFw,
+                "Start",
+                TOOLTIPS.action.dbStart,
+                dbOpt
+            );
         }
-        lines += "</div>";
+        return renderActionsDropdown(
+            "database",
+            "Database",
+            TOOLTIPS.action.dbActionsMenu,
+            body
+        );
+    }
 
-        lines +=
-            '<div class="instance-actions-slot"><button type="button" class="btn btn-secondary btn-compact zd-action-btn" data-zd-command="build" data-framework="' +
-            safeFw +
-            '" title="' +
-            escapeHtml(TOOLTIPS.action.build) +
-            '">Build</button></div>';
+    function renderActionsCell(row) {
+        var db = row.database || {};
+        var hasDb = !!(db.container && String(db.container).trim());
+        var html =
+            '<div class="cell-actions-toolbar instance-actions" role="group" aria-label="Instance and database actions">';
+        html += renderTableInstanceActionsDropdown(row);
+        if (hasDb) {
+            html += renderTableDbActionsDropdown(row);
+        }
+        html += "</div>";
+        return html;
+    }
 
-        lines +=
-            '<div class="instance-actions-slot instance-actions-slot--delete"><button type="button" class="btn btn-danger btn-compact zd-action-btn" data-zd-command="remove" data-framework="' +
-            safeFw +
-            '" title="' +
-            escapeHtml(TOOLTIPS.action.remove) +
-            '">Delete</button></div>';
+    function closeAllActionsDropdowns() {
+        var openMenus = document.querySelectorAll(".actions-menu-open");
+        var i;
+        for (i = 0; i < openMenus.length; i++) {
+            var menu = openMenus[i];
+            var panel = menu.querySelector(".actions-menu-dropdown");
+            var toggle = menu.querySelector(".actions-menu-toggle");
+            if (panel) {
+                panel.hidden = true;
+            }
+            if (toggle) {
+                toggle.setAttribute("aria-expanded", "false");
+            }
+            menu.classList.remove("actions-menu-open");
+        }
+    }
 
-        lines += "</div>";
-        return lines;
+    function toggleActionsDropdown(toggleBtn) {
+        var menu = toggleBtn.closest(".actions-menu");
+        if (!menu) {
+            return;
+        }
+        var panel = menu.querySelector(".actions-menu-dropdown");
+        if (!panel) {
+            return;
+        }
+        var willOpen = panel.hidden;
+        closeAllActionsDropdowns();
+        if (willOpen) {
+            panel.hidden = false;
+            toggleBtn.setAttribute("aria-expanded", "true");
+            menu.classList.add("actions-menu-open");
+        }
+    }
+
+    function confirmSharedDbAction(containerName) {
+        return Promise.resolve(
+            window.confirm(
+                tooltipFormat(TOOLTIPS.action.dbSharedConfirm, {
+                    container: containerName || "database",
+                })
+            )
+        );
+    }
+
+    function runZdActionFromButton(zdBtn) {
+        var cmd = zdBtn.getAttribute("data-zd-command") || "";
+        var fw = zdBtn.getAttribute("data-framework") || "";
+        var actions =
+            zdBtn.closest(".cell-actions-toolbar") ||
+            zdBtn.closest(".actions-menu") ||
+            zdBtn.closest(".instance-actions");
+        if (!cmd || !fw || !actions) {
+            return;
+        }
+
+        function execute() {
+            closeAllActionsDropdowns();
+            postZdCommand(cmd, fw, actions);
+        }
+
+        if (cmd === "remove") {
+            confirmDelete(fw).then(function (ok) {
+                if (ok) {
+                    execute();
+                }
+            });
+            return;
+        }
+
+        if (
+            zdBtn.getAttribute("data-shared-db") === "1" &&
+            (cmd === "db-stop" || cmd === "db-restart")
+        ) {
+            confirmSharedDbAction(
+                zdBtn.getAttribute("data-db-container") || ""
+            ).then(function (ok) {
+                if (ok) {
+                    execute();
+                }
+            });
+            return;
+        }
+
+        execute();
     }
 
     var confirmDone = null;
@@ -870,13 +1070,16 @@
     }
 
     function setInstanceActionsBusy(actionsEl, busy) {
-        var buttons = actionsEl.querySelectorAll(".zd-action-btn");
+        var buttons = actionsEl.querySelectorAll(
+            ".zd-action-btn, .actions-menu-toggle"
+        );
         var i;
         for (i = 0; i < buttons.length; i++) {
             buttons[i].disabled = !!busy;
         }
         if (busy) {
             actionsEl.classList.add("instance-actions--busy");
+            closeAllActionsDropdowns();
         } else {
             actionsEl.classList.remove("instance-actions--busy");
         }
@@ -1456,7 +1659,7 @@
             "</td>";
         lines +=
             '<td class="cell-actions">' +
-            renderInstanceActionsHtml(fw, !!inst.running) +
+            renderActionsCell(row) +
             "</td>";
         lines += "</tr>";
 
@@ -1800,7 +2003,7 @@
         }
         lines += "</tbody></table></div>";
 
-        lines += renderInstanceActionsHtml(fw, !!inst.running);
+        lines += renderActionsCell(row);
 
         var extraPanelId = "instance-extra-" + String(cardIndex);
         if (expandable) {
@@ -1972,6 +2175,7 @@
         if (e.key !== "Escape") {
             return;
         }
+        closeAllActionsDropdowns();
         var legendDlg = document.getElementById("status-legend-dialog");
         if (legendDlg && !legendDlg.hidden) {
             closeStatusLegendDialog();
@@ -1985,6 +2189,12 @@
     document
         .getElementById("theme-toggle")
         .addEventListener("change", onThemeSwitchChange);
+
+    document.addEventListener("click", function (e) {
+        if (!e.target.closest(".actions-menu")) {
+            closeAllActionsDropdowns();
+        }
+    });
 
     document.getElementById("instances").addEventListener("click", function (e) {
         var copyBtn = e.target.closest(".copy-on-click");
@@ -2011,24 +2221,19 @@
             return;
         }
 
+        var toggleBtn = e.target.closest(".actions-menu-toggle");
+        if (toggleBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleActionsDropdown(toggleBtn);
+            return;
+        }
+
         var zdBtn = e.target.closest(".zd-action-btn");
         if (zdBtn) {
             e.preventDefault();
             e.stopPropagation();
-            var cmd = zdBtn.getAttribute("data-zd-command") || "";
-            var fw = zdBtn.getAttribute("data-framework") || "";
-            var actions = zdBtn.closest(".instance-actions");
-            if (cmd && fw && actions) {
-                if (cmd === "remove") {
-                    confirmDelete(fw).then(function (ok) {
-                        if (ok) {
-                            postZdCommand(cmd, fw, actions);
-                        }
-                    });
-                } else {
-                    postZdCommand(cmd, fw, actions);
-                }
-            }
+            runZdActionFromButton(zdBtn);
             return;
         }
 

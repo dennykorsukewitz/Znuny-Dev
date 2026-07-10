@@ -1969,6 +1969,104 @@ restart_instance() {
     fi
 }
 
+# Resolve Docker database container name for a framework instance.
+get_framework_db_container() {
+    local framework="$1"
+    local instance_env_file="$INSTANCES_DIR/$framework/$framework.env"
+    local db_type="mariadb"
+    local instance_mode="shared"
+    local db_container_name=""
+
+    if [ ! -f "$instance_env_file" ]; then
+        return 1
+    fi
+
+    db_type=$(grep "^DB_TYPE=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || echo "mariadb")
+    db_type="${db_type:-mariadb}"
+    instance_mode=$(grep "^INSTANCE_MODE=" "$instance_env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' || echo "shared")
+    instance_mode="${instance_mode:-shared}"
+    db_container_name=$(get_database_container_name "$framework" "$db_type" "$instance_mode")
+    if [ -z "$db_container_name" ]; then
+        return 1
+    fi
+    printf '%s' "$db_container_name"
+}
+
+start_db_container() {
+    local framework="$1"
+    local db_container_name=""
+
+    check_docker
+    if ! check_instance_exists "$framework"; then
+        print_error "Framework instance '$framework' does not exist"
+        return 1
+    fi
+
+    db_container_name=$(get_framework_db_container "$framework") || true
+    if [ -z "$db_container_name" ]; then
+        print_error "Could not resolve database container for '$framework'"
+        return 1
+    fi
+
+    print_status "Starting database container: $db_container_name"
+    if docker start "$db_container_name"; then
+        print_success "Database container '$db_container_name' started"
+    else
+        print_error "Failed to start database container '$db_container_name'"
+        return 1
+    fi
+}
+
+stop_db_container() {
+    local framework="$1"
+    local db_container_name=""
+
+    check_docker
+    if ! check_instance_exists "$framework"; then
+        print_error "Framework instance '$framework' does not exist"
+        return 1
+    fi
+
+    db_container_name=$(get_framework_db_container "$framework") || true
+    if [ -z "$db_container_name" ]; then
+        print_error "Could not resolve database container for '$framework'"
+        return 1
+    fi
+
+    print_status "Stopping database container: $db_container_name"
+    if docker stop "$db_container_name"; then
+        print_success "Database container '$db_container_name' stopped"
+    else
+        print_error "Failed to stop database container '$db_container_name'"
+        return 1
+    fi
+}
+
+restart_db_container() {
+    local framework="$1"
+    local db_container_name=""
+
+    check_docker
+    if ! check_instance_exists "$framework"; then
+        print_error "Framework instance '$framework' does not exist"
+        return 1
+    fi
+
+    db_container_name=$(get_framework_db_container "$framework") || true
+    if [ -z "$db_container_name" ]; then
+        print_error "Could not resolve database container for '$framework'"
+        return 1
+    fi
+
+    print_status "Restarting database container: $db_container_name"
+    if docker restart "$db_container_name"; then
+        print_success "Database container '$db_container_name' restarted"
+    else
+        print_error "Failed to restart database container '$db_container_name'"
+        return 1
+    fi
+}
+
 # Function to restart all instances
 restart_all_instances() {
     print_header "Restarting all instances"
@@ -2375,6 +2473,15 @@ main() {
             ;;
         restart)
             restart "$framework" "${@:3}"
+            ;;
+        db-start)
+            start_db_container "$framework"
+            ;;
+        db-stop)
+            stop_db_container "$framework"
+            ;;
+        db-restart)
+            restart_db_container "$framework"
             ;;
         build)
             build "$framework" "${@:3}"

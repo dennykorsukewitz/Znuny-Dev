@@ -83,10 +83,11 @@
         statusDot: {
             instance: {
                 healthy:
-                    "Instance OK — running, Docker health passed or not configured",
+                    "OK — instance and database running, no failed health checks",
                 warning:
-                    "Instance warning — container stopped or reports stopped state",
-                error: "Instance error — Docker health check failed",
+                    "Warning — instance or database stopped or not running",
+                error:
+                    "Error — instance or database Docker health check failed",
             },
             container: {
                 healthy:
@@ -103,9 +104,12 @@
             pillHeading: "Docker health pill",
             colIndicator: "Indicator",
             colDescription: "Description",
-            dotOk: "OK — running, no critical issue",
-            dotWarning: "Warning — stopped or degraded",
-            dotError: "Error — health check failed",
+            dotOk:
+                "OK — instance and database running, no failed health checks",
+            dotWarning:
+                "Warning — instance or database stopped or not running",
+            dotError:
+                "Error — instance or database Docker health check failed",
             pillHealthy:
                 "Container is running. Docker health check passed.",
             pillUnhealthy:
@@ -658,49 +662,50 @@
         );
     }
 
-    /** Instance summary dot: green / yellow (stopped) / red (unhealthy) */
-    function instanceStatusDotClass(row) {
-        var inst = row.instance || {};
-        if (!inst.running) {
-            return "warning";
+    /** Single-container state for summary dot (instance or database). */
+    function containerSummaryState(container) {
+        if (!container || !container.running) {
+            return "stopped";
         }
-        var h = (inst.health || "").toLowerCase();
+        var h = (container.health || "").toLowerCase();
         if (h === "unhealthy") {
-            return "error";
+            return "unhealthy";
         }
         if (h === "stopped") {
+            return "stopped";
+        }
+        return "ok";
+    }
+
+    /**
+     * Summary dot for a framework row: instance + database combined.
+     * Error if either health check failed; warning if either stopped; OK only if both running.
+     */
+    function instanceStatusDotClass(row) {
+        var inst = row.instance || {};
+        var db = row.database || {};
+        var hasDb = !!(db.container && String(db.container).trim());
+        var instState = containerSummaryState(inst);
+        var dbState = hasDb ? containerSummaryState(db) : "ok";
+        if (instState === "unhealthy" || dbState === "unhealthy") {
+            return "error";
+        }
+        if (instState === "stopped" || dbState === "stopped") {
             return "warning";
         }
-        if (h === "healthy" || h === "no-health-check" || !h) {
-            return "";
-        }
-        return "warning";
+        return "";
     }
 
     /** Numeric rank for status sort: lower = worse / less healthy */
     function statusRank(row) {
-        var inst = row.instance || {};
-        var db = row.database || {};
-        if (!inst.running) {
+        var dotClass = instanceStatusDotClass(row);
+        if (dotClass === "error") {
             return 0;
         }
-        var h = (inst.health || "").toLowerCase();
-        if (h === "unhealthy") {
+        if (dotClass === "warning") {
             return 1;
         }
-        if (db.container && !db.running) {
-            return 2;
-        }
-        if (h === "stopped") {
-            return 0;
-        }
-        if (h === "healthy") {
-            return 4;
-        }
-        if (h === "no-health-check" || !h) {
-            return 3;
-        }
-        return 2;
+        return 4;
     }
 
     /** Parse Docker / ISO time (RFC3339, optional nano fraction). */

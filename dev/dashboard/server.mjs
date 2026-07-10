@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
-import { readDefaultIde } from "./ide.mjs";
+import { buildDashboardIdeConfig, resolveIdeForOpen } from "./ide.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3000);
@@ -173,7 +173,7 @@ async function proxyOpener(pathSuffix, res, fallbackBody) {
     try {
         const upstream = await fetch(url, {
             method: "GET",
-            signal: AbortSignal.timeout(8000),
+            signal: AbortSignal.timeout(30000),
         });
         const text = await upstream.text();
         let data = null;
@@ -218,26 +218,23 @@ async function proxyOpener(pathSuffix, res, fallbackBody) {
 }
 
 function openIdeNative(hostPath, ide) {
-    spawn(ide.cmd, [hostPath], {
+    spawn(ide.exec || ide.cmd, [hostPath], {
         detached: true,
         stdio: "ignore",
         shell: process.platform === "win32",
     }).unref();
 }
 
-function handleDashboardConfig(res) {
-    const ide = readDefaultIde(getZnunyDevDir());
+async function handleDashboardConfig(res) {
+    if (fs.existsSync("/.dockerenv")) {
+        await proxyOpener("/config", res);
+        return;
+    }
     res.writeHead(200, {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "no-store",
     });
-    res.end(
-        JSON.stringify({
-            default_ide: ide ? ide.id : null,
-            default_ide_cmd: ide ? ide.cmd : null,
-            default_ide_label: ide ? ide.label : null,
-        }),
-    );
+    res.end(JSON.stringify(buildDashboardIdeConfig(getZnunyDevDir())));
 }
 
 async function handleOpenWorkspace(req, res, framework) {
@@ -275,71 +272,68 @@ async function handleOpenWorkspace(req, res, framework) {
     );
 }
 
-async function handleOpenIde(req, res, framework) {
+async function handleOpenIde(req, res, framework, ideId) {
     const hostPath = readFrameworkDirFromEnv(framework);
     if (!hostPath) {
         jsonError(res, 404, "framework not found");
         return;
     }
 
-    const ide = readDefaultIde(getZnunyDevDir());
+    const inDocker = fs.existsSync("/.dockerenv");
+
+    if (inDocker) {
+        await proxyOpener(
+            "/open-ide?framework=" +
+                encodeURIComponent(framework) +
+                (ideId ? "&ide=" + encodeURIComponent(ideId) : ""),
+            res,
+        );
+        return;
+    }
+
+    const ide = resolveIdeForOpen(ideId || null, getZnunyDevDir());
     if (!ide) {
         jsonError(
             res,
             503,
-            "no default IDE configured",
-            "Set DEFAULT_IDE in configs/instance/my.env (e.g. cursor or code)",
+            ideId ? "IDE not available" : "no IDE available",
+            ideId
+                ? "Requested editor is not installed or not on PATH"
+                : "Set DEFAULT_IDE in configs/instance/my.env (e.g. cursor or code)",
         );
         return;
     }
 
-    const inDocker = fs.existsSync("/.dockerenv");
-
-    if (!inDocker) {
-        try {
-            fs.accessSync(hostPath, fs.constants.R_OK);
-        } catch {
-            jsonError(res, 404, "host workspace path not found");
-            return;
-        }
-        try {
-            openIdeNative(hostPath, ide);
-        } catch (e) {
-            jsonError(
-                res,
-                500,
-                "IDE open failed",
-                String(e && e.message ? e.message : e).slice(0, 300),
-            );
-            return;
-        }
-        res.writeHead(200, {
-            "Content-Type": "application/json; charset=utf-8",
-            "Cache-Control": "no-store",
-        });
-        res.end(
-            JSON.stringify({
-                ok: true,
-                path: hostPath,
-                framework,
-                ide: ide.id,
-                label: ide.label,
-            }),
-        );
+    try {
+        fs.accessSync(hostPath, fs.constants.R_OK);
+    } catch {
+        jsonError(res, 404, "host workspace path not found");
         return;
     }
 
-    await proxyOpener(
-        "/open-ide?framework=" + encodeURIComponent(framework),
-        res,
-        {
+    res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+    });
+    res.end(
+        JSON.stringify({
             ok: true,
             path: hostPath,
             framework,
             ide: ide.id,
             label: ide.label,
-        },
+        }),
     );
+    setImmediate(() => {
+        try {
+            openIdeNative(hostPath, ide);
+        } catch (spawnErr) {
+            console.error(
+                "[dashboard] IDE spawn failed:",
+                spawnErr && spawnErr.message ? spawnErr.message : spawnErr,
+            );
+        }
+    });
 }
 
 function handlePostZd(req, res) {
@@ -482,7 +476,16 @@ const server = http.createServer((req, res) => {
             res.end(JSON.stringify({ error: "method not allowed" }));
             return;
         }
-        handleDashboardConfig(res);
+        handleDashboardConfig(res).catch((e) => {
+            if (!res.headersSent) {
+                jsonError(
+                    res,
+                    500,
+                    "config failed",
+                    String(e && e.message ? e.message : e).slice(0, 300),
+                );
+            }
+        });
         return;
     }
 
@@ -520,7 +523,8 @@ const server = http.createServer((req, res) => {
             jsonError(res, 400, "invalid or missing framework");
             return;
         }
-        handleOpenIde(req, res, framework);
+        const ideId = u.searchParams.get("ide") || "";
+        handleOpenIde(req, res, framework, ideId);
         return;
     }
 

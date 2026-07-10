@@ -10,6 +10,7 @@
         default_ide: null,
         default_ide_cmd: null,
         default_ide_label: null,
+        available_ides: [],
     };
 
     /**
@@ -82,6 +83,8 @@
             openNewTab: "Open in new tab: {url}",
             openFinder: "Open in Finder / Explorer: {path}",
             openIde: "Open in {ide}: {path}",
+            moreIdes: "Open in another editor",
+            moreIdesMenu: "Other editors on this system",
             frameworkWeb: "Open Znuny web interface: {url}",
         },
         login: {
@@ -1722,6 +1725,108 @@
     }
 
     /** Folder + IDE buttons (DEFAULT_IDE from configs/instance/my.env). */
+    function getPrimaryIde() {
+        var list = dashboardConfig.available_ides || [];
+        var defId = dashboardConfig.default_ide;
+        var defCmd = dashboardConfig.default_ide_cmd;
+        var defLabel = dashboardConfig.default_ide_label;
+        var i;
+        if (list.length) {
+            for (i = 0; i < list.length; i++) {
+                if (defId && list[i].id === defId) {
+                    return list[i];
+                }
+                if (defCmd && list[i].cmd === defCmd) {
+                    return list[i];
+                }
+            }
+            return list[0];
+        }
+        if (defCmd && defLabel) {
+            return {
+                id: defId || defCmd,
+                cmd: defCmd,
+                label: defLabel,
+            };
+        }
+        return null;
+    }
+
+    function getOtherIdes(primary) {
+        var list = dashboardConfig.available_ides || [];
+        if (!primary) {
+            return list.slice();
+        }
+        return list.filter(function (ide) {
+            return ide.id !== primary.id;
+        });
+    }
+
+    function renderIdeMoreDropdownHtml(fw, wsTrim, others) {
+        if (!others.length) {
+            return "";
+        }
+        var safeFw = escapeHtml(fw);
+        var body = "";
+        var i;
+        for (i = 0; i < others.length; i++) {
+            body +=
+                '<button type="button" class="actions-menu-item open-ide-link" role="menuitem" data-framework="' +
+                safeFw +
+                '" data-ide="' +
+                escapeHtml(others[i].id) +
+                '" title="' +
+                escapeHtml(
+                    tooltipFormat(TOOLTIPS.link.openIde, {
+                        ide: others[i].label,
+                        path: wsTrim,
+                    })
+                ) +
+                '">' +
+                escapeHtml(others[i].label) +
+                "</button>";
+        }
+        return (
+            '<div class="actions-menu actions-menu-ide-more" role="group" aria-label="' +
+            escapeHtml(TOOLTIPS.link.moreIdesMenu) +
+            '">' +
+            '<button type="button" class="btn btn-accent-secondary btn-compact actions-menu-toggle ide-more-toggle" aria-expanded="false" aria-haspopup="menu" title="' +
+            escapeHtml(TOOLTIPS.link.moreIdes) +
+            '">+</button>' +
+            '<div class="actions-menu-dropdown" role="menu" hidden>' +
+            body +
+            "</div></div>"
+        );
+    }
+
+    function renderHostIdeButtonsHtml(fw, wsTrim) {
+        var primary = getPrimaryIde();
+        if (!primary) {
+            return "";
+        }
+        var others = getOtherIdes(primary);
+        var safeFw = escapeHtml(fw);
+        var html =
+            '<span class="ide-actions-group">' +
+            '<button type="button" class="btn btn-accent-secondary btn-compact open-ide-link" data-framework="' +
+            safeFw +
+            '" data-ide="' +
+            escapeHtml(primary.id) +
+            '" title="' +
+            escapeHtml(
+                tooltipFormat(TOOLTIPS.link.openIde, {
+                    ide: primary.label,
+                    path: wsTrim,
+                })
+            ) +
+            '">' +
+            escapeHtml(primary.label) +
+            "</button>";
+        html += renderIdeMoreDropdownHtml(fw, wsTrim, others);
+        html += "</span>";
+        return html;
+    }
+
     function hostWorkspaceButtonsHtml(row) {
         var cfg = row.configuration || {};
         var ws = cfg.host_workspace;
@@ -1737,21 +1842,7 @@
             '" title="' +
             escapeHtml(tooltipFormat(TOOLTIPS.link.openFinder, { path: wsTrim })) +
             '">Folder</button>';
-        if (dashboardConfig.default_ide_cmd && dashboardConfig.default_ide_label) {
-            html +=
-                '<button type="button" class="btn btn-accent-secondary btn-compact open-ide-link" data-framework="' +
-                escapeHtml(fw) +
-                '" title="' +
-                escapeHtml(
-                    tooltipFormat(TOOLTIPS.link.openIde, {
-                        ide: dashboardConfig.default_ide_label,
-                        path: wsTrim,
-                    })
-                ) +
-                '">' +
-                escapeHtml(dashboardConfig.default_ide_label) +
-                "</button>";
-        }
+        html += renderHostIdeButtonsHtml(fw, wsTrim);
         html += "</span>";
         return html;
     }
@@ -1803,15 +1894,18 @@
             });
     }
 
-    function openHostIde(framework) {
+    function openHostIde(framework, ideId) {
         var banner = document.getElementById("error-banner");
         if (!framework) {
             return Promise.resolve();
         }
-        return fetch(
-            "/api/open-ide?framework=" + encodeURIComponent(framework),
-            { method: "POST" }
-        )
+        closeAllActionsDropdowns();
+        var url =
+            "/api/open-ide?framework=" + encodeURIComponent(framework);
+        if (ideId) {
+            url += "&ide=" + encodeURIComponent(ideId);
+        }
+        return fetch(url, { method: "GET", cache: "no-store" })
             .then(function (r) {
                 return r.text().then(function (text) {
                     var data = null;
@@ -1841,10 +1935,15 @@
             })
             .catch(function (e) {
                 if (banner) {
+                    var msg = (e && e.message) || "";
+                    if (msg === "Failed to fetch") {
+                        banner.hidden = true;
+                        banner.textContent = "";
+                        return;
+                    }
                     banner.hidden = false;
                     banner.textContent =
-                        (e && e.message) ||
-                        "Could not open IDE. Run: zd dashboard restart";
+                        msg || "Could not open IDE. Run: zd dashboard restart";
                 }
             });
     }
@@ -1855,11 +1954,29 @@
         }
         return fetch("/api/config")
             .then(function (r) {
+                if (!r.ok) {
+                    throw new Error("HTTP " + r.status);
+                }
                 return r.json();
             })
             .then(function (cfg) {
-                if (cfg && cfg.default_ide_cmd) {
-                    dashboardConfig = cfg;
+                if (!cfg || typeof cfg !== "object") {
+                    return;
+                }
+                dashboardConfig.default_ide =
+                    cfg.default_ide != null
+                        ? cfg.default_ide
+                        : dashboardConfig.default_ide;
+                dashboardConfig.default_ide_cmd =
+                    cfg.default_ide_cmd != null
+                        ? cfg.default_ide_cmd
+                        : dashboardConfig.default_ide_cmd;
+                dashboardConfig.default_ide_label =
+                    cfg.default_ide_label != null
+                        ? cfg.default_ide_label
+                        : dashboardConfig.default_ide_label;
+                if (Array.isArray(cfg.available_ides)) {
+                    dashboardConfig.available_ides = cfg.available_ides;
                 }
             })
             .catch(function () {});
@@ -2217,7 +2334,10 @@
         if (ideBtn) {
             e.preventDefault();
             e.stopPropagation();
-            openHostIde(ideBtn.getAttribute("data-framework") || "");
+            openHostIde(
+                ideBtn.getAttribute("data-framework") || "",
+                ideBtn.getAttribute("data-ide") || ""
+            );
             return;
         }
 

@@ -1139,6 +1139,38 @@ a.cell-port-link:hover {
   gap: 8px;
 }
 
+.ide-actions-group {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.ide-actions-group .open-ide-link {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.actions-menu-ide-more {
+  position: relative;
+  display: inline-flex;
+}
+
+.actions-menu-ide-more .ide-more-toggle {
+  min-width: 1.75rem;
+  padding: 5px 7px;
+  margin-left: -1px;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.actions-menu-ide-more .actions-menu-dropdown {
+  right: 0;
+  left: auto;
+  min-width: 9.5rem;
+}
+
 .host-workspace-actions .host-workspace-path {
   font-size: 0.82rem;
   word-break: break-all;

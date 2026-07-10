@@ -7,7 +7,7 @@ import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
 import { fileURLToPath } from "url";
-import { readDefaultIde } from "./ide.mjs";
+import { buildDashboardIdeConfig, resolveIdeForOpen } from "./ide.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ZNUNY_DEV_DIR =
@@ -71,10 +71,10 @@ function openNative(hostPath) {
 }
 
 function openIde(hostPath, ide) {
-    if (!ide || !ide.cmd) {
+    if (!ide || (!ide.exec && !ide.cmd)) {
         throw new Error("no default IDE configured");
     }
-    spawn(ide.cmd, [hostPath], {
+    spawn(ide.exec || ide.cmd, [hostPath], {
         detached: true,
         stdio: "ignore",
         shell: process.platform === "win32",
@@ -104,12 +104,7 @@ const server = http.createServer((req, res) => {
     }
 
     if (u.pathname === "/config") {
-        const ide = readDefaultIde(ZNUNY_DEV_DIR);
-        json(res, 200, {
-            default_ide: ide ? ide.id : null,
-            default_ide_cmd: ide ? ide.cmd : null,
-            default_ide_label: ide ? ide.label : null,
-        });
+        json(res, 200, buildDashboardIdeConfig(ZNUNY_DEV_DIR));
         return;
     }
 
@@ -141,30 +136,43 @@ const server = http.createServer((req, res) => {
     }
 
     if (u.pathname === "/open-ide") {
-        const ide = readDefaultIde(ZNUNY_DEV_DIR);
+        const ideId = u.searchParams.get("ide") || "";
+        const ide = resolveIdeForOpen(ideId || null, ZNUNY_DEV_DIR);
         if (!ide) {
             json(res, 503, {
-                error: "no default IDE configured",
-                detail: "Set DEFAULT_IDE in configs/instance/my.env (e.g. cursor or code)",
+                error: "no IDE available",
+                detail: ideId
+                    ? "Requested editor is not installed or not on PATH"
+                    : "Set DEFAULT_IDE in configs/instance/my.env (e.g. cursor or code)",
             });
             return;
         }
         try {
-            openIde(hostPath, ide);
+            json(res, 200, {
+                ok: true,
+                path: hostPath,
+                framework,
+                ide: ide.id,
+                label: ide.label,
+            });
+            setImmediate(function () {
+                try {
+                    openIde(hostPath, ide);
+                } catch (spawnErr) {
+                    console.error(
+                        "[opener] IDE spawn failed:",
+                        spawnErr && spawnErr.message
+                            ? spawnErr.message
+                            : spawnErr,
+                    );
+                }
+            });
         } catch (e) {
             json(res, 500, {
                 error: "IDE open failed",
                 detail: String(e && e.message ? e.message : e).slice(0, 300),
             });
-            return;
         }
-        json(res, 200, {
-            ok: true,
-            path: hostPath,
-            framework,
-            ide: ide.id,
-            label: ide.label,
-        });
         return;
     }
 

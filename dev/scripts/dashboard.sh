@@ -188,6 +188,7 @@ dashboard() {
         fi
         print_status "Restarting dashboard container..."
         compose_dashboard restart
+        stop_opener
         start_opener
         print_success "Dashboard: http://127.0.0.1:${DASHBOARD_PORT:-9999}/"
         ;;

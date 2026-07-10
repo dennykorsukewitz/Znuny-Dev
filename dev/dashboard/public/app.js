@@ -31,6 +31,8 @@
                 "Table layout — compact rows, click a row to expand details",
             sortKey: "Choose what to sort instances by",
             sortDir: "Ascending (A→Z, oldest first) or descending",
+            tableSortBy: "Sort by {column}",
+            tableSortToggle: "Toggle sort direction ({column})",
             statusLegend:
                 "Open status legend — instance and database container colors and Docker health labels",
         },
@@ -746,7 +748,6 @@
         return String(s || "").indexOf("0001-01-01") === 0;
     }
 
-    /** Sort / display: prefer real start time, else container Created (API: instance.created_at). */
     function effectiveCreatedMs(inst) {
         var st = inst.started_at;
         if (st && !isDockerZeroStartedAt(st)) {
@@ -756,6 +757,48 @@
             }
         }
         return dockerTimeMs(inst.created_at);
+    }
+
+    /** Numeric host port for sort; missing or invalid values sort last. */
+    function effectivePortNum(row) {
+        var port = String(row.port || "").trim();
+        if (port) {
+            var n = parseInt(port, 10);
+            if (!isNaN(n)) {
+                return n;
+            }
+        }
+        var web = ((row.configuration || {}).web_interface || "").trim();
+        if (web) {
+            try {
+                var u = new URL(web);
+                if (u.port) {
+                    var p = parseInt(u.port, 10);
+                    if (!isNaN(p)) {
+                        return p;
+                    }
+                }
+                if (u.protocol === "http:") {
+                    return 80;
+                }
+                if (u.protocol === "https:") {
+                    return 443;
+                }
+            } catch (ignore) {}
+        }
+        return null;
+    }
+
+    function cmpLocaleField(valueA, valueB, asc) {
+        var sa = String(valueA || "").trim();
+        var sb = String(valueB || "").trim();
+        var aMissing = !sa;
+        var bMissing = !sb;
+        if (aMissing !== bMissing) {
+            return aMissing ? 1 : -1;
+        }
+        var d = sa.localeCompare(sb, undefined, { sensitivity: "base" });
+        return asc ? d : -d;
     }
 
     function formatCreated(inst) {
@@ -1364,6 +1407,88 @@
         return html;
     }
 
+    function defaultSortDirForKey(sortKey) {
+        if (sortKey === "created" || sortKey === "age") {
+            return "desc";
+        }
+        if (sortKey === "name") {
+            return "asc";
+        }
+        if (sortKey === "instance" || sortKey === "database") {
+            return "asc";
+        }
+        if (sortKey === "port") {
+            return "asc";
+        }
+        return "asc";
+    }
+
+    function persistSortAndRender() {
+        updateSortDirectionLabels();
+        var s = getToolbarState();
+        setStored(storageSortKey, s.sortKey);
+        setStored(storageSortDir, s.sortDir);
+        renderView();
+    }
+
+    function handleTableSortHeaderClick(sortKey) {
+        var sk = document.getElementById("sort-key");
+        var sd = document.getElementById("sort-dir");
+        if (!sk || !sd || !sortKey) {
+            return;
+        }
+        if (sk.value === sortKey) {
+            sd.value = sd.value === "asc" ? "desc" : "asc";
+        } else {
+            sk.value = sortKey;
+            sd.value = defaultSortDirForKey(sortKey);
+        }
+        persistSortAndRender();
+    }
+
+    function tableSortIndicatorHtml(active, sortDir) {
+        if (active) {
+            return (
+                '<span class="table-sort-indicator" aria-hidden="true">' +
+                (sortDir === "asc" ? "▲" : "▼") +
+                "</span>"
+            );
+        }
+        return (
+            '<span class="table-sort-indicator table-sort-indicator-idle" aria-hidden="true">↕</span>'
+        );
+    }
+
+    function tableSortHeaderHtml(sortKey, label, extraClass) {
+        var state = getToolbarState();
+        var active = state.sortKey === sortKey;
+        var dir = state.sortDir;
+        var ariaSort = "none";
+        var tip;
+        if (active) {
+            ariaSort = dir === "asc" ? "ascending" : "descending";
+            tip = tooltipFormat(TOOLTIPS.ui.tableSortToggle, { column: label });
+        } else {
+            tip = tooltipFormat(TOOLTIPS.ui.tableSortBy, { column: label });
+        }
+        return (
+            '<th scope="col" class="table-sort-header' +
+            (extraClass ? " " + extraClass : "") +
+            (active ? " table-sort-active" : "") +
+            '" data-sort-key="' +
+            escapeHtml(sortKey) +
+            '" aria-sort="' +
+            ariaSort +
+            '">' +
+            '<button type="button" class="table-sort-btn" title="' +
+            escapeHtml(tip) +
+            '">' +
+            escapeHtml(label) +
+            tableSortIndicatorHtml(active, dir) +
+            "</button></th>"
+        );
+    }
+
     function sortInstances(list, sortKey, sortDir) {
         var out = list.slice();
         var asc = sortDir === "asc";
@@ -1391,6 +1516,24 @@
                     d = -d;
                 }
                 return d;
+            }
+
+            if (sortKey === "instance") {
+                d = cmpLocaleField(ra.container_name, rb.container_name, asc);
+                if (d !== 0) {
+                    return d;
+                }
+                return fa.localeCompare(fb, undefined, { sensitivity: "base" });
+            }
+
+            var da = ra.database || {};
+            var dbRow = rb.database || {};
+            if (sortKey === "database") {
+                d = cmpLocaleField(da.container, dbRow.container, asc);
+                if (d !== 0) {
+                    return d;
+                }
+                return fa.localeCompare(fb, undefined, { sensitivity: "base" });
             }
 
             // created: instance.started_at or instance.created_at — asc = oldest first, desc = newest; missing last
@@ -1427,6 +1570,23 @@
                 d = cmpNum(statusRank(ra), statusRank(rb));
                 if (d !== 0) {
                     return d;
+                }
+                return fa.localeCompare(fb, undefined, { sensitivity: "base" });
+            }
+
+            if (sortKey === "port") {
+                var pa = effectivePortNum(ra);
+                var pb = effectivePortNum(rb);
+                var aPortMissing = pa === null;
+                var bPortMissing = pb === null;
+                if (aPortMissing !== bPortMissing) {
+                    return aPortMissing ? 1 : -1;
+                }
+                if (!aPortMissing) {
+                    d = cmpNum(pa, pb);
+                    if (d !== 0) {
+                        return d;
+                    }
                 }
                 return fa.localeCompare(fb, undefined, { sensitivity: "base" });
             }
@@ -1530,10 +1690,17 @@
                 "aria-label",
                 "Order by created time: oldest or newest first"
             );
-        } else if (key === "name") {
+        } else if (key === "name" || key === "instance" || key === "database") {
             oAsc.textContent = "A → Z";
             oDesc.textContent = "Z → A";
-            sel.setAttribute("aria-label", "Sort name A to Z or Z to A");
+            sel.setAttribute("aria-label", "Sort A to Z or Z to A");
+        } else if (key === "port") {
+            oAsc.textContent = "Lowest first";
+            oDesc.textContent = "Highest first";
+            sel.setAttribute(
+                "aria-label",
+                "Order by port number: lowest or highest first"
+            );
         } else {
             oAsc.textContent = "Ascending";
             oDesc.textContent = "Descending";
@@ -1597,12 +1764,12 @@
     function renderTable(rows) {
         var h =
             '<table class="instances-table"><thead><tr>' +
-            '<th class="cell-status" scope="col" aria-label="Status"></th>' +
-            "<th>Framework</th>" +
-            "<th>Instance</th>" +
-            "<th>Database</th>" +
-            "<th>Created</th>" +
-            "<th>Port</th>" +
+            tableSortHeaderHtml("status", "Status", "cell-status") +
+            tableSortHeaderHtml("name", "Framework") +
+            tableSortHeaderHtml("instance", "Instance") +
+            tableSortHeaderHtml("database", "Database") +
+            tableSortHeaderHtml("created", "Created") +
+            tableSortHeaderHtml("port", "Port") +
             "<th>Login</th>" +
             "<th>Workspace</th>" +
             '<th class="cell-actions" scope="col">Actions</th>' +
@@ -2233,7 +2400,7 @@
             view: getStored(storageView, ["cards", "table"], "cards"),
             sortKey: getStored(
                 storageSortKey,
-                ["name", "created", "status"],
+                ["name", "instance", "database", "created", "status", "port"],
                 "name"
             ),
             sortDir: getStored(storageSortDir, ["asc", "desc"], "desc"),
@@ -2241,12 +2408,7 @@
         applyToolbarToDom(state);
 
         function persistAndRender() {
-            updateSortDirectionLabels();
-            var s = getToolbarState();
-            setStored(storageView, s.view);
-            setStored(storageSortKey, s.sortKey);
-            setStored(storageSortDir, s.sortDir);
-            renderView();
+            persistSortAndRender();
         }
 
         document.getElementById("view-cards").addEventListener("click", function () {
@@ -2255,7 +2417,8 @@
                 sortKey: document.getElementById("sort-key").value,
                 sortDir: document.getElementById("sort-dir").value,
             });
-            persistAndRender();
+            setStored(storageView, "cards");
+            persistSortAndRender();
         });
         document.getElementById("view-table").addEventListener("click", function () {
             applyToolbarToDom({
@@ -2263,7 +2426,8 @@
                 sortKey: document.getElementById("sort-key").value,
                 sortDir: document.getElementById("sort-dir").value,
             });
-            persistAndRender();
+            setStored(storageView, "table");
+            persistSortAndRender();
         });
         document.getElementById("sort-key").addEventListener("change", persistAndRender);
         document.getElementById("sort-dir").addEventListener("change", persistAndRender);
@@ -2314,6 +2478,16 @@
     });
 
     document.getElementById("instances").addEventListener("click", function (e) {
+        var sortHeader = e.target.closest(".table-sort-header");
+        if (sortHeader) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleTableSortHeaderClick(
+                sortHeader.getAttribute("data-sort-key") || ""
+            );
+            return;
+        }
+
         var copyBtn = e.target.closest(".copy-on-click");
         if (copyBtn) {
             e.preventDefault();

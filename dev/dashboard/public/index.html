@@ -43,16 +43,54 @@
           </div>
           <div class="hero-actions">
             <button type="button" id="btn-refresh" class="btn btn-primary">Refresh</button>
-            <label class="toggle-switch" for="theme-toggle">
-              <input type="checkbox" id="theme-toggle"/>
-              <span class="toggle-track" aria-hidden="true"></span>
-              <span class="toggle-label">Dark</span>
+            <label class="toggle-switch toggle-switch-theme" for="theme-toggle">
+              <input type="checkbox" id="theme-toggle" aria-label="Switch to dark theme"/>
+              <span class="toggle-track-theme" aria-hidden="true">
+                <span class="toggle-theme-slot toggle-theme-slot-sun" aria-hidden="true">
+                  <svg class="toggle-theme-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4"/>
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                  </svg>
+                </span>
+                <span class="toggle-theme-slot toggle-theme-slot-moon" aria-hidden="true">
+                  <svg class="toggle-theme-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                  </svg>
+                </span>
+                <span class="toggle-theme-thumb" aria-hidden="true">
+                  <span class="toggle-theme-thumb-icon toggle-theme-thumb-icon-sun" aria-hidden="true">
+                    <svg class="toggle-theme-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="4"/>
+                      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+                    </svg>
+                  </span>
+                  <span class="toggle-theme-thumb-icon toggle-theme-thumb-icon-moon" aria-hidden="true">
+                    <svg class="toggle-theme-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                    </svg>
+                  </span>
+                </span>
+              </span>
             </label>
+            <button type="button" id="btn-status-legend" class="hero-help-btn" aria-label="Status legend">
+              <span class="hero-help-icon" aria-hidden="true">?</span>
+            </button>
           </div>
         </div>
       </header>
 
       <p class="error-banner" id="error-banner" hidden></p>
+
+      <div id="status-legend-dialog" class="confirm-dialog status-legend-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="status-legend-dialog-title">
+        <div class="confirm-dialog-backdrop" data-legend-close="1"></div>
+        <div class="confirm-dialog-panel status-legend-dialog-panel">
+          <h2 id="status-legend-dialog-title" class="confirm-dialog-title">Status legend</h2>
+          <div class="status-legend-body" id="status-legend-body" aria-label="Instance and container status meanings"></div>
+          <div class="confirm-dialog-actions">
+            <button type="button" class="btn btn-secondary" data-legend-close="1">Close</button>
+          </div>
+        </div>
+      </div>
 
       <div id="confirm-dialog" class="confirm-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
         <div class="confirm-dialog-backdrop" data-confirm="0"></div>

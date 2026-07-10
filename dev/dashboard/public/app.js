@@ -22,12 +22,16 @@
                 "Fetch latest instance status (zd status JSON — Docker health, ports, paths)",
             themeDark:
                 "Toggle light / dark dashboard theme (saved in browser)",
+            themeSwitchToDark: "Switch to dark theme (saved in browser)",
+            themeSwitchToLight: "Switch to light theme (saved in browser)",
             viewCards:
                 "Card layout — one instance per card, click card to expand details",
             viewTable:
                 "Table layout — compact rows, click a row to expand details",
             sortKey: "Choose what to sort instances by",
             sortDir: "Ascending (A→Z, oldest first) or descending",
+            statusLegend:
+                "Open status legend — instance and database container colors and Docker health labels",
         },
         copy: {
             clickToCopy: "Click to copy to clipboard",
@@ -77,10 +81,40 @@
             companyPrefix: "company: ",
         },
         statusDot: {
-            healthy: "Overall status OK — instance running, no critical issues",
-            warning:
-                "Warning — instance stopped, database down, or degraded health",
-            unhealthy: "Error — Docker health check failed for this instance",
+            instance: {
+                healthy:
+                    "Instance OK — running, Docker health passed or not configured",
+                warning:
+                    "Instance warning — container stopped or reports stopped state",
+                error: "Instance error — Docker health check failed",
+            },
+            container: {
+                healthy:
+                    "Database OK — running, Docker health passed or not configured",
+                warning:
+                    "Database warning — container not running or reports stopped",
+                error: "Database error — Docker health check failed",
+            },
+        },
+        legend: {
+            dialogTitle: "Status legend",
+            close: "Close status legend dialog",
+            dotHeading: "Summary dot",
+            pillHeading: "Docker health pill",
+            colIndicator: "Indicator",
+            colDescription: "Description",
+            dotOk: "OK — running, no critical issue",
+            dotWarning: "Warning — stopped or degraded",
+            dotError: "Error — health check failed",
+            pillHealthy:
+                "Container is running. Docker health check passed.",
+            pillUnhealthy:
+                "Container is running but Docker health check failed.",
+            pillNoHealthCheck:
+                "Container is running. No Docker health check configured.",
+            pillRunning: "Container is running.",
+            pillUnknown: "Unknown health status reported by Docker.",
+            pillStopped: "Container is stopped.",
         },
         expand: {
             card: "Click card to show or hide details (DB URL, paths, git branch, …)",
@@ -119,13 +153,6 @@
             TOOLTIPS.ui.refreshStatus
         );
 
-        var themeLabel = document.querySelector("label.toggle-switch");
-        var themeToggleLabel = document.querySelector(
-            "label.toggle-switch .toggle-label"
-        );
-        setElementTooltip(themeLabel, TOOLTIPS.ui.themeDark);
-        setElementTooltip(themeToggleLabel, TOOLTIPS.ui.themeDark);
-
         setElementTooltip(
             document.getElementById("view-cards"),
             TOOLTIPS.ui.viewCards
@@ -151,17 +178,179 @@
             document.querySelector("#confirm-dialog [data-confirm='1']"),
             TOOLTIPS.confirm.delete
         );
+        setElementTooltip(
+            document.getElementById("btn-status-legend"),
+            TOOLTIPS.ui.statusLegend
+        );
+        setElementTooltip(
+            document.querySelector("#status-legend-dialog [data-legend-close='1'].btn"),
+            TOOLTIPS.legend.close
+        );
     }
 
-    function statusDotTooltip(row) {
-        var dotClass = statusDotClass(row);
+    function openStatusLegendDialog() {
+        var dlg = document.getElementById("status-legend-dialog");
+        if (!dlg) {
+            return;
+        }
+        dlg.hidden = false;
+        document.body.classList.add("confirm-dialog-open");
+        var closeBtn = dlg.querySelector("[data-legend-close='1'].btn");
+        if (closeBtn) {
+            closeBtn.focus();
+        }
+    }
+
+    function closeStatusLegendDialog() {
+        var dlg = document.getElementById("status-legend-dialog");
+        if (!dlg || dlg.hidden) {
+            return;
+        }
+        dlg.hidden = true;
+        if (document.getElementById("confirm-dialog").hidden) {
+            document.body.classList.remove("confirm-dialog-open");
+        }
+        var btn = document.getElementById("btn-status-legend");
+        if (btn) {
+            btn.focus();
+        }
+    }
+
+    var STATUS_LEGEND_PILL_STATES = [
+        { health: "healthy", running: true, descKey: "pillHealthy" },
+        { health: "no-health-check", running: true, descKey: "pillNoHealthCheck" },
+        { health: "", running: true, descKey: "pillRunning" },
+        { health: "unknown", running: true, descKey: "pillUnknown" },
+        { health: "stopped", running: false, descKey: "pillStopped" },
+        { health: "unhealthy", running: true, descKey: "pillUnhealthy" },
+    ];
+
+    var STATUS_LEGEND_DOT_STATES = [
+        { cls: "", key: "dotOk" },
+        { cls: "warning", key: "dotWarning" },
+        { cls: "error", key: "dotError" },
+    ];
+
+    function statusLegendGridHeadHtml() {
+        return (
+            '<li class="status-legend-grid-head">' +
+            '<span class="status-legend-col-label">' +
+            escapeHtml(TOOLTIPS.legend.colIndicator) +
+            "</span>" +
+            '<span class="status-legend-col-label">' +
+            escapeHtml(TOOLTIPS.legend.colDescription) +
+            "</span>" +
+            "</li>"
+        );
+    }
+
+    function statusLegendDotsHtml() {
+        var html = '<div class="status-legend-block status-legend-block-dots">';
+        html +=
+            '<h4 class="status-legend-subheading">' +
+            escapeHtml(TOOLTIPS.legend.dotHeading) +
+            "</h4>";
+        html += '<ul class="status-legend-grid status-legend-grid-dots">';
+        html += statusLegendGridHeadHtml();
+        var dotTips = TOOLTIPS.statusDot.instance;
+        var i;
+        for (i = 0; i < STATUS_LEGEND_DOT_STATES.length; i++) {
+            var dotState = STATUS_LEGEND_DOT_STATES[i];
+            var dotExtra = dotState.cls ? " " + dotState.cls : "";
+            var dotTip =
+                dotState.cls === "error"
+                    ? dotTips.error
+                    : dotState.cls === "warning"
+                      ? dotTips.warning
+                      : dotTips.healthy;
+            html += '<li class="status-legend-grid-row">';
+            html += '<span class="status-legend-col-mark">';
+            html +=
+                '<span class="instance-status status-dot status-legend-dot' +
+                dotExtra +
+                '" title="' +
+                escapeHtml(dotTip) +
+                '"></span>';
+            html += "</span>";
+            html +=
+                '<span class="status-legend-col-desc">' +
+                escapeHtml(TOOLTIPS.legend[dotState.key]) +
+                "</span>";
+            html += "</li>";
+        }
+        html += "</ul></div>";
+        return html;
+    }
+
+    function statusLegendPillsHtml() {
+        var html = '<div class="status-legend-block status-legend-block-pills">';
+        html +=
+            '<h4 class="status-legend-subheading">' +
+            escapeHtml(TOOLTIPS.legend.pillHeading) +
+            "</h4>";
+        html += '<ul class="status-legend-grid status-legend-grid-pills">';
+        html += statusLegendGridHeadHtml();
+        var i;
+        for (i = 0; i < STATUS_LEGEND_PILL_STATES.length; i++) {
+            var pillState = STATUS_LEGEND_PILL_STATES[i];
+            html += '<li class="status-legend-grid-row">';
+            html += '<span class="status-legend-col-mark">';
+            html +=
+                healthPill(pillState.health, pillState.running, "instance");
+            html += "</span>";
+            html +=
+                '<span class="status-legend-col-desc">' +
+                escapeHtml(TOOLTIPS.legend[pillState.descKey]) +
+                "</span>";
+            html += "</li>";
+        }
+        html += "</ul></div>";
+        return html;
+    }
+
+    function renderStatusLegend() {
+        var root = document.getElementById("status-legend-body");
+        if (!root) {
+            return;
+        }
+        var html = '<div class="status-legend-sections status-legend-sections-stack">';
+        html += statusLegendDotsHtml();
+        html += statusLegendPillsHtml();
+        html += "</div>";
+        root.innerHTML = html;
+    }
+
+    function statusDotTooltipForKind(dotClass, kind) {
+        var tips =
+            kind === "database"
+                ? TOOLTIPS.statusDot.container
+                : TOOLTIPS.statusDot.instance;
         if (dotClass === "error") {
-            return TOOLTIPS.statusDot.unhealthy;
+            return tips.error;
         }
         if (dotClass === "warning") {
-            return TOOLTIPS.statusDot.warning;
+            return tips.warning;
         }
-        return TOOLTIPS.statusDot.healthy;
+        return tips.healthy;
+    }
+
+    function instanceStatusDotTooltip(row) {
+        return statusDotTooltipForKind(
+            instanceStatusDotClass(row),
+            "instance"
+        );
+    }
+
+    function instanceStatusDotHtml(row) {
+        var dotClass = instanceStatusDotClass(row);
+        var extra = dotClass ? " " + dotClass : "";
+        return (
+            '<span class="instance-status status-dot' +
+            extra +
+            '" title="' +
+            escapeHtml(instanceStatusDotTooltip(row)) +
+            '"></span>'
+        );
     }
 
     /** Message card (bottom-right): concurrent zd / status — returns id for endOperation. */
@@ -261,6 +450,15 @@
             isDark = prefersDark;
         }
         input.checked = isDark;
+        var themeLabel = document.querySelector("label.toggle-switch-theme");
+        var themeTip = isDark
+            ? TOOLTIPS.ui.themeSwitchToLight
+            : TOOLTIPS.ui.themeSwitchToDark;
+        input.setAttribute(
+            "aria-label",
+            isDark ? "Switch to light theme" : "Switch to dark theme"
+        );
+        setElementTooltip(themeLabel, themeTip);
     }
 
     function initTheme() {
@@ -295,6 +493,7 @@
             localStorage.setItem(themeKey, mode);
         } catch (e) {}
         applyTheme(mode);
+        syncThemeSwitch();
     }
 
     function escapeHtml(s) {
@@ -444,9 +643,13 @@
         }
         var label = running ? health || "running" : "stopped";
         var tooltip = healthStatusTooltip(health, running, kind);
+        var statusKindClass =
+            kind === "database" ? "container-status" : "instance-status";
         return (
             '<span class="pill ' +
             cls +
+            " " +
+            statusKindClass +
             '" title="' +
             escapeHtml(tooltip) +
             '">' +
@@ -455,10 +658,9 @@
         );
     }
 
-    /** Status dot: green (ok) / yellow (warning: instance or DB down, degraded) / red (unhealthy) */
-    function statusDotClass(row) {
+    /** Instance summary dot: green / yellow (stopped) / red (unhealthy) */
+    function instanceStatusDotClass(row) {
         var inst = row.instance || {};
-        var db = row.database || {};
         if (!inst.running) {
             return "warning";
         }
@@ -467,9 +669,6 @@
             return "error";
         }
         if (h === "stopped") {
-            return "warning";
-        }
-        if (db.container && !db.running) {
             return "warning";
         }
         if (h === "healthy" || h === "no-health-check" || !h) {
@@ -1214,10 +1413,7 @@
         var web = cfg.web_interface || "";
         var fw = row.framework || "";
         var expandable = hasInstanceExtra(row);
-        var dotClass = statusDotClass(row);
-        var dotExtra = dotClass ? " " + dotClass : "";
 
-        var dotTip = escapeHtml(statusDotTooltip(row));
         var lines =
             '<tr class="instance-table-main-row' +
             (expandable ? " instance-table-row-expandable" : "") +
@@ -1227,13 +1423,7 @@
                 : "") +
             ">";
         lines +=
-            '<td class="cell-status">' +
-            '<span class="instance-status status-dot' +
-            dotExtra +
-            '" title="' +
-            dotTip +
-            '"></span>' +
-            "</td>";
+            '<td class="cell-status">' + instanceStatusDotHtml(row) + "</td>";
         lines += "<td><strong>" + frameworkNameLinkHtml(fw, web) + "</strong></td>";
         lines +=
             "<td>" +
@@ -1561,13 +1751,9 @@
         var db = row.database || {};
         var cfg = row.configuration || {};
         var web = cfg.web_interface || "";
-        var dotClass = statusDotClass(row);
-        var dotExtra = dotClass ? " " + dotClass : "";
-
         var fw = row.framework || "";
         var expandable = hasInstanceExtra(row);
         var lines = "";
-        var dotTip = escapeHtml(statusDotTooltip(row));
         lines +=
             '<article class="instance-card' +
             (expandable ? " instance-card-expandable" : "") +
@@ -1578,12 +1764,7 @@
         lines += '<div class="instance-name">';
         lines += "<h2>" + frameworkNameLinkHtml(fw, web) + "</h2>";
         lines += "</div>";
-        lines +=
-            '<span class="instance-status status-dot' +
-            dotExtra +
-            '" title="' +
-            dotTip +
-            '"></span>';
+        lines += instanceStatusDotHtml(row);
         lines += "</div>";
 
         lines += '<div class="instance-details">';
@@ -1764,6 +1945,14 @@
     }
 
     document.getElementById("btn-refresh").addEventListener("click", loadStatus);
+    document
+        .getElementById("btn-status-legend")
+        .addEventListener("click", openStatusLegendDialog);
+    document.getElementById("status-legend-dialog").addEventListener("click", function (e) {
+        if (e.target.closest("[data-legend-close='1']")) {
+            closeStatusLegendDialog();
+        }
+    });
     document.getElementById("site-title-reload").addEventListener("click", function (e) {
         e.preventDefault();
         location.reload();
@@ -1775,8 +1964,16 @@
         }
     });
     document.addEventListener("keydown", function (e) {
+        if (e.key !== "Escape") {
+            return;
+        }
+        var legendDlg = document.getElementById("status-legend-dialog");
+        if (legendDlg && !legendDlg.hidden) {
+            closeStatusLegendDialog();
+            return;
+        }
         var dlg = document.getElementById("confirm-dialog");
-        if (!dlg.hidden && e.key === "Escape") {
+        if (!dlg.hidden) {
             finishConfirm(false);
         }
     });
@@ -1865,6 +2062,7 @@
 
     initTheme();
     applyStaticTooltips();
+    renderStatusLegend();
     initToolbar();
     loadDashboardConfig().then(function () {
         loadStatus();

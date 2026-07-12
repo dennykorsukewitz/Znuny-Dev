@@ -1489,6 +1489,18 @@
         );
     }
 
+    function tableStaticHeaderHtml(label, extraClass) {
+        return (
+            '<th scope="col" class="table-static-header' +
+            (extraClass ? " " + extraClass : "") +
+            '">' +
+            '<span class="table-sort-btn table-sort-btn-static">' +
+            escapeHtml(label) +
+            '<span class="table-sort-indicator-spacer" aria-hidden="true"></span>' +
+            "</span></th>"
+        );
+    }
+
     function sortInstances(list, sortKey, sortDir) {
         var out = list.slice();
         var asc = sortDir === "asc";
@@ -1770,9 +1782,9 @@
             tableSortHeaderHtml("database", "Database") +
             tableSortHeaderHtml("created", "Created") +
             tableSortHeaderHtml("port", "Port") +
-            "<th>Login</th>" +
-            "<th>Workspace</th>" +
-            '<th class="cell-actions" scope="col">Actions</th>' +
+            tableStaticHeaderHtml("Login") +
+            tableStaticHeaderHtml("Workspace") +
+            tableStaticHeaderHtml("Actions", "cell-actions") +
             "</tr></thead><tbody>";
 
         var i;

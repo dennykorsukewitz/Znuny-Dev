@@ -1049,6 +1049,10 @@ body.theme-dark .hero .toolbar-select option {
   vertical-align: top;
 }
 
+.instances-table thead th {
+  vertical-align: middle;
+}
+
 .instances-table th {
   font-weight: 700;
   color: var(--heading);
@@ -1056,7 +1060,8 @@ body.theme-dark .hero .toolbar-select option {
   white-space: nowrap;
 }
 
-.instances-table th.table-sort-header {
+.instances-table th.table-sort-header,
+.instances-table th.table-static-header {
   padding: 0;
 }
 
@@ -1077,6 +1082,10 @@ body.theme-dark .hero .toolbar-select option {
   box-sizing: border-box;
 }
 
+.table-sort-btn-static {
+  cursor: default;
+}
+
 .instances-table th.cell-status .table-sort-btn {
   justify-content: center;
   padding-left: 8px;
@@ -1087,14 +1096,25 @@ body.theme-dark .hero .toolbar-select option {
   color: var(--zn-orange);
 }
 
+.table-sort-btn-static:hover {
+  color: inherit;
+}
+
 .instances-table th.table-sort-active .table-sort-btn {
   color: var(--zn-orange);
 }
 
 .table-sort-indicator {
-  font-size: 0.62rem;
+  font-size: 1.5rem;
   line-height: 1;
+  flex-shrink: 0;
   opacity: 0.95;
+}
+
+.table-sort-indicator-spacer {
+  display: inline-block;
+  width: 1.5rem;
+  flex-shrink: 0;
 }
 
 .table-sort-indicator-idle {

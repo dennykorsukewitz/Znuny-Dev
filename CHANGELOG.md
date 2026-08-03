@@ -14,6 +14,9 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Fixed
 
+- Dashboard `start`/`stop` failed with HTTP 500 when frameworks live outside `znuny-dev` (host `FRAMEWORKS_DIR` invisible in container). Mount sibling `frameworks`/`packages`/`tools` and realign paths in `load_environment`.
+- Dashboard readiness probe used `localhost:<port>` inside the container (hang/timeout); probe via `host.docker.internal` when running in Docker.
+
 ### Security
 
 ## [1.0.0] - 2026-XX-XX

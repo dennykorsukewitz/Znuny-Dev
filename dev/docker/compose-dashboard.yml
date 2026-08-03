@@ -17,6 +17,11 @@ services:
     volumes:
       # rw: instance.sh may regenerate compose files; docker compose needs a writable socket
       - ../../:/znuny-dev
+      # Sibling dirs live next to znuny-dev (see .env FRAMEWORKS_DIR / PACKAGES_DIR / TOOLS_DIR).
+      # Mount here so dashboard start/stop can see checkouts; host paths from .env are invisible in-container.
+      - ../../../frameworks:/frameworks
+      - ../../../packages:/packages
+      - ../../../tools:/tools
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       ZNUNY_DEV_DIR: /znuny-dev

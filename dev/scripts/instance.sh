@@ -1729,7 +1729,12 @@ start_instance() {
         print_success "Framework '$framework' started successfully!"
 
         if [ "$skip_ready_wait" != "1" ] && [ "$skip_ready_wait" != "true" ]; then
-            wait_for_url "http://localhost:$port" "$framework"
+            # Dashboard container: published host ports are not on container localhost.
+            local ready_host=localhost
+            if [ "${ZNUNY_DEV_DIR:-}" = "/znuny-dev" ] || [ -f /.dockerenv ]; then
+                ready_host=host.docker.internal
+            fi
+            wait_for_url "http://${ready_host}:$port" "$framework"
         fi
         db_url=$(get_db_connection_url "$framework" 2>/dev/null)
         [ -n "$db_url" ] && print_status "Database URL: $db_url"
@@ -1959,7 +1964,11 @@ restart_instance() {
         port=$(get_instance_port "$framework")
         print_success "Framework '$framework' restarted successfully!"
 
-        wait_for_url "http://localhost:$port" "$framework"
+        local ready_host=localhost
+        if [ "${ZNUNY_DEV_DIR:-}" = "/znuny-dev" ] || [ -f /.dockerenv ]; then
+            ready_host=host.docker.internal
+        fi
+        wait_for_url "http://${ready_host}:$port" "$framework"
         db_url=$(get_db_connection_url "$framework" 2>/dev/null)
         [ -n "$db_url" ] && print_status "Database URL: $db_url"
         print_status "Access URL: http://localhost:$port"

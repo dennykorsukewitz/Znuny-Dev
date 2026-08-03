@@ -266,15 +266,25 @@ check_docker() {
 
 # Function to load environment variables from .env file
 load_environment() {
+    # Keep caller/container root (e.g. dashboard sets ZNUNY_DEV_DIR=/znuny-dev). .env host paths may overwrite it.
+    local preferred_root="${ZNUNY_DEV_DIR:-}"
+
     # Define ZNUNY_DEV_DIR if not already set
     if [ -z "${ZNUNY_DEV_DIR:-}" ]; then
         # Get absolute path to project root (common.sh is in dev/scripts/, so go up 2 levels)
         local script_dir
         script_dir="$(cd "$(dirname "$0")" && pwd)"
         ZNUNY_DEV_DIR="$(dirname "$(dirname "$script_dir")")"
+        preferred_root="$ZNUNY_DEV_DIR"
     fi
 
-    local env_file="$ZNUNY_DEV_DIR/.env"
+    # Resolve .env via a root that is readable here (container mount or host checkout)
+    local env_root="$ZNUNY_DEV_DIR"
+    if [ ! -f "$env_root/.env" ] && [ -f /znuny-dev/.env ]; then
+        env_root=/znuny-dev
+    fi
+
+    local env_file="$env_root/.env"
 
     if [ -f "$env_file" ]; then
         # shellcheck disable=SC1090
@@ -282,30 +292,54 @@ load_environment() {
     fi
 
     # Load configs/instance/my.env last so it overrides global .env
-    local my_env="$ZNUNY_DEV_DIR/configs/instance/my.env"
+    local my_env="$env_root/configs/instance/my.env"
     if [ -f "$my_env" ]; then
         # shellcheck disable=SC1090
         source "$my_env"
     fi
 
-    # .env often contains absolute host paths. Inside Docker only ZNUNY_DEV_DIR (e.g. /znuny-dev) exists.
+    # .env often contains absolute host paths. Inside Docker they are invisible; restore a usable root
+    # (dashboard: preferred_root=/znuny-dev) before applying layout fallbacks (same idea as status-json).
+    if [ -n "$preferred_root" ] && [ -d "$preferred_root" ]; then
+        if [ -z "${ZNUNY_DEV_DIR:-}" ] || [ ! -d "$ZNUNY_DEV_DIR" ] || [ ! -f "$ZNUNY_DEV_DIR/znuny-dev.sh" ]; then
+            ZNUNY_DEV_DIR="$preferred_root"
+        fi
+    elif [ -d /znuny-dev ] && [ -f /znuny-dev/znuny-dev.sh ]; then
+        if [ -z "${ZNUNY_DEV_DIR:-}" ] || [ ! -d "$ZNUNY_DEV_DIR" ] || [ ! -f "$ZNUNY_DEV_DIR/znuny-dev.sh" ]; then
+            ZNUNY_DEV_DIR=/znuny-dev
+        fi
+    fi
+
     # If a path from .env is missing here, fall back to the standard layout under ZNUNY_DEV_DIR so
-    # get_available_instances / check_instance_exists match real dirs (same as status-json).
+    # get_available_instances / check_instance_exists match real dirs. Sibling trees may be mounted
+    # at /frameworks, /packages, /tools (see compose-dashboard.yml).
     if [ -n "${ZNUNY_DEV_DIR:-}" ]; then
         if [ -z "${INSTANCES_DIR:-}" ] || [ ! -d "$INSTANCES_DIR" ]; then
             INSTANCES_DIR="$ZNUNY_DEV_DIR/instances"
             INSTANCES_DIR_REL="${INSTANCES_DIR_REL:-instances}"
         fi
         if [ -z "${FRAMEWORKS_DIR:-}" ] || [ ! -d "$FRAMEWORKS_DIR" ]; then
-            FRAMEWORKS_DIR="$ZNUNY_DEV_DIR/frameworks"
+            if [ -d /frameworks ]; then
+                FRAMEWORKS_DIR=/frameworks
+            else
+                FRAMEWORKS_DIR="$ZNUNY_DEV_DIR/frameworks"
+            fi
             FRAMEWORKS_DIR_REL="${FRAMEWORKS_DIR_REL:-frameworks}"
         fi
         if [ -z "${PACKAGES_DIR:-}" ] || [ ! -d "$PACKAGES_DIR" ]; then
-            PACKAGES_DIR="$ZNUNY_DEV_DIR/packages"
+            if [ -d /packages ]; then
+                PACKAGES_DIR=/packages
+            else
+                PACKAGES_DIR="$ZNUNY_DEV_DIR/packages"
+            fi
             PACKAGES_DIR_REL="${PACKAGES_DIR_REL:-packages}"
         fi
         if [ -z "${TOOLS_DIR:-}" ] || [ ! -d "$TOOLS_DIR" ]; then
-            TOOLS_DIR="$ZNUNY_DEV_DIR/tools"
+            if [ -d /tools ]; then
+                TOOLS_DIR=/tools
+            else
+                TOOLS_DIR="$ZNUNY_DEV_DIR/tools"
+            fi
             TOOLS_DIR_REL="${TOOLS_DIR_REL:-tools}"
         fi
         if [ -z "${DOCKER_DIR:-}" ] || [ ! -d "$DOCKER_DIR" ]; then

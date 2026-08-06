@@ -16,6 +16,7 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 - Dashboard `start`/`stop` failed with HTTP 500 when frameworks live outside `znuny-dev` (host `FRAMEWORKS_DIR` invisible in container). Mount sibling `frameworks`/`packages`/`tools` and realign paths in `load_environment`.
 - Dashboard readiness probe used `localhost:<port>` inside the container (hang/timeout); probe via `host.docker.internal` when running in Docker.
+- `zd console` / `delreb` / ModuleTools ran as user `znuny`; Znuny Console requires ApplicationUser (`www-data`, owner of `/opt/znuny`).
 
 ### Security
 

@@ -199,8 +199,9 @@ execute_console_command() {
 
     local container_name
     container_name=$(get_instance_container_name "$framework")
+    # Console requires ApplicationUser (owner of $Home /opt/znuny), which is www-data in the container.
     # 6.x has bin/otrs.Console.pl only; 7.x has bin/znuny.Console.pl – choose inside container
-    if docker exec -t "$container_name" su -s /bin/bash -c "cd /opt/znuny && CONSOLE_PL=bin/znuny.Console.pl; [ -f bin/otrs.Console.pl ] && [ ! -f bin/znuny.Console.pl ] && CONSOLE_PL=bin/otrs.Console.pl; exec perl \$CONSOLE_PL $*" znuny; then
+    if docker exec -t "$container_name" su -s /bin/bash -c "cd /opt/znuny && CONSOLE_PL=bin/znuny.Console.pl; [ -f bin/otrs.Console.pl ] && [ ! -f bin/znuny.Console.pl ] && CONSOLE_PL=bin/otrs.Console.pl; exec perl \$CONSOLE_PL $*" www-data; then
         return 0
     else
         print_error "Failed to execute command"
@@ -315,8 +316,8 @@ execute_module_tools_command() {
 
     local container_name
     container_name=$(get_instance_container_name "$framework")
-    # Run znuny.ModuleTools.pl inside container; framework is always /opt/znuny there
-    if docker exec -t "$container_name" su -s /bin/bash -c "cd /opt/znuny && perl /opt/tools/module-tools/bin/znuny.ModuleTools.pl $command $*" znuny; then
+    # Run as www-data (same ApplicationUser / file owner as console) so ModuleTools can write under /opt/znuny
+    if docker exec -t "$container_name" su -s /bin/bash -c "cd /opt/znuny && perl /opt/tools/module-tools/bin/znuny.ModuleTools.pl $command $*" www-data; then
         return 0
     else
         print_error "Module-tools command failed: $command"

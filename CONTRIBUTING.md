@@ -143,7 +143,7 @@ Skip trivial typo-only or internal-only noise unless maintainers ask for an entr
    - What you changed
 5. Link related issues (`Fixes #123` / `Refs #123`).
 6. Keep the PR focused; split large work into smaller PRs when possible.
-7. Update docs (`README.md`, this file, or `dev/test/README.md`) when behavior or usage changes.
+7. Update docs (`README.md`, `docs/usage.md`, `docs/dashboard.md`, this file, or `dev/test/README.md`) when behavior or usage changes.
 
 Maintainers may request changes. Please respond to review comments or mark discussion resolved when addressed.
 
@@ -176,4 +176,6 @@ By contributing, you agree that your contributions are licensed under the same t
 ## Questions
 
 - Open a GitHub issue for project discussion
-- See [README.md](README.md) for setup and command reference
+- See [README.md](README.md) for setup
+- See [docs/usage.md](docs/usage.md) for the full `zd` reference
+- See [docs/dashboard.md](docs/dashboard.md) for the local dashboard

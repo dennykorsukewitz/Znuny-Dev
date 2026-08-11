@@ -6,7 +6,11 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Added
 
+- Documentation: `docs/usage.md` (full `zd` reference) and `docs/dashboard.md` (local dashboard)
+
 ### Changed
+
+- README: shortened Usage to everyday commands; details moved to `docs/`
 
 ### Deprecated
 

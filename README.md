@@ -30,7 +30,7 @@ A comprehensive Docker-based development environment for Znuny that enables work
 - **Developer Tools**: Fred for debugging, ZnunyCodePolicy for code quality
 - **Environment Variables Management**: Template-based configuration with automatic backup system
 - **Bash Scripts**: Cross-platform compatibility
-- **Optional local dashboard**: `zd dashboard start` / `zd dashboard restart` / `zd dashboard stop` — UI is served from your repo mount (`dev/dashboard/public`), so CSS/JS changes apply after a **restart** (no rebuild). Use `zd dashboard build` when you change the **Dockerfile** (base image). Same data as `zd status`; `http://127.0.0.1:9999/`
+- **Optional local dashboard**: instance overview at `http://127.0.0.1:9999/` — see [docs/dashboard.md](docs/dashboard.md)
 
 ## 📋 Prerequisites
 
@@ -60,130 +60,36 @@ chmod +x znuny-dev.sh
 
 ## 🎯 Usage
 
-All operations go through the main script `zd`. Run commands from the project root; if the `zd` alias is not set (e.g. before `setup-all`), use `./znuny-dev.sh` instead. An optional instance name (e.g. `my_instance`) applies the command to that instance.
+All operations go through `zd`. Run from the project root; if the alias is missing, use `./znuny-dev.sh`. Full reference: [docs/usage.md](docs/usage.md) (`zd help` / `zd examples` stay authoritative).
 
-### Framework Instances
+### Everyday commands
 
 ```bash
 zd status
-
-# Create new instance
 zd create <framework>
-
-# With custom repository and branch
-zd create <framework> https://github.com/myorg/znuny.git develop
-
-# Start, stop, restart, or remove instance
 zd start <framework>
 zd stop <framework>
 zd restart <framework>
-zd remove <framework>
-
-# Build Docker image for framework instance or all instances
-zd build <framework>
-
-# Start shell session in framework container (default: as znuny user)
 zd shell <framework>
-...
-```
-
-### Znuny Console
-
-```bash
 zd console <framework> Maint::Cache::Delete
-zd console <framework> Maint::Config::Rebuild
-zd console <framework> Dev::Tools::TranslationsUpdate
-...
-```
-
-### Logs
-
-```bash
-# Framework log from instance volume (default: error.log)
 zd log <framework>
-zd log <framework> access.log
-zd log <framework> error.log
-
-# Container log (stdout/stderr); optional line count
-zd container-log <framework>
-zd container-log <framework> 100
-
-# All container logs (all znuny-* containers)
-zd container-log
+zd link <framework> <package>
+zd link-fred <framework>
+zd dashboard start
 ```
 
-### Local dashboard
-
-Optional web UI for instance overview (same data as `zd status`). Default: `http://127.0.0.1:9999/`
+Typical flow after install:
 
 ```bash
-zd dashboard start              # Start container (opens browser)
-zd dashboard restart            # Pick up UI changes in dev/dashboard/public
-zd dashboard stop               # Stop container
-zd dashboard remove             # Stop and remove stack
-zd dashboard build [--no-cache] # Rebuild image when Dockerfile changes
-zd dashboard status             # Show container state
+./znuny-dev.sh setup-all
+zd create dev
+zd start dev
+zd status
+zd dashboard start   # optional — http://127.0.0.1:9999/
 ```
 
-UI files are mounted from `dev/dashboard/public` — edit CSS/JS on the host, then **`zd dashboard restart`** (no rebuild). Use **`zd dashboard build`** only when the dashboard **Dockerfile** changes.
-
-### Module-Tools
-
-Module-Tools provide live linking between packages/tools and the framework and package install/uninstall operations. Commands are run inside the instance container via `znuny.ModuleTools.pl`. Replace `<framework>` with your instance name (e.g. `dev`), `<package>` with the package name (e.g. `FAQ`), and `<tool>` with a directory name under `tools/` (e.g. `Fred`, `ZnunyCodePolicy`).
-
-**Package linking (live sync from `/opt/packages/`):**
-
-```bash
-zd link <framework> <package>           # Link package into framework
-zd unlink <framework> <package>         # Unlink package
-zd rmlinks <framework>                  # Unlink all packages
-```
-
-**Tool linking (live sync from `/opt/tools/`):**
-
-```bash
-zd link-tool <framework> <tool>         # Link tool repository into framework
-zd unlink-tool <framework> <tool>       # Unlink tool
-# Examples:
-zd link-tool dev Fred
-zd link-tool dev ZnunyCodePolicy
-```
-
-**Shortcuts (same as `link-tool`, often used):**
-
-```bash
-zd link-fred <framework>                # link-tool <framework> Fred
-zd unlink-fred <framework>
-zd link-codepolicy <framework>          # link-tool <framework> ZnunyCodePolicy
-zd unlink-codepolicy <framework>
-```
-
-**Code quality (host-side, optional framework arg):**
-
-```bash
-zd codepolicy <framework> [--all-files | --file-path ... | --directory ...]
-```
-
-**Package install/uninstall:**
-
-```bash
-zd install <framework> <package>        # DB + code install
-zd uninstall <framework> <package>      # DB + code uninstall
-zd dbinstall <framework> <package>      # Database install only
-zd dbupgrade <framework> <package>      # Database upgrade
-zd dbuninstall <framework> <package>
-zd codeinstall <framework> <package>
-zd codereinstall <framework> <package>
-zd codeuninstall <framework> <package>
-zd codeupgrade <framework> <package>
-```
-
-**Direct module-tools (any command):**
-
-```bash
-zd module-tools <framework>             # List available commands
-zd module-tools <framework> <command> [args...]
-```
+More commands (setup, Module-Tools install/uninstall, CodePolicy, tests, release): [docs/usage.md](docs/usage.md).  
+Dashboard details: [docs/dashboard.md](docs/dashboard.md).
 
 ## ⚙️ Configuration
 
@@ -216,6 +122,9 @@ Znuny-Dev/
 ├── znuny-dev.sh                          # Main script
 ├── .env                                  # Global config (from dev/templates/env/)
 ├── RELEASE                               # Version and build information
+├── docs/                                 # Extra documentation
+│   ├── usage.md                          # Full zd command reference
+│   └── dashboard.md                      # Local dashboard
 ├── configs/                              # Optional host overrides (see Configuration)
 │   ├── instance/my.env                   # Overrides global .env
 │   └── framework/Config.pm               # Snippet injected into Kernel/Config.pm
@@ -278,32 +187,9 @@ Znuny-Dev/
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding guidelines, tests, and the pull request process.
 
-Quick path:
-
-1. Fork the repository
-2. Create a feature branch from `dev`
-3. Commit your changes
-4. Push to the branch
-5. Open a pull request against `dev`
-
 ## 📄 License
 
 This project is licensed under the GNU GENERAL PUBLIC LICENSE Version 3 — see [LICENSE](LICENSE).
-
-## 🔄 Updates
-
-```bash
-# Update repositories
-zd setup-framework
-# or full repo setup: run repository.sh via dev/scripts/repository.sh
-
-# Rebuild containers for an instance or all
-zd build my_instance
-zd build all --no-cache
-
-# Restart environment
-zd restart
-```
 
 ---
 

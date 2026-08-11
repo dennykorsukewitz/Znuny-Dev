@@ -467,6 +467,19 @@ body.theme-dark .hero {
   line-height: 1.3;
 }
 
+.hero-version {
+  margin-left: 0.45em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--hero-muted) 75%, var(--zn-orange));
+}
+
+.hero-version[hidden] {
+  display: none;
+}
+
 .hero-meta {
   font-size: 0.72rem;
   color: var(--hero-muted);
@@ -2291,6 +2304,64 @@ body.theme-dark .about-pacman-icon {
   width: 13px;
   height: 13px;
   flex-shrink: 0;
+}
+
+.about-dialog-version {
+  margin: 14px 0 0;
+  font-size: 0.72rem;
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+.about-dialog-license {
+  margin: 4px 0 0;
+  font-size: 0.68rem;
+  color: color-mix(in srgb, var(--text) 45%, transparent);
+}
+
+.about-dialog-license a {
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 1px dotted currentColor;
+}
+
+.about-dialog-license a:hover {
+  color: var(--zn-orange);
+  border-bottom-color: var(--zn-orange);
+}
+
+.about-dialog-dk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--text) 20%, transparent);
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-decoration: none;
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.about-dialog-dk-btn:hover {
+  color: var(--zn-orange);
+  border-color: color-mix(in srgb, var(--zn-orange) 55%, transparent);
+  background: color-mix(in srgb, var(--zn-orange) 8%, var(--surface));
+}
+
+.about-dialog-star {
+  color: #e3b341;
+  opacity: 0.8;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.about-dialog-support-btn:hover .about-dialog-star {
+  opacity: 1;
+  transform: scale(1.15);
 }
 
 .about-dialog-support {

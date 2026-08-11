@@ -27,7 +27,10 @@
                 </svg>
               </button>
             </h1>
-            <p class="hero-sub">Local development instances</p>
+            <p class="hero-sub">
+              Local development instances
+              <span class="hero-version" id="hero-version" hidden></span>
+            </p>
             <p class="hero-meta" id="generated-at"></p>
           </div>
           <div class="hero-toolbar" id="instances-toolbar">
@@ -139,10 +142,31 @@
                 </svg>
                 Contributing
               </a>
+              <a class="btn btn-accent-secondary btn-compact about-dialog-repo-btn" href="https://github.com/dennykorsukewitz/Znuny-Dev/blob/dev/README.md" target="_blank" rel="noopener">
+                <svg class="about-dialog-btn-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <path d="M0 2.75A.75.75 0 0 1 .75 2h4a3.5 3.5 0 0 1 2.5 1.05A3.5 3.5 0 0 1 9.75 2h4a.75.75 0 0 1 .75.75v9.5a.75.75 0 0 1-.75.75H9.9a1.5 1.5 0 0 0-1.06.44l-.31.3a.75.75 0 0 1-1.06 0l-.31-.3A1.5 1.5 0 0 0 6.1 13H2.25a.75.75 0 0 1-.75-.75Zm7.25 9.06V4.75A2 2 0 0 0 5.25 3.5H2v8h4.1c.42 0 .83.09 1.2.25Zm1.5 0c.37-.16.78-.25 1.2-.25H13v-8H9.75a2 2 0 0 0-2 1.25v7.06Z"/>
+                </svg>
+                Docs
+              </a>
+              <a class="btn btn-accent-folder btn-compact about-dialog-repo-btn" href="https://github.com/dennykorsukewitz/Znuny-Dev/blob/dev/CHANGELOG.md" target="_blank" rel="noopener">
+                <svg class="about-dialog-btn-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7.25-4.25v4.19l2.53 1.46a.75.75 0 0 1-.75 1.3l-2.9-1.68A.75.75 0 0 1 7.25 8.3V3.75a.75.75 0 0 1 1.5 0Z"/>
+                </svg>
+                Changelog
+              </a>
             </p>
+            <p class="about-dialog-version" id="about-dialog-version" hidden></p>
+            <p class="about-dialog-license">Licensed under <a href="https://github.com/dennykorsukewitz/Znuny-Dev/blob/dev/README.md#-license" target="_blank" rel="noopener">AGPL-3.0</a></p>
           </div>
           <div class="app-dialog-actions about-dialog-actions">
             <p class="about-dialog-support">
+              <a class="about-dialog-dk-btn" href="https://dennykorsukewitz.github.io/" target="_blank" rel="noopener" aria-label="Website of Denny Korsukewitz">DK</a>
+              <a class="btn btn-compact about-dialog-support-btn" href="https://github.com/dennykorsukewitz/Znuny-Dev/stargazers" target="_blank" rel="noopener">
+                <svg class="about-dialog-btn-icon about-dialog-star" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                  <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"/>
+                </svg>
+                Star
+              </a>
               <a class="btn btn-compact about-dialog-support-btn" href="https://github.com/sponsors/dennykorsukewitz?o=esb" target="_blank" rel="noopener">
                 <svg class="about-dialog-btn-icon about-dialog-heart" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                   <path d="M8 14.25a.75.75 0 0 1-.5-.19C4.02 11 1.5 8.72 1.5 6.06 1.5 4.2 2.96 2.75 4.81 2.75c1.05 0 2.05.49 2.69 1.29l.5.62.5-.62a3.44 3.44 0 0 1 2.69-1.29c1.85 0 3.31 1.45 3.31 3.31 0 2.66-2.52 4.94-6 8a.75.75 0 0 1-.5.19Z"/>

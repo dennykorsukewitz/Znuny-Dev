@@ -6,6 +6,9 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Added
 
+- Dashboard: animated Znuny logo in the bottom-right corner opening an "About Znuny-Dev" dialog with description, version info, links (Repository, Contributors, Issues, Contributing, Docs, Changelog), license note, and support buttons (website, star, sponsor, donate)
+- Dashboard API: `GET /api/version` returning `VERSION` / `BUILD_DATE` / `BUILD_COMMIT` / `BUILD_BRANCH` from `RELEASE`
+
 ### Changed
 
 ### Deprecated

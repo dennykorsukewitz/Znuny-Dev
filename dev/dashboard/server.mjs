@@ -238,6 +238,43 @@ async function handleDashboardConfig(res) {
     res.end(JSON.stringify(buildDashboardIdeConfig(getZnunyDevDir())));
 }
 
+/** RELEASE (repo root) holds VERSION / BUILD_DATE / BUILD_COMMIT / BUILD_BRANCH for the about dialog. */
+function readReleaseInfo() {
+    const info = {
+        version: null,
+        build_date: null,
+        build_commit: null,
+        build_branch: null,
+    };
+    let raw;
+    try {
+        raw = fs.readFileSync(path.join(ZNUNY_DEV_DIR, "RELEASE"), "utf8");
+    } catch {
+        return info;
+    }
+    const keys = {
+        VERSION: "version",
+        BUILD_DATE: "build_date",
+        BUILD_COMMIT: "build_commit",
+        BUILD_BRANCH: "build_branch",
+    };
+    for (const line of raw.split("\n")) {
+        const m = line.match(/^\s*([A-Z_]+)\s*=\s*"?([^"\r\n]*)"?\s*$/);
+        if (m && keys[m[1]]) {
+            info[keys[m[1]]] = m[2].trim() || null;
+        }
+    }
+    return info;
+}
+
+function handleVersion(res) {
+    res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+    });
+    res.end(JSON.stringify(readReleaseInfo()));
+}
+
 async function handleOpenWorkspace(req, res, framework) {
     const hostPath = readFrameworkDirFromEnv(framework);
     if (!hostPath) {
@@ -595,6 +632,20 @@ const server = http.createServer((req, res) => {
                 );
             }
         });
+        return;
+    }
+
+    if (pathname === "/api/version") {
+        if (req.method !== "GET") {
+            res.writeHead(405, {
+                "Content-Type": "application/json; charset=utf-8",
+                Allow: "GET",
+                "Cache-Control": "no-store",
+            });
+            res.end(JSON.stringify({ error: "method not allowed" }));
+            return;
+        }
+        handleVersion(res);
         return;
     }
 

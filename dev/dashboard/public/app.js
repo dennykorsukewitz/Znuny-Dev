@@ -2176,6 +2176,57 @@
             });
     }
 
+    /** RELEASE info (version, build) shown as a small meta line in the about dialog. */
+    function loadVersionInfo() {
+        if (window.location.protocol === "file:") {
+            return Promise.resolve();
+        }
+        return fetch("/api/version")
+            .then(function (r) {
+                if (!r.ok) {
+                    throw new Error("HTTP " + r.status);
+                }
+                return r.json();
+            })
+            .then(function (info) {
+                if (!info || !info.version) {
+                    return;
+                }
+                var aboutEl = document.getElementById("about-dialog-version");
+                if (aboutEl) {
+                    var text = "Version " + info.version;
+                    if (info.build_branch) {
+                        text += " · " + info.build_branch;
+                    }
+                    if (info.build_commit) {
+                        text += " · " + info.build_commit;
+                    }
+                    if (info.build_date) {
+                        text += " · " + info.build_date;
+                    }
+                    aboutEl.textContent = text;
+                    aboutEl.hidden = false;
+                }
+                var heroEl = document.getElementById("hero-version");
+                if (heroEl) {
+                    heroEl.textContent = "v" + info.version;
+                    heroEl.hidden = false;
+                    var tip = "Znuny-Dev " + info.version;
+                    if (info.build_branch) {
+                        tip += " · " + info.build_branch;
+                    }
+                    if (info.build_commit) {
+                        tip += " · " + info.build_commit;
+                    }
+                    if (info.build_date) {
+                        tip += " · " + info.build_date;
+                    }
+                    setElementTooltip(heroEl, tip);
+                }
+            })
+            .catch(function () {});
+    }
+
     function loadDashboardConfig() {
         if (window.location.protocol === "file:") {
             return Promise.resolve();
@@ -2774,6 +2825,7 @@
     applyStaticTooltips();
     renderStatusLegend();
     initToolbar();
+    loadVersionInfo();
     loadDashboardConfig().then(function () {
         loadStatus();
     });

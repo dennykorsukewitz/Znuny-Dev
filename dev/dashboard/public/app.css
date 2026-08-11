@@ -2270,21 +2270,42 @@ body.theme-dark .about-pacman-icon {
   margin-top: 18px;
 }
 
-.about-dialog-support {
-  margin: 0;
-  font-size: 0.72rem;
-  color: color-mix(in srgb, var(--text) 55%, transparent);
+.about-dialog-repo {
+  margin: 16px 0 0;
 }
 
-.about-dialog-support a {
-  color: inherit;
+.about-dialog-repo-btn {
+  gap: 7px;
   text-decoration: none;
-  border-bottom: 1px dotted currentColor;
-  transition: color ease 0.2s;
 }
 
-.about-dialog-support a:hover {
+.about-dialog-btn-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.about-dialog-support {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.about-dialog-support-btn {
+  gap: 6px;
+  padding: 4px 9px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-decoration: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 20%, transparent);
+}
+
+.about-dialog-support-btn:hover {
   color: var(--zn-orange);
-  border-bottom-color: var(--zn-orange);
+  border-color: color-mix(in srgb, var(--zn-orange) 55%, transparent);
+  background: color-mix(in srgb, var(--zn-orange) 8%, var(--surface));
 }
 

@@ -2194,18 +2194,19 @@
                 }
                 var aboutEl = document.getElementById("about-dialog-version");
                 if (aboutEl) {
-                    var text = "Version " + info.version;
+                    aboutEl.textContent = "v" + info.version;
+                    aboutEl.hidden = false;
+                    var aboutTip = "Znuny-Dev " + info.version;
                     if (info.build_branch) {
-                        text += " · " + info.build_branch;
+                        aboutTip += " · " + info.build_branch;
                     }
                     if (info.build_commit) {
-                        text += " · " + info.build_commit;
+                        aboutTip += " · " + info.build_commit;
                     }
                     if (info.build_date) {
-                        text += " · " + info.build_date;
+                        aboutTip += " · " + info.build_date;
                     }
-                    aboutEl.textContent = text;
-                    aboutEl.hidden = false;
+                    setElementTooltip(aboutEl, aboutTip);
                 }
                 var heroEl = document.getElementById("hero-version");
                 if (heroEl) {

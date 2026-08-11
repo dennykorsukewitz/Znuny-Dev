@@ -2223,7 +2223,7 @@ body.theme-dark .about-pacman-icon {
 }
 
 .app-dialog-panel.about-dialog-panel {
-  width: min(560px, 96vw);
+  width: min(600px, 96vw);
   padding: 26px 30px 22px;
 }
 
@@ -2231,8 +2231,51 @@ body.theme-dark .about-pacman-icon {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 1.35rem;
+}
+
+.about-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.about-dialog-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.about-dialog-version {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+.about-dialog-version[hidden] {
+  display: none;
+}
+
+.about-dialog-license {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  border-bottom: 1px dotted currentColor;
+  color: color-mix(in srgb, var(--text) 45%, transparent);
+}
+
+.about-dialog-license:hover {
+  color: var(--zn-orange);
+  border-bottom-color: var(--zn-orange);
 }
 
 .about-dialog-logo {
@@ -2281,18 +2324,40 @@ body.theme-dark .about-pacman-icon {
 
 .about-dialog-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-top: 18px;
 }
 
-.about-dialog-repo {
+.about-dialog-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+  margin: 16px 0 0;
+}
+
+.about-dialog-links-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.about-dialog-links-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text) 45%, transparent);
+}
+
+.about-dialog-links-btns {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin: 16px 0 0;
 }
 
 .about-dialog-repo-btn {
@@ -2300,34 +2365,20 @@ body.theme-dark .about-pacman-icon {
   text-decoration: none;
 }
 
+.about-dialog-body .about-dialog-repo-btn:hover {
+  text-decoration: none;
+}
+
+@media (max-width: 480px) {
+  .about-dialog-links {
+    grid-template-columns: 1fr;
+  }
+}
+
 .about-dialog-btn-icon {
   width: 13px;
   height: 13px;
   flex-shrink: 0;
-}
-
-.about-dialog-version {
-  margin: 14px 0 0;
-  font-size: 0.72rem;
-  color: color-mix(in srgb, var(--text) 55%, transparent);
-}
-
-.about-dialog-license {
-  margin: 4px 0 0;
-  font-size: 0.68rem;
-  color: color-mix(in srgb, var(--text) 45%, transparent);
-}
-
-.about-dialog-license a {
-  color: inherit;
-  font-weight: 500;
-  text-decoration: none;
-  border-bottom: 1px dotted currentColor;
-}
-
-.about-dialog-license a:hover {
-  color: var(--zn-orange);
-  border-bottom-color: var(--zn-orange);
 }
 
 .about-dialog-dk-btn {
@@ -2366,6 +2417,7 @@ body.theme-dark .about-pacman-icon {
 
 .about-dialog-support {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   margin: 0;

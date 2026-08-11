@@ -11,6 +11,7 @@ A comprehensive Docker-based development environment for Znuny that enables work
 | PRs | ![GitHub pull requests](https://img.shields.io/github/issues-pr/dennykorsukewitz/Znuny-Dev?label=PR) ![GitHub closed pull requests](https://img.shields.io/github/issues-pr-closed/dennykorsukewitz/Znuny-Dev?color=g&label=PR) |
 | Languages | ![GitHub language count](https://img.shields.io/github/languages/count/dennykorsukewitz/Znuny-Dev?style=flat&label=language) ![GitHub contributors](https://img.shields.io/github/contributors/dennykorsukewitz/Znuny-Dev) |
 | Code size | ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/dennykorsukewitz/Znuny-Dev) ![GitHub downloads](https://img.shields.io/github/downloads/dennykorsukewitz/Znuny-Dev/total?style=flat) |
+| License | [![GitHub license](https://img.shields.io/github/license/dennykorsukewitz/Znuny-Dev)](LICENSE) |
 
 | Versions | Status |
 | --- | --- |
@@ -287,7 +288,7 @@ Quick path:
 
 ## 📄 License
 
-This project is licensed under the GNU AFFERO GENERAL PUBLIC LICENSE Version 3.
+This project is licensed under the GNU GENERAL PUBLIC LICENSE Version 3 — see [LICENSE](LICENSE).
 
 ## 🔄 Updates
 

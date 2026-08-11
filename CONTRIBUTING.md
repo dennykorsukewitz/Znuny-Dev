@@ -171,7 +171,7 @@ Do not file public issues for sensitive security problems if disclosure could ha
 
 ## License
 
-By contributing, you agree that your contributions are licensed under the same terms as this project: **GNU Affero General Public License v3 (AGPL-3.0)**.
+By contributing, you agree that your contributions are licensed under the same terms as this project: **[GNU General Public License v3 (GPL-3.0)](LICENSE)**.
 
 ## Questions
 

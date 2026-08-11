@@ -1,5 +1,6 @@
 /**
- * Minimal static server: GET /api/status, POST /api/zd, GET|POST /api/open-workspace, static UI.
+ * Minimal static server: GET /api/status, GET /api/health, POST /api/zd,
+ * POST /api/dashboard/restart, GET|POST /api/open-workspace, static UI.
  */
 import http from "http";
 import fs from "fs";
@@ -439,6 +440,29 @@ function normalizePathname(p) {
     return p.replace(/\/+$/, "") || "/";
 }
 
+/** Restart this dashboard container (docker.sock). Respond first — process dies on restart. */
+function handleDashboardRestart(res) {
+    const containerName = process.env.DASHBOARD_CONTAINER_NAME || "znuny-dashboard";
+    res.writeHead(200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+    });
+    res.end(JSON.stringify({ ok: true, restarting: true }));
+    setTimeout(() => {
+        const child = spawn("docker", ["restart", containerName], {
+            stdio: "ignore",
+            detached: true,
+        });
+        child.on("error", (e) => {
+            console.error(
+                "[dashboard] restart spawn failed:",
+                e && e.message ? e.message : e,
+            );
+        });
+        child.unref();
+    }, 250);
+}
+
 const server = http.createServer((req, res) => {
     const host = req.headers.host || "localhost";
     let u;
@@ -455,6 +479,29 @@ const server = http.createServer((req, res) => {
     if (pathname === "/api/zd") {
         if (req.method === "POST") {
             handlePostZd(req, res);
+            return;
+        }
+        res.writeHead(405, {
+            "Content-Type": "application/json; charset=utf-8",
+            Allow: "POST",
+            "Cache-Control": "no-store",
+        });
+        res.end(JSON.stringify({ error: "method not allowed" }));
+        return;
+    }
+
+    if (pathname === "/api/health") {
+        res.writeHead(req.method === "GET" || req.method === "HEAD" ? 200 : 405, {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-store",
+        });
+        res.end(JSON.stringify({ ok: true }));
+        return;
+    }
+
+    if (pathname === "/api/dashboard/restart") {
+        if (req.method === "POST") {
+            handleDashboardRestart(res);
             return;
         }
         res.writeHead(405, {

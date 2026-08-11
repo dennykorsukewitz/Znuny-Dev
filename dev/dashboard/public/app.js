@@ -19,6 +19,8 @@
     var TOOLTIPS = {
         ui: {
             reloadPage: "Reload the dashboard page",
+            restartDashboard:
+                "Restart dashboard container (pick up UI / server changes — same as zd dashboard restart)",
             refreshStatus:
                 "Fetch latest instance status (zd status JSON — Docker health, ports, paths)",
             themeDark:
@@ -165,6 +167,10 @@
         setElementTooltip(
             document.getElementById("site-title-reload"),
             TOOLTIPS.ui.reloadPage
+        );
+        setElementTooltip(
+            document.getElementById("btn-dashboard-restart"),
+            TOOLTIPS.ui.restartDashboard
         );
         setElementTooltip(
             document.getElementById("btn-refresh"),
@@ -2315,6 +2321,137 @@
         return lines;
     }
 
+    function waitForDashboardDown(maxMs) {
+        var started = Date.now();
+        var delayMs = 300;
+        function attempt() {
+            return fetch("/api/health", { cache: "no-store" })
+                .then(function (r) {
+                    if (!r.ok) {
+                        return true;
+                    }
+                    if (Date.now() - started >= maxMs) {
+                        return true;
+                    }
+                    return new Promise(function (resolve) {
+                        window.setTimeout(function () {
+                            resolve(attempt());
+                        }, delayMs);
+                    });
+                })
+                .catch(function () {
+                    return true;
+                });
+        }
+        return attempt();
+    }
+
+    function waitForDashboardReady(maxMs) {
+        var started = Date.now();
+        var delayMs = 400;
+        function attempt() {
+            return fetch("/api/health", { cache: "no-store" })
+                .then(function (r) {
+                    if (r.ok) {
+                        return true;
+                    }
+                    throw new Error("not ready");
+                })
+                .catch(function () {
+                    if (Date.now() - started >= maxMs) {
+                        return false;
+                    }
+                    return new Promise(function (resolve) {
+                        window.setTimeout(function () {
+                            resolve(attempt());
+                        }, delayMs);
+                    });
+                });
+        }
+        return attempt();
+    }
+
+    function restartDashboard() {
+        var btn = document.getElementById("btn-dashboard-restart");
+        var banner = document.getElementById("error-banner");
+        if (window.location.protocol === "file:") {
+            banner.hidden = false;
+            banner.textContent =
+                "Open this app over HTTP (e.g. zd dashboard start), not as a local HTML file.";
+            return;
+        }
+        if (btn && btn.disabled) {
+            return;
+        }
+        banner.hidden = true;
+        banner.textContent = "";
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add("is-busy");
+        }
+        var opId = beginOperation("Dashboard · restarting");
+        fetch("/api/dashboard/restart", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+        })
+            .then(function (r) {
+                return r.text().then(function (text) {
+                    var data = null;
+                    if (text) {
+                        try {
+                            data = JSON.parse(text);
+                        } catch (ignore) {
+                            throw new Error(
+                                "Invalid response (not JSON): " +
+                                    text.trim().slice(0, 280)
+                            );
+                        }
+                    }
+                    if (!r.ok) {
+                        var detail =
+                            (data && (data.detail || data.error)) || "";
+                        throw new Error(
+                            detail
+                                ? "HTTP " + r.status + ": " + detail
+                                : "HTTP " + r.status
+                        );
+                    }
+                    return data;
+                });
+            })
+            .then(function () {
+                return waitForDashboardDown(12000);
+            })
+            .then(function () {
+                return waitForDashboardReady(45000);
+            })
+            .then(function (ready) {
+                endOperation(opId);
+                if (!ready) {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.classList.remove("is-busy");
+                    }
+                    banner.hidden = false;
+                    banner.textContent =
+                        "Dashboard restart timed out. Try: zd dashboard restart";
+                    return;
+                }
+                location.reload();
+            })
+            .catch(function (e) {
+                endOperation(opId);
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove("is-busy");
+                }
+                banner.hidden = false;
+                banner.textContent =
+                    "Dashboard restart failed: " +
+                    (e && e.message ? e.message : String(e));
+            });
+    }
+
     function loadStatus(opt) {
         var banner = document.getElementById("error-banner");
         var hideProgress = opt && opt.showProgress === false;
@@ -2458,6 +2595,9 @@
         e.preventDefault();
         location.reload();
     });
+    document
+        .getElementById("btn-dashboard-restart")
+        .addEventListener("click", restartDashboard);
     document.getElementById("confirm-dialog").addEventListener("click", function (e) {
         var t = e.target.closest("[data-confirm]");
         if (t) {

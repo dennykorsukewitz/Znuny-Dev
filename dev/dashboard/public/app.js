@@ -37,6 +37,7 @@
             tableSortToggle: "Toggle sort direction ({column})",
             statusLegend:
                 "Open status legend — instance and database container colors and Docker health labels",
+            about: "About Znuny-Dev — what it is, repository and support links",
         },
         copy: {
             clickToCopy: "Click to copy to clipboard",
@@ -146,6 +147,9 @@
             cancel: "Close dialog without deleting anything",
             delete: "Confirm delete — runs zd remove (irreversible)",
         },
+        about: {
+            close: "Close about dialog",
+        },
     };
 
     function setElementTooltip(el, text) {
@@ -210,6 +214,42 @@
             document.querySelector("#status-legend-dialog [data-legend-close='1'].btn"),
             TOOLTIPS.legend.close
         );
+        setElementTooltip(document.getElementById("btn-about"), TOOLTIPS.ui.about);
+        setElementTooltip(
+            document.querySelector("#about-dialog [data-about-close='1'].btn"),
+            TOOLTIPS.about.close
+        );
+    }
+
+    function openAboutDialog() {
+        var dlg = document.getElementById("about-dialog");
+        if (!dlg) {
+            return;
+        }
+        dlg.hidden = false;
+        document.body.classList.add("confirm-dialog-open");
+        var closeBtn = dlg.querySelector("[data-about-close='1'].btn");
+        if (closeBtn) {
+            closeBtn.focus();
+        }
+    }
+
+    function closeAboutDialog() {
+        var dlg = document.getElementById("about-dialog");
+        if (!dlg || dlg.hidden) {
+            return;
+        }
+        dlg.hidden = true;
+        if (
+            document.getElementById("confirm-dialog").hidden &&
+            document.getElementById("status-legend-dialog").hidden
+        ) {
+            document.body.classList.remove("confirm-dialog-open");
+        }
+        var btn = document.getElementById("btn-about");
+        if (btn) {
+            btn.focus();
+        }
     }
 
     function openStatusLegendDialog() {
@@ -231,7 +271,10 @@
             return;
         }
         dlg.hidden = true;
-        if (document.getElementById("confirm-dialog").hidden) {
+        if (
+            document.getElementById("confirm-dialog").hidden &&
+            document.getElementById("about-dialog").hidden
+        ) {
             document.body.classList.remove("confirm-dialog-open");
         }
         var btn = document.getElementById("btn-status-legend");
@@ -2591,6 +2634,12 @@
             closeStatusLegendDialog();
         }
     });
+    document.getElementById("btn-about").addEventListener("click", openAboutDialog);
+    document.getElementById("about-dialog").addEventListener("click", function (e) {
+        if (e.target.closest("[data-about-close='1']")) {
+            closeAboutDialog();
+        }
+    });
     document.getElementById("site-title-reload").addEventListener("click", function (e) {
         e.preventDefault();
         location.reload();
@@ -2609,6 +2658,11 @@
             return;
         }
         closeAllActionsDropdowns();
+        var aboutDlg = document.getElementById("about-dialog");
+        if (aboutDlg && !aboutDlg.hidden) {
+            closeAboutDialog();
+            return;
+        }
         var legendDlg = document.getElementById("status-legend-dialog");
         if (legendDlg && !legendDlg.hidden) {
             closeStatusLegendDialog();

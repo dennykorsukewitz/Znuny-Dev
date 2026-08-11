@@ -103,6 +103,29 @@
         </div>
       </div>
 
+      <div id="about-dialog" class="confirm-dialog about-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="about-dialog-title">
+        <div class="confirm-dialog-backdrop" data-about-close="1"></div>
+        <div class="confirm-dialog-panel about-dialog-panel">
+          <h2 id="about-dialog-title" class="confirm-dialog-title">
+            <span class="about-dialog-signet" aria-hidden="true"></span>
+            About Znuny-Dev
+          </h2>
+          <div class="about-dialog-body">
+            <p>Znuny-Dev is a local development environment for <a href="https://www.znuny.org/" target="_blank" rel="noopener">Znuny</a>. It creates and manages containerized framework instances, links packages and development tools, and provides this dashboard to start, stop, inspect and open your instances.</p>
+            <p>Everything runs on your machine via Docker Compose and the <code>zd</code> command line helper.</p>
+            <p class="about-dialog-repo">Repository: <a href="https://github.com/dennykorsukewitz/Znuny-Dev" target="_blank" rel="noopener">github.com/dennykorsukewitz/Znuny-Dev</a></p>
+          </div>
+          <div class="confirm-dialog-actions about-dialog-actions">
+            <p class="about-dialog-support">
+              Like it? <a href="https://github.com/sponsors/dennykorsukewitz?o=esb" target="_blank" rel="noopener">Sponsor</a>
+              <span aria-hidden="true">·</span>
+              <a href="https://www.paypal.com/donate?token=NdvWpuA1hcAiYfEigs8BKb3sjbTy2YFCSr7LVMJFN-CJgfakE1fBme85-Oih6L7Qypa139Gfps-TZm_y" target="_blank" rel="noopener">Donate</a>
+            </p>
+            <button type="button" class="btn btn-secondary" data-about-close="1">Close</button>
+          </div>
+        </div>
+      </div>
+
       <div id="confirm-dialog" class="confirm-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
         <div class="confirm-dialog-backdrop" data-confirm="0"></div>
         <div class="confirm-dialog-panel">
@@ -122,6 +145,10 @@
       </footer>
     </div>
   </div>
+
+  <button type="button" id="btn-about" class="about-pacman" aria-label="About Znuny-Dev" aria-haspopup="dialog">
+    <span class="about-pacman-icon" aria-hidden="true"></span>
+  </button>
 
   <!-- Mock /api/status for UI testing: uncomment the next line (before app.js) -->
   <!-- <script src="/mock-status-data.js"></script> -->

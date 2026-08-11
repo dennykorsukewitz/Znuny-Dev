@@ -410,6 +410,7 @@ const MIME = {
     ".css": "text/css; charset=utf-8",
     ".svg": "image/svg+xml",
     ".ico": "image/x-icon",
+    ".png": "image/png",
 };
 
 function sendFile(res, filePath, contentType) {
@@ -440,14 +441,66 @@ function normalizePathname(p) {
     return p.replace(/\/+$/, "") || "/";
 }
 
-/** Restart this dashboard container (docker.sock). Respond first — process dies on restart. */
-function handleDashboardRestart(res) {
-    const containerName = process.env.DASHBOARD_CONTAINER_NAME || "znuny-dashboard";
+function openerBaseUrl() {
+    return "http://" + OPENER_HOST + ":" + OPENER_PORT;
+}
+
+/** Try host opener restart when reachable. Dead opener → hint for CLI. */
+async function tryRestartOpener() {
+    const hint =
+        "Host opener down — run: zd dashboard restart (opener on 127.0.0.1:" +
+        OPENER_PORT +
+        ")";
+    try {
+        const health = await fetch(openerBaseUrl() + "/health", {
+            method: "GET",
+            signal: AbortSignal.timeout(2000),
+        });
+        if (!health.ok) {
+            return { opener: "unavailable", hint };
+        }
+        const restart = await fetch(openerBaseUrl() + "/restart", {
+            method: "POST",
+            signal: AbortSignal.timeout(3000),
+        });
+        if (!restart.ok) {
+            return {
+                opener: "unavailable",
+                hint:
+                    "Opener restart failed — run: zd dashboard restart",
+            };
+        }
+        return { opener: "restarted" };
+    } catch (e) {
+        return {
+            opener: "unavailable",
+            hint,
+            detail: String(e && e.message ? e.message : e).slice(0, 200),
+        };
+    }
+}
+
+/** Restart opener (if up) then this dashboard container. Respond first — process dies. */
+async function handleDashboardRestart(res) {
+    const containerName =
+        process.env.DASHBOARD_CONTAINER_NAME || "znuny-dashboard";
+    const openerResult = await tryRestartOpener();
+    const body = {
+        ok: true,
+        restarting: true,
+        opener: openerResult.opener,
+    };
+    if (openerResult.hint) {
+        body.hint = openerResult.hint;
+    }
+    if (openerResult.detail) {
+        body.detail = openerResult.detail;
+    }
     res.writeHead(200, {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "no-store",
     });
-    res.end(JSON.stringify({ ok: true, restarting: true }));
+    res.end(JSON.stringify(body));
     setTimeout(() => {
         const child = spawn("docker", ["restart", containerName], {
             stdio: "ignore",
@@ -501,7 +554,16 @@ const server = http.createServer((req, res) => {
 
     if (pathname === "/api/dashboard/restart") {
         if (req.method === "POST") {
-            handleDashboardRestart(res);
+            handleDashboardRestart(res).catch((e) => {
+                if (!res.headersSent) {
+                    jsonError(
+                        res,
+                        500,
+                        "dashboard restart failed",
+                        String(e && e.message ? e.message : e).slice(0, 300),
+                    );
+                }
+            });
             return;
         }
         res.writeHead(405, {

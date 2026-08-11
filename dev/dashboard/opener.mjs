@@ -89,6 +89,50 @@ function json(res, status, body) {
     res.end(JSON.stringify(body));
 }
 
+function openerPidfile() {
+    return path.join(ZNUNY_DEV_DIR, ".opener.pid");
+}
+
+/** Spawn a replacement opener, update pidfile, then exit this process. */
+function scheduleSelfRestart() {
+    setTimeout(() => {
+        const scriptPath = fileURLToPath(import.meta.url);
+        const child = spawn(process.execPath, [scriptPath], {
+            detached: true,
+            stdio: "ignore",
+            cwd: ZNUNY_DEV_DIR,
+            env: {
+                ...process.env,
+                ZNUNY_DEV_DIR,
+                OPENER_PORT: String(PORT),
+            },
+        });
+        child.on("error", (e) => {
+            console.error(
+                "[opener] restart spawn failed:",
+                e && e.message ? e.message : e,
+            );
+        });
+        try {
+            if (child.pid) {
+                fs.writeFileSync(openerPidfile(), String(child.pid) + "\n");
+            }
+        } catch (e) {
+            console.error(
+                "[opener] pidfile update failed:",
+                e && e.message ? e.message : e,
+            );
+        }
+        child.unref();
+        server.close(() => {
+            process.exit(0);
+        });
+        setTimeout(() => {
+            process.exit(0);
+        }, 800);
+    }, 150);
+}
+
 const server = http.createServer((req, res) => {
     let u;
     try {
@@ -103,8 +147,23 @@ const server = http.createServer((req, res) => {
         return;
     }
 
+    if (u.pathname === "/health") {
+        json(res, 200, { ok: true });
+        return;
+    }
+
     if (u.pathname === "/config") {
         json(res, 200, buildDashboardIdeConfig(ZNUNY_DEV_DIR));
+        return;
+    }
+
+    if (u.pathname === "/restart") {
+        if (req.method !== "POST") {
+            json(res, 405, { error: "method not allowed" });
+            return;
+        }
+        json(res, 200, { ok: true, restarting: true });
+        scheduleSelfRestart();
         return;
     }
 

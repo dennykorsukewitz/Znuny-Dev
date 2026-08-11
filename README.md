@@ -275,11 +275,15 @@ Znuny-Dev/
 
 ## 🤝 Contributing
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, coding guidelines, tests, and the pull request process.
+
+Quick path:
+
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch from `dev`
 3. Commit your changes
 4. Push to the branch
-5. Create a pull request
+5. Open a pull request against `dev`
 
 ## 📄 License
 

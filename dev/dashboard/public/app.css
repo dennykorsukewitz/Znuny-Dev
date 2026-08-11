@@ -2116,7 +2116,7 @@ body.theme-dark .site-footer {
   color: #ffb07a;
 }
 
-/* About: barely visible Znuny signet in the bottom-right corner */
+/* About: barely visible Znuny logo in the bottom-right corner */
 .about-pacman {
   position: fixed;
   right: max(14px, env(safe-area-inset-right, 0px));
@@ -2137,8 +2137,10 @@ body.theme-dark .site-footer {
   display: block;
   width: 22px;
   height: 22px;
-  background-image: url("/img/znuny-eat.png");
-  background-size: cover;
+  background-image: url("/img/znuny-logo.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
   opacity: 0.18;
   transition: opacity ease 0.4s;
 }
@@ -2156,7 +2158,7 @@ body.theme-dark .about-pacman-icon {
 .about-pacman:hover .about-pacman-icon,
 .about-pacman:focus-visible .about-pacman-icon {
   opacity: 1;
-  background-image: url("/img/znuny-eat-closed.png");
+  background-image: url("/img/znuny-logo-closed.png");
   animation: ZnunyEat 0.7s infinite;
 }
 
@@ -2220,21 +2222,23 @@ body.theme-dark .about-pacman-icon {
   font-size: 1.35rem;
 }
 
-.about-dialog-signet {
+.about-dialog-logo {
   display: inline-block;
   width: 22px;
   height: 22px;
   flex-shrink: 0;
-  background-image: url("/img/znuny-eat-closed.png");
-  background-size: cover;
+  background-image: url("/img/znuny-logo-closed.png");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
   opacity: 0.75;
   animation: ZnunyEat 0.7s infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .about-dialog-signet {
+  .about-dialog-logo {
     animation: none;
-    background-image: url("/img/znuny-eat.png");
+    background-image: url("/img/znuny-logo.png");
   }
 }
 
@@ -2271,6 +2275,10 @@ body.theme-dark .about-pacman-icon {
 }
 
 .about-dialog-repo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin: 16px 0 0;
 }
 
@@ -2317,7 +2325,7 @@ body.theme-dark .about-pacman-icon {
 }
 
 .about-dialog-heart-donate {
-  color: #e2574c;
+  color: #0070ba;
 }
 
 .about-dialog-support-btn:hover .about-dialog-heart {

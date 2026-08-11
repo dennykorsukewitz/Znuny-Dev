@@ -92,21 +92,21 @@
 
       <p class="error-banner" id="error-banner" hidden></p>
 
-      <div id="status-legend-dialog" class="confirm-dialog status-legend-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="status-legend-dialog-title">
-        <div class="confirm-dialog-backdrop" data-legend-close="1"></div>
-        <div class="confirm-dialog-panel status-legend-dialog-panel">
-          <h2 id="status-legend-dialog-title" class="confirm-dialog-title">Status legend</h2>
+      <div id="status-legend-dialog" class="app-dialog status-legend-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="status-legend-dialog-title">
+        <div class="app-dialog-backdrop" data-legend-close="1"></div>
+        <div class="app-dialog-panel status-legend-dialog-panel">
+          <h2 id="status-legend-dialog-title" class="app-dialog-title">Status legend</h2>
           <div class="status-legend-body" id="status-legend-body" aria-label="Instance and container status meanings"></div>
-          <div class="confirm-dialog-actions">
+          <div class="app-dialog-actions">
             <button type="button" class="btn btn-secondary" data-legend-close="1">Close</button>
           </div>
         </div>
       </div>
 
-      <div id="about-dialog" class="confirm-dialog about-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="about-dialog-title">
-        <div class="confirm-dialog-backdrop" data-about-close="1"></div>
-        <div class="confirm-dialog-panel about-dialog-panel">
-          <h2 id="about-dialog-title" class="confirm-dialog-title">
+      <div id="about-dialog" class="app-dialog about-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="about-dialog-title">
+        <div class="app-dialog-backdrop" data-about-close="1"></div>
+        <div class="app-dialog-panel about-dialog-panel">
+          <h2 id="about-dialog-title" class="app-dialog-title">
             <span class="about-dialog-signet" aria-hidden="true"></span>
             About Znuny-Dev
           </h2>
@@ -122,16 +122,16 @@
               </a>
             </p>
           </div>
-          <div class="confirm-dialog-actions about-dialog-actions">
+          <div class="app-dialog-actions about-dialog-actions">
             <p class="about-dialog-support">
               <a class="btn btn-compact about-dialog-support-btn" href="https://github.com/sponsors/dennykorsukewitz?o=esb" target="_blank" rel="noopener">
-                <svg class="about-dialog-btn-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <svg class="about-dialog-btn-icon about-dialog-heart" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                   <path d="M8 14.25a.75.75 0 0 1-.5-.19C4.02 11 1.5 8.72 1.5 6.06 1.5 4.2 2.96 2.75 4.81 2.75c1.05 0 2.05.49 2.69 1.29l.5.62.5-.62a3.44 3.44 0 0 1 2.69-1.29c1.85 0 3.31 1.45 3.31 3.31 0 2.66-2.52 4.94-6 8a.75.75 0 0 1-.5.19Z"/>
                 </svg>
                 Sponsor
               </a>
               <a class="btn btn-compact about-dialog-support-btn" href="https://www.paypal.com/donate?token=NdvWpuA1hcAiYfEigs8BKb3sjbTy2YFCSr7LVMJFN-CJgfakE1fBme85-Oih6L7Qypa139Gfps-TZm_y" target="_blank" rel="noopener">
-                <svg class="about-dialog-btn-icon" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <svg class="about-dialog-btn-icon about-dialog-heart about-dialog-heart-donate" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                   <path d="M8 14.25a.75.75 0 0 1-.5-.19C4.02 11 1.5 8.72 1.5 6.06 1.5 4.2 2.96 2.75 4.81 2.75c1.05 0 2.05.49 2.69 1.29l.5.62.5-.62a3.44 3.44 0 0 1 2.69-1.29c1.85 0 3.31 1.45 3.31 3.31 0 2.66-2.52 4.94-6 8a.75.75 0 0 1-.5.19Z"/>
                 </svg>
                 Donate
@@ -142,12 +142,12 @@
         </div>
       </div>
 
-      <div id="confirm-dialog" class="confirm-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
-        <div class="confirm-dialog-backdrop" data-confirm="0"></div>
-        <div class="confirm-dialog-panel">
-          <h2 id="confirm-dialog-title" class="confirm-dialog-title">Delete instance?</h2>
-          <p id="confirm-dialog-message" class="confirm-dialog-message"></p>
-          <div class="confirm-dialog-actions">
+      <div id="confirm-dialog" class="app-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+        <div class="app-dialog-backdrop" data-confirm="0"></div>
+        <div class="app-dialog-panel">
+          <h2 id="confirm-dialog-title" class="app-dialog-title">Delete instance?</h2>
+          <p id="confirm-dialog-message" class="app-dialog-message"></p>
+          <div class="app-dialog-actions">
             <button type="button" class="btn btn-secondary" data-confirm="0">Cancel</button>
             <button type="button" class="btn btn-danger" data-confirm="1">Delete</button>
           </div>

@@ -227,7 +227,7 @@
             return;
         }
         dlg.hidden = false;
-        document.body.classList.add("confirm-dialog-open");
+        document.body.classList.add("app-dialog-open");
         var closeBtn = dlg.querySelector("[data-about-close='1'].btn");
         if (closeBtn) {
             closeBtn.focus();
@@ -244,7 +244,7 @@
             document.getElementById("confirm-dialog").hidden &&
             document.getElementById("status-legend-dialog").hidden
         ) {
-            document.body.classList.remove("confirm-dialog-open");
+            document.body.classList.remove("app-dialog-open");
         }
         var btn = document.getElementById("btn-about");
         if (btn) {
@@ -258,7 +258,7 @@
             return;
         }
         dlg.hidden = false;
-        document.body.classList.add("confirm-dialog-open");
+        document.body.classList.add("app-dialog-open");
         var closeBtn = dlg.querySelector("[data-legend-close='1'].btn");
         if (closeBtn) {
             closeBtn.focus();
@@ -275,7 +275,7 @@
             document.getElementById("confirm-dialog").hidden &&
             document.getElementById("about-dialog").hidden
         ) {
-            document.body.classList.remove("confirm-dialog-open");
+            document.body.classList.remove("app-dialog-open");
         }
         var btn = document.getElementById("btn-status-legend");
         if (btn) {
@@ -1147,7 +1147,7 @@
             safeFw +
             "</span>).";
         dlg.hidden = false;
-        document.body.classList.add("confirm-dialog-open");
+        document.body.classList.add("app-dialog-open");
         return new Promise(function (resolve) {
             confirmDone = resolve;
         });
@@ -1156,7 +1156,7 @@
     function finishConfirm(ok) {
         var dlg = document.getElementById("confirm-dialog");
         dlg.hidden = true;
-        document.body.classList.remove("confirm-dialog-open");
+        document.body.classList.remove("app-dialog-open");
         if (confirmDone) {
             var done = confirmDone;
             confirmDone = null;

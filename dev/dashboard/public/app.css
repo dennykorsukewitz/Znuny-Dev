@@ -1503,7 +1503,7 @@ a.cell-port-link:hover {
   border-color: var(--bad);
 }
 
-.confirm-dialog {
+.app-dialog {
   position: fixed;
   inset: 0;
   z-index: 1000;
@@ -1513,17 +1513,17 @@ a.cell-port-link:hover {
   padding: 24px;
 }
 
-.confirm-dialog[hidden] {
+.app-dialog[hidden] {
   display: none;
 }
 
-.confirm-dialog-backdrop {
+.app-dialog-backdrop {
   position: absolute;
   inset: 0;
   background: color-mix(in srgb, var(--zn-blackish-950) 55%, transparent);
 }
 
-.confirm-dialog-panel {
+.app-dialog-panel {
   position: relative;
   z-index: 1;
   width: min(420px, 100%);
@@ -1534,7 +1534,7 @@ a.cell-port-link:hover {
   box-shadow: 0 16px 48px var(--shadow);
 }
 
-.confirm-dialog-panel.status-legend-dialog-panel {
+.app-dialog-panel.status-legend-dialog-panel {
   width: min(720px, 96vw);
   max-width: 96vw;
   max-height: none;
@@ -1543,7 +1543,7 @@ a.cell-port-link:hover {
   flex-direction: column;
 }
 
-.status-legend-dialog-panel .confirm-dialog-title {
+.status-legend-dialog-panel .app-dialog-title {
   flex-shrink: 0;
   margin: 0 0 22px;
   font-size: 1.55rem;
@@ -1556,7 +1556,7 @@ a.cell-port-link:hover {
   padding: 0;
 }
 
-.status-legend-dialog-panel .confirm-dialog-actions {
+.status-legend-dialog-panel .app-dialog-actions {
   flex-shrink: 0;
 }
 
@@ -1564,13 +1564,13 @@ a.cell-port-link:hover {
   margin-top: 0;
 }
 
-.confirm-dialog-title {
+.app-dialog-title {
   margin: 0 0 10px;
   font-size: 1.05rem;
   color: var(--heading);
 }
 
-.confirm-dialog-message {
+.app-dialog-message {
   margin: 0 0 18px;
   font-size: 0.9rem;
   line-height: 1.5;
@@ -1583,13 +1583,13 @@ a.cell-port-link:hover {
   color: var(--bad);
 }
 
-.confirm-dialog-actions {
+.app-dialog-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
 
-body.confirm-dialog-open {
+body.app-dialog-open {
   overflow: hidden;
 }
 
@@ -2207,12 +2207,12 @@ body.theme-dark .about-pacman-icon {
   }
 }
 
-.confirm-dialog-panel.about-dialog-panel {
+.app-dialog-panel.about-dialog-panel {
   width: min(560px, 96vw);
   padding: 26px 30px 22px;
 }
 
-.about-dialog-panel .confirm-dialog-title {
+.about-dialog-panel .app-dialog-title {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2307,5 +2307,21 @@ body.theme-dark .about-pacman-icon {
   color: var(--zn-orange);
   border-color: color-mix(in srgb, var(--zn-orange) 55%, transparent);
   background: color-mix(in srgb, var(--zn-orange) 8%, var(--surface));
+}
+
+/* GitHub Sponsors pink / donate red — stays colored while the label is muted */
+.about-dialog-heart {
+  color: #db61a2;
+  opacity: 0.8;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.about-dialog-heart-donate {
+  color: #e2574c;
+}
+
+.about-dialog-support-btn:hover .about-dialog-heart {
+  opacity: 1;
+  transform: scale(1.15);
 }
 

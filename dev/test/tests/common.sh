@@ -90,27 +90,22 @@ test_detect_framework_from_cwd() {
     echo "Testing detect_framework_from_cwd..."
 
     local tmpdir
+    local old_frameworks_dir="${FRAMEWORKS_DIR:-}"
     tmpdir=$(mktemp -d /tmp/znuny-cwd-fw-test.XXXXXX)
     mkdir -p "$tmpdir/frameworks/dev/Kernel" "$tmpdir/frameworks/rel-6_5"
     mkdir -p "$tmpdir/elsewhere"
 
+    # Set outside subshells so SC2030/SC2031 do not fire (export in $(..) / (..) is local).
+    export FRAMEWORKS_DIR="$tmpdir/frameworks"
+
     local out
-    out=$(
-        export FRAMEWORKS_DIR="$tmpdir/frameworks"
-        detect_framework_from_cwd "$tmpdir/frameworks/dev/Kernel" 2>/dev/null
-    )
+    out=$(detect_framework_from_cwd "$tmpdir/frameworks/dev/Kernel" 2>/dev/null)
     assert_equal "dev" "$out" "detect_framework_from_cwd nested under frameworks/dev"
 
-    out=$(
-        export FRAMEWORKS_DIR="$tmpdir/frameworks"
-        detect_framework_from_cwd "$tmpdir/frameworks/rel-6_5" 2>/dev/null
-    )
+    out=$(detect_framework_from_cwd "$tmpdir/frameworks/rel-6_5" 2>/dev/null)
     assert_equal "rel-6_5" "$out" "detect_framework_from_cwd frameworks/rel-6_5"
 
-    if (
-        export FRAMEWORKS_DIR="$tmpdir/frameworks"
-        detect_framework_from_cwd "$tmpdir/elsewhere" 2>/dev/null
-    ); then
+    if detect_framework_from_cwd "$tmpdir/elsewhere" 2>/dev/null; then
         print_test_result "detect_framework_from_cwd outside" "FAIL" "Should fail outside FRAMEWORKS_DIR"
         TESTS_FAILED=$((TESTS_FAILED + 1))
     else
@@ -119,10 +114,7 @@ test_detect_framework_from_cwd() {
     fi
     TESTS_RUN=$((TESTS_RUN + 1))
 
-    if (
-        export FRAMEWORKS_DIR="$tmpdir/frameworks"
-        detect_framework_from_cwd "$tmpdir/frameworks" 2>/dev/null
-    ); then
+    if detect_framework_from_cwd "$tmpdir/frameworks" 2>/dev/null; then
         print_test_result "detect_framework_from_cwd frameworks root" "FAIL" "Should fail on FRAMEWORKS_DIR itself"
         TESTS_FAILED=$((TESTS_FAILED + 1))
     else
@@ -131,6 +123,11 @@ test_detect_framework_from_cwd() {
     fi
     TESTS_RUN=$((TESTS_RUN + 1))
 
+    if [ -n "$old_frameworks_dir" ]; then
+        export FRAMEWORKS_DIR="$old_frameworks_dir"
+    else
+        unset FRAMEWORKS_DIR
+    fi
     rm -rf "$tmpdir"
 }
 

@@ -93,9 +93,19 @@ function openerPidfile() {
     return path.join(ZNUNY_DEV_DIR, ".opener.pid");
 }
 
-/** Spawn a replacement opener, update pidfile, then exit this process. */
+/** Exit so host supervisor.mjs can respawn; or self-spawn when unsupervised. */
 function scheduleSelfRestart() {
     setTimeout(() => {
+        // Under supervisor: exit only — parent respawns opener.
+        if (process.env.SUPERVISED === "1") {
+            server.close(() => {
+                process.exit(0);
+            });
+            setTimeout(() => {
+                process.exit(0);
+            }, 800);
+            return;
+        }
         const scriptPath = fileURLToPath(import.meta.url);
         const child = spawn(process.execPath, [scriptPath], {
             detached: true,

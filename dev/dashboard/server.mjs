@@ -482,10 +482,46 @@ function openerBaseUrl() {
     return "http://" + OPENER_HOST + ":" + OPENER_PORT;
 }
 
-/** Try host opener restart when reachable. Dead opener → hint for CLI. */
+function openerWakePath() {
+    return path.join(getZnunyDevDir(), ".opener-wake");
+}
+
+/** Ask host supervisor to (re)start opener via bind-mounted wake file. */
+function writeOpenerWake() {
+    try {
+        fs.writeFileSync(openerWakePath(), String(Date.now()) + "\n");
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+async function waitOpenerHealth(maxMs) {
+    const deadline = Date.now() + maxMs;
+    while (Date.now() < deadline) {
+        try {
+            const health = await fetch(openerBaseUrl() + "/health", {
+                method: "GET",
+                signal: AbortSignal.timeout(800),
+            });
+            if (health.ok) {
+                return true;
+            }
+        } catch {
+            /* retry */
+        }
+        await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+    return false;
+}
+
+/**
+ * Soft-restart opener when up; if down, write .opener-wake for host supervisor.
+ * Supervisor dead → hint for CLI (container cannot cold-start host processes).
+ */
 async function tryRestartOpener() {
     const hint =
-        "Host opener down — run: zd dashboard restart (opener on 127.0.0.1:" +
+        "Host opener/supervisor down — run: zd dashboard restart (opener on 127.0.0.1:" +
         OPENER_PORT +
         ")";
     try {
@@ -493,28 +529,38 @@ async function tryRestartOpener() {
             method: "GET",
             signal: AbortSignal.timeout(2000),
         });
-        if (!health.ok) {
-            return { opener: "unavailable", hint };
+        if (health.ok) {
+            const restart = await fetch(openerBaseUrl() + "/restart", {
+                method: "POST",
+                signal: AbortSignal.timeout(3000),
+            });
+            if (restart.ok) {
+                const up = await waitOpenerHealth(6000);
+                if (up) {
+                    return { opener: "restarted" };
+                }
+                return {
+                    opener: "restarted",
+                    detail: "restart accepted; waiting for opener",
+                };
+            }
         }
-        const restart = await fetch(openerBaseUrl() + "/restart", {
-            method: "POST",
-            signal: AbortSignal.timeout(3000),
-        });
-        if (!restart.ok) {
-            return {
-                opener: "unavailable",
-                hint:
-                    "Opener restart failed — run: zd dashboard restart",
-            };
-        }
-        return { opener: "restarted" };
-    } catch (e) {
-        return {
-            opener: "unavailable",
-            hint,
-            detail: String(e && e.message ? e.message : e).slice(0, 200),
-        };
+    } catch {
+        /* fall through to wake file */
     }
+
+    if (!writeOpenerWake()) {
+        return { opener: "unavailable", hint };
+    }
+    const up = await waitOpenerHealth(8000);
+    if (up) {
+        return { opener: "restarted", via: "wake" };
+    }
+    return {
+        opener: "unavailable",
+        hint,
+        detail: "wake file written but opener did not come up",
+    };
 }
 
 /** Restart opener (if up) then this dashboard container. Respond first — process dies. */

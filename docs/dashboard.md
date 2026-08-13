@@ -34,12 +34,28 @@ dev/dashboard/
 │   ├── app.js
 │   └── img/
 ├── server.mjs       # HTTP API + static server
+├── supervisor.mjs   # Host supervisor (respawns opener; watches .opener-wake)
 ├── opener.mjs       # Host opener (workspace / IDE)
 ├── ide.mjs          # IDE detection for open-workspace
 └── Dockerfile
 ```
 
 Compose stack: `dev/docker/compose-dashboard.yml`.
+
+---
+
+## Host opener / supervisor
+
+Folder and IDE buttons need a **host** process (`opener.mjs` on `127.0.0.1:9998`). The Docker container cannot start host processes when that listener is dead.
+
+**Cross-platform approach:** `zd dashboard start` launches `supervisor.mjs` on the host. It:
+
+- keeps `opener.mjs` alive (respawn on crash / exit)
+- watches repo-root `.opener-wake` so a GUI restart can wake opener again while the supervisor is still running
+
+GUI **Dashboard restart**: soft-restarts opener when reachable; if not, writes `.opener-wake`. If the supervisor itself is gone (e.g. after reboot), run `zd dashboard start` or `zd dashboard restart` once on the host.
+
+Optional later: OS login autostart (launchd / systemd / Task Scheduler) wrapping the same `supervisor.mjs`.
 
 ---
 
@@ -64,7 +80,7 @@ Compose stack: `dev/docker/compose-dashboard.yml`.
 | After changing `Dockerfile` | `zd dashboard build` then `zd dashboard start` |
 | Tear down | `zd dashboard remove` |
 
-Opener (open Finder / IDE from the UI) listens on `127.0.0.1:9998` and is started with the dashboard.
+Opener (open Finder / IDE from the UI) listens on `127.0.0.1:9998`, supervised by `supervisor.mjs`, started with the dashboard.
 
 ---
 

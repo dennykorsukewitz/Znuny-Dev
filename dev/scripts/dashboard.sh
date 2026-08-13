@@ -42,22 +42,35 @@ remove_dashboard() {
     stop_opener
 }
 
+supervisor_pidfile() {
+    echo "${ZNUNY_DEV_DIR:?}/.supervisor.pid"
+}
+
 opener_pidfile() {
     echo "${ZNUNY_DEV_DIR:?}/.opener.pid"
 }
 
-stop_opener() {
-    local pidfile
-    pidfile=$(opener_pidfile)
-    if [ -f "$pidfile" ]; then
-        local pid
-        pid=$(cat "$pidfile" 2>/dev/null || true)
-        if [ -n "$pid" ]; then
-            kill "$pid" 2>/dev/null || true
-        fi
-        rm -f "$pidfile"
+kill_pidfile() {
+    local pidfile="$1"
+    if [ ! -f "$pidfile" ]; then
+        return 0
     fi
+    local pid
+    pid=$(cat "$pidfile" 2>/dev/null || true)
+    if [ -n "$pid" ]; then
+        kill "$pid" 2>/dev/null || true
+    fi
+    rm -f "$pidfile"
+}
+
+stop_opener() {
+    kill_pidfile "$(supervisor_pidfile)"
+    kill_pidfile "$(opener_pidfile)"
+    rm -f "${ZNUNY_DEV_DIR:?}/.opener-wake" 2>/dev/null || true
     if [ -n "${ZNUNY_DEV_DIR:-}" ]; then
+        pkill -f "${ZNUNY_DEV_DIR}/dev/dashboard/supervisor.mjs" 2>/dev/null || true
+        pkill -f "${ZNUNY_DEV_DIR}/dev/dashboard/opener.mjs" 2>/dev/null || true
+        # Legacy filename from older builds
         pkill -f "${ZNUNY_DEV_DIR}/dev/dashboard/host-opener.mjs" 2>/dev/null || true
     fi
 }
@@ -79,7 +92,7 @@ start_opener() {
         return 0
     fi
     local pidfile
-    pidfile=$(opener_pidfile)
+    pidfile=$(supervisor_pidfile)
     rm -f "${ZNUNY_DEV_DIR:?}/.host-opener.pid"
     local port="${OPENER_PORT:-9998}"
 
@@ -96,8 +109,11 @@ start_opener() {
     fi
 
     if [ -n "${ZNUNY_DEV_DIR:-}" ]; then
+        pkill -f "${ZNUNY_DEV_DIR}/dev/dashboard/supervisor.mjs" 2>/dev/null || true
+        pkill -f "${ZNUNY_DEV_DIR}/dev/dashboard/opener.mjs" 2>/dev/null || true
         pkill -f "${ZNUNY_DEV_DIR}/dev/dashboard/host-opener.mjs" 2>/dev/null || true
     fi
+    kill_pidfile "$(opener_pidfile)"
 
     if opener_health_ok "$port"; then
         print_warning "Opener port ${port} in use; restarting stale process..."
@@ -110,11 +126,11 @@ start_opener() {
     fi
 
     export ZNUNY_DEV_DIR OPENER_PORT="$port"
-    nohup node "$ZNUNY_DEV_DIR/dev/dashboard/opener.mjs" >/dev/null 2>&1 &
+    nohup node "$ZNUNY_DEV_DIR/dev/dashboard/supervisor.mjs" >/dev/null 2>&1 &
     echo $! >"$pidfile"
-    sleep 0.3
+    sleep 0.5
     if opener_health_ok "$port"; then
-        print_status "Opener: 127.0.0.1:${port}"
+        print_status "Opener (supervised): 127.0.0.1:${port}"
     else
         print_warning "Opener failed to start on 127.0.0.1:${port} (IDE / Folder buttons need it)"
     fi

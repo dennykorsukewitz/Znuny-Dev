@@ -36,6 +36,8 @@ logs/
 *.tmp
 *.temp
 .opener.pid
+.supervisor.pid
+.opener-wake
 .DS_Store
 Thumbs.db
 

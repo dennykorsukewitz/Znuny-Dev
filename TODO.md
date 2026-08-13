@@ -6,4 +6,3 @@
 
 - [ ] Tab-Completion
 - [x] Optional Framework-Argument (CWD)
-- [ ]

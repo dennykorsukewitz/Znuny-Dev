@@ -7,6 +7,7 @@
 # 1. print_* functions – produce non-empty output and do not crash
 # 2. check_command     – returns 0 for existing command (e.g. true), non-zero for nonexistent
 # 3. load_environment  – runs without error when ZNUNY_DEV_DIR is set (no .env required)
+# 4. detect_framework_from_cwd – resolves FRAMEWORKS_DIR/<name> from PWD
 
 TEST_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPT_DIR="$(cd "$(dirname "$0")/../../scripts" && pwd)"
@@ -84,10 +85,60 @@ test_load_environment() {
     rm -rf "$tmpdir"
 }
 
+test_detect_framework_from_cwd() {
+    echo ""
+    echo "Testing detect_framework_from_cwd..."
+
+    local tmpdir
+    tmpdir=$(mktemp -d /tmp/znuny-cwd-fw-test.XXXXXX)
+    mkdir -p "$tmpdir/frameworks/dev/Kernel" "$tmpdir/frameworks/rel-6_5"
+    mkdir -p "$tmpdir/elsewhere"
+
+    local out
+    out=$(
+        export FRAMEWORKS_DIR="$tmpdir/frameworks"
+        detect_framework_from_cwd "$tmpdir/frameworks/dev/Kernel" 2>/dev/null
+    )
+    assert_equal "dev" "$out" "detect_framework_from_cwd nested under frameworks/dev"
+
+    out=$(
+        export FRAMEWORKS_DIR="$tmpdir/frameworks"
+        detect_framework_from_cwd "$tmpdir/frameworks/rel-6_5" 2>/dev/null
+    )
+    assert_equal "rel-6_5" "$out" "detect_framework_from_cwd frameworks/rel-6_5"
+
+    if (
+        export FRAMEWORKS_DIR="$tmpdir/frameworks"
+        detect_framework_from_cwd "$tmpdir/elsewhere" 2>/dev/null
+    ); then
+        print_test_result "detect_framework_from_cwd outside" "FAIL" "Should fail outside FRAMEWORKS_DIR"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+    else
+        print_test_result "detect_framework_from_cwd outside" "PASS" "Rejects path outside FRAMEWORKS_DIR"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    fi
+    TESTS_RUN=$((TESTS_RUN + 1))
+
+    if (
+        export FRAMEWORKS_DIR="$tmpdir/frameworks"
+        detect_framework_from_cwd "$tmpdir/frameworks" 2>/dev/null
+    ); then
+        print_test_result "detect_framework_from_cwd frameworks root" "FAIL" "Should fail on FRAMEWORKS_DIR itself"
+        TESTS_FAILED=$((TESTS_FAILED + 1))
+    else
+        print_test_result "detect_framework_from_cwd frameworks root" "PASS" "Rejects FRAMEWORKS_DIR root"
+        TESTS_PASSED=$((TESTS_PASSED + 1))
+    fi
+    TESTS_RUN=$((TESTS_RUN + 1))
+
+    rm -rf "$tmpdir"
+}
+
 run_all_tests() {
     test_print_functions
     test_check_command
     test_load_environment
+    test_detect_framework_from_cwd
     print_test_summary
 }
 

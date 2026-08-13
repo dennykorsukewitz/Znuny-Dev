@@ -784,6 +784,9 @@ code_policy() {
             shift
         fi
     fi
+    if [ -z "$framework" ]; then
+        framework=$(detect_framework_from_cwd 2>/dev/null || true)
+    fi
     framework="${framework:-dev}"
 
     local fw_dir="$FRAMEWORKS_DIR/$framework"
@@ -2423,43 +2426,58 @@ remove_instances() {
 
 # Main function
 main() {
-    # Simple command router - validation is done in functions
-    local framework="${2:-}"
-    if [ -n "$framework" ] && [ "$framework" != "all" ]; then
-        framework=$(resolve_framework_name "$framework")
-    fi
+    local cmd="${1:-}"
+    shift || true
 
-    case "${1:-}" in
-
-        # ========================================
-        # Status Operations
-        # ========================================
-
+    # Commands that manage their own argv (or take no framework)
+    case "$cmd" in
         status)
-            show_status "${@:2}"
+            local status_has_fw=0
+            local status_arg
+            for status_arg in "$@"; do
+                case "$status_arg" in
+                    -*) ;;
+                    *)
+                        status_has_fw=1
+                        break
+                        ;;
+                esac
+            done
+            if [ "$status_has_fw" -eq 0 ]; then
+                local cwd_fw
+                cwd_fw=$(detect_framework_from_cwd 2>/dev/null || true)
+                if [ -n "$cwd_fw" ]; then
+                    print_status "Framework from cwd: $cwd_fw"
+                    show_status "$cwd_fw" "$@"
+                    return
+                fi
+            fi
+            show_status "$@"
+            return
             ;;
         dashboard)
-            dashboard "${@:2}"
+            dashboard "$@"
             exit 0
             ;;
-
-        # ========================================
-        # Create / Remove Instance Operations
-        # ========================================
-
         create)
-            create "${@:2}"
+            if [ -z "${1:-}" ] || [ "${1#-}" != "$1" ]; then
+                local cwd_fw
+                cwd_fw=$(detect_framework_from_cwd 2>/dev/null || true)
+                if [ -n "$cwd_fw" ]; then
+                    print_status "Framework from cwd: $cwd_fw"
+                    create "$cwd_fw" "$@"
+                    exit 0
+                fi
+            fi
+            create "$@"
             exit 0
-            ;;
-        remove)
-            remove "$framework" "${@:3}"
             ;;
         remove-instances)
-            remove_instances "${@:2}"
+            remove_instances "$@"
             exit 0
             ;;
         remove-composes)
-            remove_composes "${@:2}"
+            remove_composes "$@"
             exit 0
             ;;
         setup-compose)
@@ -2470,158 +2488,9 @@ main() {
             sync_indices
             exit 0
             ;;
-        # ========================================
-        # Lifecycle Operations
-        # ========================================
-
-        start)
-            start "$framework" "${@:3}"
-            ;;
-        stop)
-            stop "$framework" "${@:3}"
-            ;;
-        restart)
-            restart "$framework" "${@:3}"
-            ;;
-        db-start)
-            start_db_container "$framework"
-            ;;
-        db-stop)
-            stop_db_container "$framework"
-            ;;
-        db-restart)
-            restart_db_container "$framework"
-            ;;
-        build)
-            build "$framework" "${@:3}"
-            ;;
-
-        # ========================================
-        # Common Commands
-        # ========================================
-        delete-rebuild|delreb)
-            delete_rebuild "$framework"
-            ;;
-        delete-rebuild-restart|delrebres)
-            delete_rebuild_restart "$framework"
-            ;;
-        rebuild|reb)
-            rebuild "$framework"
-            ;;
-        delete|del)
-            delete "$framework"
-            ;;
-        unittest|unit)
-            unittest "$framework" "${@:4}"
-            ;;
-        translate)
-            translate "$framework"
-            ;;
-        contributors)
-            contributors "$framework"
-            ;;
-        sql-schema)
-            sql_schema "$framework"
-            ;;
-        sql-initial-insert)
-            sql_initial_insert "$framework"
-            ;;
-        cpanm)
-            cpanm "$framework" "${@:3}"
-            ;;
-        random-data-insert)
-            if [ "${2:-}" = "--help" ] || [ "${2:-}" = "-h" ]; then
-                show_usage_random_data_insert
-                exit 0
-            fi
-            random_data_insert "$framework" "${@:3}"
-            ;;
-        # ========================================
-        # ModuleTools Commands (via /opt/tools/module-tools/bin/znuny.ModuleTools.pl in container)
-        # ========================================
-        link)
-            link "$framework" "${@:3}"
-            ;;
-        unlink)
-            unlink "$framework" "${@:3}"
-            ;;
-        link-tool)
-            link_tool "$framework" "${@:3}"
-            ;;
-        unlink-tool)
-            unlink_tool "$framework" "${@:3}"
-            ;;
-        rmlink|rmlinks)
-            rmlink "$framework"
-            ;;
-        install)
-            install "$framework" "${3:-}"
-            ;;
-        uninstall)
-            uninstall "$framework" "${3:-}"
-            ;;
-        dbinstall)
-            dbinstall "$framework" "${3:-}"
-            ;;
-        dbupgrade)
-            dbupgrade "$framework" "${3:-}"
-            ;;
-        dbuninstall)
-            dbuninstall "$framework" "${3:-}"
-            ;;
-        codeinstall)
-            codeinstall "$framework" "${3:-}"
-            ;;
-        codereinstall)
-            codereinstall "$framework" "${3:-}"
-            ;;
-        codeuninstall)
-            codeuninstall "$framework" "${3:-}"
-            ;;
-        codeupgrade)
-            codeupgrade "$framework" "${3:-}"
-            ;;
-        module-tools|mt)
-            module_tools "$framework" "${@:3}"
-            ;;
         codepolicy|cp|cc)
-            code_policy "${@:2}"
-            ;;
-
-        # ========================================
-        # Link/Unlink CodePolicy
-        # ========================================
-        link-codepolicy)
-            link_codepolicy "$framework"
-            ;;
-        unlink-codepolicy)
-            unlink_codepolicy "$framework"
-            ;;
-
-        # ========================================
-        # Link/Unlink Fred
-        # ========================================
-        link-fred)
-            link_fred "$framework"
-            ;;
-        unlink-fred)
-            unlink_fred "$framework"
-            ;;
-
-        # ========================================
-        # Console and Shell Operations
-        # ========================================
-        shell)
-            shell "$framework" "${@:3}"
-            ;;
-        console)
-            console "$framework" "${@:3}"
-            ;;
-        log)
-            log "$framework" "${3:-access.log}"
-            ;;
-        container-log)
-            container_log "$framework" "${3:-50}"
+            code_policy "$@"
+            return
             ;;
         show-usage-create)
             show_usage_create
@@ -2641,9 +2510,159 @@ main() {
             ;;
         "")
             show_usage
+            return
+            ;;
+    esac
+
+    # Resolve framework: explicit known dir / "all", else CWD under FRAMEWORKS_DIR
+    local framework=""
+    if [ "${1:-}" = "all" ]; then
+        framework="all"
+        shift
+    elif [ -n "${1:-}" ] && [ "${1#-}" = "$1" ] && is_known_framework "$1"; then
+        framework=$(resolve_framework_name "$1")
+        shift
+    fi
+    if [ -z "$framework" ]; then
+        framework=$(detect_framework_from_cwd 2>/dev/null || true)
+        if [ -n "$framework" ]; then
+            print_status "Framework from cwd: $framework"
+        fi
+    fi
+
+    case "$cmd" in
+        remove)
+            remove "$framework" "$@"
+            ;;
+        start)
+            start "$framework" "$@"
+            ;;
+        stop)
+            stop "$framework" "$@"
+            ;;
+        restart)
+            restart "$framework" "$@"
+            ;;
+        db-start)
+            start_db_container "$framework"
+            ;;
+        db-stop)
+            stop_db_container "$framework"
+            ;;
+        db-restart)
+            restart_db_container "$framework"
+            ;;
+        build)
+            build "$framework" "$@"
+            ;;
+        delete-rebuild|delreb)
+            delete_rebuild "$framework"
+            ;;
+        delete-rebuild-restart|delrebres)
+            delete_rebuild_restart "$framework"
+            ;;
+        rebuild|reb)
+            rebuild "$framework"
+            ;;
+        delete|del)
+            delete "$framework"
+            ;;
+        unittest|unit)
+            unittest "$framework" "$@"
+            ;;
+        translate)
+            translate "$framework"
+            ;;
+        contributors)
+            contributors "$framework"
+            ;;
+        sql-schema)
+            sql_schema "$framework"
+            ;;
+        sql-initial-insert)
+            sql_initial_insert "$framework"
+            ;;
+        cpanm)
+            cpanm "$framework" "$@"
+            ;;
+        random-data-insert)
+            if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+                show_usage_random_data_insert
+                exit 0
+            fi
+            random_data_insert "$framework" "$@"
+            ;;
+        link)
+            link "$framework" "$@"
+            ;;
+        unlink)
+            unlink "$framework" "$@"
+            ;;
+        link-tool)
+            link_tool "$framework" "$@"
+            ;;
+        unlink-tool)
+            unlink_tool "$framework" "$@"
+            ;;
+        rmlink|rmlinks)
+            rmlink "$framework"
+            ;;
+        install)
+            install "$framework" "${1:-}"
+            ;;
+        uninstall)
+            uninstall "$framework" "${1:-}"
+            ;;
+        dbinstall)
+            dbinstall "$framework" "${1:-}"
+            ;;
+        dbupgrade)
+            dbupgrade "$framework" "${1:-}"
+            ;;
+        dbuninstall)
+            dbuninstall "$framework" "${1:-}"
+            ;;
+        codeinstall)
+            codeinstall "$framework" "${1:-}"
+            ;;
+        codereinstall)
+            codereinstall "$framework" "${1:-}"
+            ;;
+        codeuninstall)
+            codeuninstall "$framework" "${1:-}"
+            ;;
+        codeupgrade)
+            codeupgrade "$framework" "${1:-}"
+            ;;
+        module-tools|mt)
+            module_tools "$framework" "$@"
+            ;;
+        link-codepolicy)
+            link_codepolicy "$framework"
+            ;;
+        unlink-codepolicy)
+            unlink_codepolicy "$framework"
+            ;;
+        link-fred)
+            link_fred "$framework"
+            ;;
+        unlink-fred)
+            unlink_fred "$framework"
+            ;;
+        shell)
+            shell "$framework" "$@"
+            ;;
+        console)
+            console "$framework" "$@"
+            ;;
+        log)
+            log "$framework" "${1:-access.log}"
+            ;;
+        container-log)
+            container_log "$framework" "${1:-50}"
             ;;
         *)
-            print_error "Unknown command: $1"
+            print_error "Unknown command: $cmd"
             show_usage
             exit 1
             ;;

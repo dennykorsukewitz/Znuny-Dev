@@ -564,6 +564,55 @@ resolve_framework_name() {
     echo "$input"
 }
 
+# If PWD (or $1) is under FRAMEWORKS_DIR/<name>/..., echo that framework name.
+# Used so `zd start` / `zd delreb` work without an explicit framework argument.
+detect_framework_from_cwd() {
+    local start="${1:-$PWD}"
+    if [ -z "${FRAMEWORKS_DIR:-}" ] || [ ! -d "$FRAMEWORKS_DIR" ]; then
+        return 1
+    fi
+
+    local frameworks_dir
+    frameworks_dir=$(cd "$FRAMEWORKS_DIR" 2>/dev/null && pwd -P) || return 1
+
+    local dir
+    dir=$(cd "$start" 2>/dev/null && pwd -P) || return 1
+
+    case "$dir" in
+        "$frameworks_dir"|"$frameworks_dir"/*) ;;
+        *)
+            return 1
+            ;;
+    esac
+
+    if [ "$dir" = "$frameworks_dir" ]; then
+        return 1
+    fi
+
+    local rel="${dir#"$frameworks_dir"/}"
+    local name="${rel%%/*}"
+    if [ -n "$name" ] && [ -d "$frameworks_dir/$name" ]; then
+        # Prefer canonical casing from get_available_frameworks / resolve
+        resolve_framework_name "$name"
+        return 0
+    fi
+    return 1
+}
+
+# True when $1 is an existing framework directory name (after resolve).
+is_known_framework() {
+    local input="${1:-}"
+    if [ -z "$input" ] || [ "$input" = "all" ]; then
+        return 1
+    fi
+    if [ -z "${FRAMEWORKS_DIR:-}" ]; then
+        return 1
+    fi
+    local name
+    name=$(resolve_framework_name "$input")
+    [ -d "$FRAMEWORKS_DIR/$name" ]
+}
+
 # Lowercase framework name for Docker (image/container/service names must be lowercase).
 get_framework_slug() {
     echo "$1" | tr '[:upper:]' '[:lower:]'
@@ -621,6 +670,8 @@ export -f read_lines_to_array
 export -f get_available_frameworks
 export -f get_available_instances
 export -f resolve_framework_name
+export -f detect_framework_from_cwd
+export -f is_known_framework
 export -f get_framework_slug
 export -f get_compose_cmd
 export -f get_latest_version

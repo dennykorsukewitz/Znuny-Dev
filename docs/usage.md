@@ -11,6 +11,8 @@ zd version    # Version from RELEASE
 
 Replace `<framework>` with your instance name (e.g. `dev`). Many instance commands also accept `all`.
 
+When your shell is inside a checkout under `FRAMEWORKS_DIR` (e.g. `frameworks/dev` or a subdirectory), the framework argument is optional — `zd` detects it from the current working directory. An explicit argument always wins.
+
 ---
 
 ## Setup

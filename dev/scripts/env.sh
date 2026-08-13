@@ -284,6 +284,9 @@ setup_alias() {
 
     local script_path
     script_path="$(cd "$(dirname "$0")/../.." && pwd)/znuny-dev.sh"
+    local znuny_dev_root
+    znuny_dev_root="$(cd "$(dirname "$0")/../.." && pwd)"
+    local completions_dir="$znuny_dev_root/dev/completions"
 
     # Detect current shell using common function
     local -a shell_info=()
@@ -307,8 +310,14 @@ setup_alias() {
 
         # Remove existing alias, function lines and related comments
         sed -i.bak '/alias zd=/d' "$config_file"
+        sed -i.bak '/alias zd-frameworks=/d' "$config_file"
+        sed -i.bak '/alias zd-packages=/d' "$config_file"
+        sed -i.bak '/alias zd-tools=/d' "$config_file"
         sed -i.bak '/# Znuny Development Environment/d' "$config_file"
         sed -i.bak '/# Added by znuny environment setup/d' "$config_file"
+        sed -i.bak '/# znuny-dev tab-completion/d' "$config_file"
+        sed -i.bak '[#]/IED_MARKER_REMOVE_COMPLETION_SOURCE' "$config_file" 2>/dev/null || true
+        sed -i.bak '/dev\/completions\/zd\./d' "$config_file"
 
         # Remove empty lines at the end of the file
         sed -i.bak '/^$/d' "$config_file"
@@ -323,13 +332,24 @@ setup_alias() {
         echo "alias zd-frameworks='cd $FRAMEWORKS_DIR'"
         echo "alias zd-packages='cd $PACKAGES_DIR'"
         echo "alias zd-tools='cd $TOOLS_DIR'"
+        if [ "$shell_name" = "zsh" ] && [ -f "$completions_dir/zd.zsh" ]; then
+            echo "# znuny-dev tab-completion"
+            echo "source '$completions_dir/zd.zsh'"
+        elif [ "$shell_name" = "bash" ] && [ -f "$completions_dir/zd.bash" ]; then
+            echo "# znuny-dev tab-completion"
+            echo "source '$completions_dir/zd.bash'"
+        fi
     } >> "$config_file"
 
     print_success "Alias 'zd' added to $config_file"
     print_success "Alias 'zd-frameworks' added to $config_file"
     print_success "Alias 'zd-packages' added to $config_file"
     print_success "Alias 'zd-tools' added to $config_file"
+    if grep -q "dev/completions/zd\." "$config_file" 2>/dev/null; then
+        print_success "Tab-completion sourced in $config_file"
+    fi
     print_status "You can now use 'zd' instead of './znuny-dev.sh' from anywhere"
+    print_status "Reload shell or run: source $config_file"
 
     # Store alias status in .env file using env.sh
     set_env_variable "SETUP_ZD_ALIAS" "true"
@@ -378,9 +398,14 @@ remove_alias() {
             if confirm "Do you want to remove the ZD alias?" "n"; then
                 # Remove existing alias, function lines and related comments
                 sed -i.bak '/alias zd=/d' "$config_file"
+                sed -i.bak '/alias zd-frameworks=/d' "$config_file"
+                sed -i.bak '/alias zd-packages=/d' "$config_file"
+                sed -i.bak '/alias zd-tools=/d' "$config_file"
                 sed -i.bak '/zd()/d' "$config_file"
                 sed -i.bak '/# Znuny Development Environment/d' "$config_file"
                 sed -i.bak '/# Added by znuny environment setup/d' "$config_file"
+                sed -i.bak '/# znuny-dev tab-completion/d' "$config_file"
+                sed -i.bak '/dev\/completions\/zd\./d' "$config_file"
                 print_success "ZD alias removed from $config_file"
 
                 # Update .env file

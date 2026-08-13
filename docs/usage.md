@@ -2,6 +2,8 @@
 
 All operations go through `zd` (alias set by `setup-all` / `setup-alias`). From the project root, if the alias is missing, use `./znuny-dev.sh` instead.
 
+**Tab-completion:** `setup-alias` sources `dev/completions/zd.zsh` (zsh) or `zd.bash` (bash). After setup, reload the shell (`source ~/.zshrc`). Then `zd ran` + Tab → `random-data-insert` (unique match completes immediately). Second argument completes known frameworks / `all`.
+
 ```bash
 zd help       # Full command list (always up to date)
 zd examples   # Concrete examples
@@ -23,7 +25,7 @@ When your shell is inside a checkout under `FRAMEWORKS_DIR` (e.g. `frameworks/de
 | `zd setup-all` | Full setup (framework, tools, instance) |
 | `zd setup-remove` | Remove frameworks, tools, and instances |
 | `zd setup-env` | Generate global `.env` from template |
-| `zd setup-alias` | Install global `zd` alias |
+| `zd setup-alias` | Install global `zd` alias + tab-completion |
 | `zd setup-tools` | Clone/setup Fred, CodePolicy, module-tools |
 | `zd setup-framework [<branch> <directory>]` | Setup framework (optional branch / dir) |
 | `zd setup-packages` | Setup packages |

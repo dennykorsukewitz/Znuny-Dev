@@ -4,5 +4,5 @@
 
 ## Features
 
-- [ ] Tab-Completion
+- [x] Tab-Completion
 - [x] Optional Framework-Argument (CWD)

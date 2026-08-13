@@ -2447,7 +2447,7 @@ main() {
                 local cwd_fw
                 cwd_fw=$(detect_framework_from_cwd 2>/dev/null || true)
                 if [ -n "$cwd_fw" ]; then
-                    print_status "Framework from cwd: $cwd_fw"
+                    print_header "Framework: $cwd_fw"
                     show_status "$cwd_fw" "$@"
                     return
                 fi
@@ -2464,7 +2464,7 @@ main() {
                 local cwd_fw
                 cwd_fw=$(detect_framework_from_cwd 2>/dev/null || true)
                 if [ -n "$cwd_fw" ]; then
-                    print_status "Framework from cwd: $cwd_fw"
+                    print_header "Framework: $cwd_fw"
                     create "$cwd_fw" "$@"
                     exit 0
                 fi
@@ -2526,7 +2526,7 @@ main() {
     if [ -z "$framework" ]; then
         framework=$(detect_framework_from_cwd 2>/dev/null || true)
         if [ -n "$framework" ]; then
-            print_status "Framework from cwd: $framework"
+            print_header "Framework: $framework"
         fi
     fi
 

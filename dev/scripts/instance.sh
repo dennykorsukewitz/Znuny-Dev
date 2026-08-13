@@ -1486,7 +1486,8 @@ create_instance_variables() {
     fi
     network_subnet="172.20.$((1 + framework_index)).0/24"
 
-    setup_date=$(date)
+    # No spaces, so the value needs no quotes in the instance .env
+    setup_date=$(date +%Y-%m-%dT%H:%M:%S%z)
     compose_file_full_path="$(get_compose_file "$framework")"
 
     # Get configuration from user if not provided via parameters

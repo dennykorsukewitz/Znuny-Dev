@@ -63,9 +63,9 @@ setup_env() {
         exit 1
     fi
 
-    # Get current date
+    # Get current date (no spaces, so the value needs no quotes in .env)
     local setup_date
-    setup_date=$(date)
+    setup_date=$(date +%Y-%m-%dT%H:%M:%S%z)
 
     # Define all path variables (Full Paths)
     local dev_dir="$znuny_dev_root/dev"

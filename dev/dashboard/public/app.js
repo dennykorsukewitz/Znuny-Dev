@@ -2194,9 +2194,13 @@
                 }
                 var aboutEl = document.getElementById("about-dialog-version");
                 if (aboutEl) {
-                    aboutEl.textContent = "v" + info.version;
+                    var versionTag = String(info.version).replace(/^v/i, "");
+                    aboutEl.textContent = "v" + versionTag;
+                    aboutEl.href =
+                        "https://github.com/dennykorsukewitz/Znuny-Dev/releases/tag/" +
+                        encodeURIComponent(versionTag);
                     aboutEl.hidden = false;
-                    var aboutTip = "Znuny-Dev " + info.version;
+                    var aboutTip = "Znuny-Dev " + versionTag;
                     if (info.build_branch) {
                         aboutTip += " · " + info.build_branch;
                     }

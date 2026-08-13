@@ -2256,7 +2256,15 @@ body.theme-dark .about-pacman-icon {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-decoration: none;
+  border-bottom: 1px dotted currentColor;
   color: color-mix(in srgb, var(--text) 55%, transparent);
+}
+
+.about-dialog-version:hover {
+  color: var(--zn-orange);
+  border-bottom-color: var(--zn-orange);
 }
 
 .about-dialog-version[hidden] {

@@ -20,7 +20,7 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Security
 
-## [1.0.0] - 2026-XX-XX
+## [0.0.5] - 2026-08-13
 
 ### Added
 
@@ -35,7 +35,6 @@ All notable changes to the Znuny Development Environment will be documented in t
 - Interactive setup with user prompts, environment configuration management
 - Backup and restore functionality, comprehensive status reporting
 - Built-in help, examples, and version commands
-
 - Experimental local web dashboard for development (Docker Compose on `127.0.0.1`, default port `9999`): `zd dashboard start|stop|remove|build|restart|status`; UI served from the repo mount (`dev/dashboard`)
 
 ---

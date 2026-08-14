@@ -76,13 +76,6 @@ sub Load {
     # if you want to use a TCP/IP connection
 #    $Self->{DatabaseDSN} = "DBI:Pg:dbname=$Self->{Database};host=$Self->{DatabaseHost};";
 
-    # The database DSN for Oracle ==> more: "perldoc DBD::oracle"
-#    $Self->{DatabaseDSN} = "DBI:Oracle://$Self->{DatabaseHost}:1521/$Self->{Database}";
-#
-#    $ENV{ORACLE_HOME}     = '/path/to/your/oracle';
-#    $ENV{NLS_DATE_FORMAT} = 'YYYY-MM-DD HH24:MI:SS';
-#    $ENV{NLS_LANG}        = 'AMERICAN_AMERICA.AL32UTF8';
-
     # ---------------------------------------------------- #
     # fs root directory
     # ---------------------------------------------------- #

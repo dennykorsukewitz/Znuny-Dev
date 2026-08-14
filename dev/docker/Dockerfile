@@ -19,11 +19,6 @@ ENV APACHE_LOCK_DIR=/var/lock/apache2
 ENV TZ="/usr/share/zoneinfo/Europe/Berlin"
 RUN ln -snf $TZ /etc/localtime && echo $TZ > /etc/timezone
 
-# Oracle environment
-ENV ORACLE_HOME="/usr/lib/oracle/19.6/client64"
-ENV NLS_DATE_FORMAT="YYYY-MM-DD HH24:MI:SS"
-ENV NLS_LANG="GERMAN_GERMANY.AL32UTF8"
-
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     apache2 \

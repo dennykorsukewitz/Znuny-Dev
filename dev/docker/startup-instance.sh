@@ -30,7 +30,7 @@ detect_framework() {
 # Function to wait for database
 wait_for_database() {
     # Check if any database is detected
-    if [ "$MYSQL" -ne 1 ] && [ "$POSTGRESQL" -ne 1 ] && [ "$ORACLE" -ne 1 ]; then
+    if [ "$MYSQL" -ne 1 ] && [ "$POSTGRESQL" -ne 1 ]; then
         log "No database detected, skipping database wait..."
         return 0
     fi
@@ -77,12 +77,6 @@ wait_for_database() {
                     return 0
                 fi
                 ;;
-            oracle)
-                if echo exit | sqlplus64 -L system/oracle@"$db_host:$db_port/xe" >/dev/null 2>&1; then
-                    log "Oracle database is ready!"
-                    return 0
-                fi
-                ;;
         esac
 
         log "Database not ready yet (attempt $attempt/$max_attempts)..."
@@ -98,12 +92,10 @@ wait_for_database() {
 detect_database() {
     MYSQL=0
     POSTGRESQL=0
-    ORACLE=0
 
     # Check /etc/hosts for database containers
     grep -q mysql /etc/hosts && MYSQL=1
     grep -q postgresql /etc/hosts && POSTGRESQL=1
-    grep -q oracle /etc/hosts && ORACLE=1
 
     # Also check environment variables
     case "$DB_TYPE" in
@@ -113,18 +105,15 @@ detect_database() {
         postgresql|postgres)
             POSTGRESQL=1
             ;;
-        oracle)
-            ORACLE=1
-            ;;
     esac
 
-    log "Database detection: MySQL=$MYSQL, PostgreSQL=$POSTGRESQL, Oracle=$ORACLE"
+    log "Database detection: MySQL=$MYSQL, PostgreSQL=$POSTGRESQL"
 }
 
 # Function to configure database
 configure_database() {
     # Check if any database is detected
-    if [ "$MYSQL" -ne 1 ] && [ "$POSTGRESQL" -ne 1 ] && [ "$ORACLE" -ne 1 ]; then
+    if [ "$MYSQL" -ne 1 ] && [ "$POSTGRESQL" -ne 1 ]; then
         log "No database detected, skipping database configuration..."
         return 0
     fi
@@ -145,9 +134,6 @@ configure_database() {
     elif [ "$POSTGRESQL" -eq 1 ]; then
         log "Configuring PostgreSQL database..."
         /etc/znuny/configs/postgresql/config-postgresql.sh
-    elif [ "$ORACLE" -eq 1 ]; then
-        log "Configuring Oracle database..."
-        /etc/znuny/configs/oracle/config-oracle.sh
     else
         log "No database configuration found, skipping..."
     fi
@@ -359,8 +345,6 @@ if [ -f "$FRAMEWORK_DIR/Kernel/Config.pm" ]; then
         db_type="MySQL"
     elif [[ "$db_host" == *"postgres"* ]]; then
         db_type="PostgreSQL"
-    elif [[ "$db_host" == *"oracle"* ]]; then
-        db_type="Oracle"
     fi
     local database_info="$db_type ($db_name)"
 else
@@ -698,9 +682,6 @@ main() {
                 ;;
             postgresql|postgres)
                 DB_PORT="5432"
-                ;;
-            oracle)
-                DB_PORT="1521"
                 ;;
             *)
                 DB_PORT="3306"

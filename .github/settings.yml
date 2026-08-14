@@ -9,7 +9,7 @@ repository:
   homepage: https://dennykorsukewitz.github.io/Znuny-Dev/
 
   # A comma-separated list of topics to set on the repository
-  topics: znuny, docker, docker-compose, development-environment, multi-instance, mysql, postgresql, mariadb, oracle, bash, automation, testing, ci-cd
+  topics: znuny, docker, docker-compose, development-environment, multi-instance, mysql, postgresql, mariadb, bash, automation, testing, ci-cd
 
   # Either `true` to make the repository private, or `false` to make it public.
   private: true

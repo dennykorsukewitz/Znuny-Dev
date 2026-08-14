@@ -200,9 +200,6 @@ get_database_container_name() {
             postgresql|postgres)
                 db_container_name="znuny-postgresql"
                 ;;
-            oracle)
-                db_container_name="znuny-oracle"
-                ;;
         esac
     else
         local framework_slug
@@ -216,9 +213,6 @@ get_database_container_name() {
                 ;;
             postgresql|postgres)
                 db_container_name="znuny-${framework_slug}-postgresql"
-                ;;
-            oracle)
-                db_container_name="znuny-${framework_slug}-oracle"
                 ;;
         esac
     fi

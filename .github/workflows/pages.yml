@@ -13,5 +13,4 @@ jobs:
   Pages:
     uses: dennykorsukewitz/dennykorsukewitz/.github/workflows/reusable.pages.yml@dev
     secrets:
-      # TODO
       PAT: ${{ secrets.PAT }}

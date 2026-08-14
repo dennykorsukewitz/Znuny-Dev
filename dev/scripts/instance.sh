@@ -1564,18 +1564,6 @@ POSTGRES_DB=$db_name
 POSTGRES_USER=$db_user
 POSTGRES_PASSWORD=$db_password"
             ;;
-        oracle)
-            db_host="${db_host_shared:-znuny_${framework}_oracle}"
-            db_port="${db_port:-1521}"
-            db_root_password="root_$framework"
-            db_container="znuny_${framework}_oracle"
-            db_service="znuny_${framework}_oracle"
-            db_volume="znuny_${framework}_oracle_data"
-            db_specific_config="DB_NAME=$db_name
-DB_USER=$db_user
-DB_PASSWORD=$db_password
-ORACLE_PASSWORD=$db_password"
-            ;;
         *)
             db_host="${db_host_shared:-znuny_${framework}_mariadb}"
             db_port="${db_port:-3306}"

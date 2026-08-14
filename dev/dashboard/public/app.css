@@ -2163,6 +2163,7 @@ body.theme-dark .site-footer {
   background-repeat: no-repeat;
   opacity: 0.18;
   transition: opacity ease 0.4s;
+  animation: ZnunyEatIdle 5s infinite;
 }
 
 body.theme-dark .about-pacman-icon {
@@ -2222,7 +2223,81 @@ body.theme-dark .about-pacman-icon {
   }
 }
 
+/* Idle: mouth stays open (like the static logo), one bite every 5s.
+   Uses the closed logo throughout so the mouth is cut by clip-path only;
+   without the animation (reduced motion) the static open-mouth logo is shown.
+   During the bite the icon is fully opaque, same as on hover. */
+@keyframes ZnunyEatIdle {
+  0%,
+  84% {
+    opacity: 0.18;
+    background-image: url("/img/znuny-logo-closed.png");
+    clip-path: polygon(
+      0% 30%,
+      0% 0%,
+      100% 0%,
+      100% 100%,
+      0% 100%,
+      0% 75%,
+      50% 50%
+    );
+  }
+  88% {
+    opacity: 1;
+    background-image: url("/img/znuny-logo-closed.png");
+    clip-path: polygon(
+      0% 30%,
+      0% 0%,
+      100% 0%,
+      100% 100%,
+      0% 100%,
+      0% 75%,
+      50% 50%
+    );
+  }
+  91% {
+    opacity: 1;
+    background-image: url("/img/znuny-logo-closed.png");
+    clip-path: polygon(
+      0% 50%,
+      0% 0%,
+      100% 0%,
+      100% 100%,
+      0% 100%,
+      0% 50%,
+      50% 50%
+    );
+  }
+  94% {
+    opacity: 1;
+    background-image: url("/img/znuny-logo-closed.png");
+    clip-path: polygon(
+      0% 30%,
+      0% 0%,
+      100% 0%,
+      100% 100%,
+      0% 100%,
+      0% 75%,
+      50% 50%
+    );
+  }
+  100% {
+    opacity: 0.18;
+    background-image: url("/img/znuny-logo-closed.png");
+    clip-path: polygon(
+      0% 30%,
+      0% 0%,
+      100% 0%,
+      100% 100%,
+      0% 100%,
+      0% 75%,
+      50% 50%
+    );
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .about-pacman-icon,
   .about-pacman:hover .about-pacman-icon,
   .about-pacman:focus-visible .about-pacman-icon {
     animation: none;

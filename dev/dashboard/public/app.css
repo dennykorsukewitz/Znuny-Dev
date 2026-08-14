@@ -473,7 +473,14 @@ body.theme-dark .hero {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
+  text-decoration: none;
+  border-bottom: 1px dotted currentColor;
   color: color-mix(in srgb, var(--hero-muted) 75%, var(--zn-orange));
+}
+
+.hero-version:hover {
+  color: var(--zn-orange);
+  border-bottom-color: var(--zn-orange);
 }
 
 .hero-version[hidden] {

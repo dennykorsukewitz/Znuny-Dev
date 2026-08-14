@@ -2192,41 +2192,33 @@
                 if (!info || !info.version) {
                     return;
                 }
+                var versionTag = String(info.version).replace(/^v/i, "");
+                var releaseUrl =
+                    "https://github.com/dennykorsukewitz/Znuny-Dev/releases/tag/" +
+                    encodeURIComponent(versionTag);
+                var versionTip = "Znuny-Dev " + versionTag;
+                if (info.build_branch) {
+                    versionTip += " · " + info.build_branch;
+                }
+                if (info.build_commit) {
+                    versionTip += " · " + info.build_commit;
+                }
+                if (info.build_date) {
+                    versionTip += " · " + info.build_date;
+                }
                 var aboutEl = document.getElementById("about-dialog-version");
                 if (aboutEl) {
-                    var versionTag = String(info.version).replace(/^v/i, "");
                     aboutEl.textContent = "v" + versionTag;
-                    aboutEl.href =
-                        "https://github.com/dennykorsukewitz/Znuny-Dev/releases/tag/" +
-                        encodeURIComponent(versionTag);
+                    aboutEl.href = releaseUrl;
                     aboutEl.hidden = false;
-                    var aboutTip = "Znuny-Dev " + versionTag;
-                    if (info.build_branch) {
-                        aboutTip += " · " + info.build_branch;
-                    }
-                    if (info.build_commit) {
-                        aboutTip += " · " + info.build_commit;
-                    }
-                    if (info.build_date) {
-                        aboutTip += " · " + info.build_date;
-                    }
-                    setElementTooltip(aboutEl, aboutTip);
+                    setElementTooltip(aboutEl, versionTip);
                 }
                 var heroEl = document.getElementById("hero-version");
                 if (heroEl) {
-                    heroEl.textContent = "v" + info.version;
+                    heroEl.textContent = "v" + versionTag;
+                    heroEl.href = releaseUrl;
                     heroEl.hidden = false;
-                    var tip = "Znuny-Dev " + info.version;
-                    if (info.build_branch) {
-                        tip += " · " + info.build_branch;
-                    }
-                    if (info.build_commit) {
-                        tip += " · " + info.build_commit;
-                    }
-                    if (info.build_date) {
-                        tip += " · " + info.build_date;
-                    }
-                    setElementTooltip(heroEl, tip);
+                    setElementTooltip(heroEl, versionTip);
                 }
             })
             .catch(function () {});

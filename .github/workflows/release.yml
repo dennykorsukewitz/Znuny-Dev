@@ -1,0 +1,15 @@
+---
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+  workflow_dispatch:
+
+jobs:
+  Release:
+    uses: dennykorsukewitz/dennykorsukewitz/.github/workflows/reusable.release.github.yml@dev
+    secrets:
+      PAT: ${{ secrets.PAT }}

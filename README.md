@@ -15,7 +15,7 @@ A comprehensive Docker-based development environment for Znuny that enables work
 
 | Versions | Status |
 | --- | --- |
-| dev | ![GitHub label version](https://img.shields.io/github/labels/dennykorsukewitz/dennykorsukewitz/dev) [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/dennykorsukewitz/Znuny-Dev/1.0.0/dev)](https://github.com/dennykorsukewitz/Znuny-Dev/compare/1.0.0...dev) ![GitHub Workflow Lint](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/lint.yml/badge.svg?branch=dev&style=flat&label=Lint) ![GitHub Workflow UnitTest](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/unittest.yml/badge.svg?branch=dev&style=flat&label=UnitTest) ![GitHub Workflow Pages](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/pages.yml/badge.svg?branch=dev&style=flat&label=GitHub%20Pages) |
+| ![GitHub label version](https://img.shields.io/github/labels/dennykorsukewitz/dennykorsukewitz/dev) | [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/dennykorsukewitz/Znuny-Dev/1.0.0/dev)](https://github.com/dennykorsukewitz/Znuny-Dev/compare/1.0.0...dev) ![GitHub Workflow Lint](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/lint.yml/badge.svg?branch=dev&style=flat&label=Lint) ![GitHub Workflow UnitTest](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/unittest.yml/badge.svg?branch=dev&style=flat&label=UnitTest) ![GitHub Workflow Pages](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/pages.yml/badge.svg?branch=dev&style=flat&label=GitHub%20Pages) |
 
 ## 🚀 Features
 
@@ -88,7 +88,7 @@ zd status
 zd dashboard start   # optional — http://127.0.0.1:9999/
 ```
 
-More commands (setup, Module-Tools install/uninstall, CodePolicy, tests, release): [docs/usage.md](docs/usage.md).  
+More commands (setup, Module-Tools install/uninstall, CodePolicy, tests, release): [docs/usage.md](docs/usage.md).
 Dashboard details: [docs/dashboard.md](docs/dashboard.md).
 
 ## ⚙️ Configuration

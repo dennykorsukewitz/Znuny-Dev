@@ -1,6 +1,6 @@
 # Znuny Multi-Instance Development Environment
 
-<img alt="Znuny Dev Logo" align="right" width="150" height="150" src="doc/images/icon.png">
+<img alt="Znuny Dev Logo" align="right" width="150" height="150" src="docs/images/icon.png">
 
 A comprehensive Docker-based development environment for Znuny that enables working on multiple Znuny Framework instances simultaneously, each with its own database and configuration.
 
@@ -15,7 +15,7 @@ A comprehensive Docker-based development environment for Znuny that enables work
 
 | Versions | Status |
 | --- | --- |
-| dev | ![GitHub label version](https://img.shields.io/github/labels/dennykorsukewitz/dennykorsukewitz/dev) [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/dennykorsukewitz/Znuny-Dev/0.0.1/dev)](https://github.com/dennykorsukewitz/Znuny-Dev/compare/0.0.1...dev) ![GitHub Workflow Lint](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/lint.yml/badge.svg?branch=dev&style=flat&label=Lint) ![GitHub Workflow UnitTest](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/unittest.yml/badge.svg?branch=dev&style=flat&label=UnitTest) ![GitHub Workflow Pages](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/pages.yml/badge.svg?branch=dev&style=flat&label=GitHub%20Pages) |
+| dev | ![GitHub label version](https://img.shields.io/github/labels/dennykorsukewitz/dennykorsukewitz/dev) [![GitHub commits since tagged version](https://img.shields.io/github/commits-since/dennykorsukewitz/Znuny-Dev/1.0.0/dev)](https://github.com/dennykorsukewitz/Znuny-Dev/compare/1.0.0...dev) ![GitHub Workflow Lint](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/lint.yml/badge.svg?branch=dev&style=flat&label=Lint) ![GitHub Workflow UnitTest](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/unittest.yml/badge.svg?branch=dev&style=flat&label=UnitTest) ![GitHub Workflow Pages](https://github.com/dennykorsukewitz/Znuny-Dev/actions/workflows/pages.yml/badge.svg?branch=dev&style=flat&label=GitHub%20Pages) |
 
 ## 🚀 Features
 

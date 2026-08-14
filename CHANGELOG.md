@@ -2,65 +2,21 @@
 
 All notable changes to the Znuny Development Environment will be documented in this file.
 
-## [Unreleased]
+## [1.0.0] - 2026-08-14
 
 ### Added
 
-- Documentation: `docs/usage.md` (full `zd` reference) and `docs/dashboard.md` (local dashboard)
-
-### Changed
-
-- README: shortened Usage to everyday commands; details moved to `docs/`
-
-### Deprecated
-
-### Removed
-
-### Fixed
-
-### Security
-
-## [0.0.5] - 2026-08-13
-
-### Added
-
-- Complete Znuny development environment automation via `znuny-dev.sh`
-- Setup commands: `setup-all`, `setup-status`, `setup-env`, `setup-remove`, framework, tools, packages, Docker Compose generation
-- Instance management: create, remove, start, stop, restart, build, status, logs (framework and container)
-- Console command execution and shell access to containers
-- Global `zd` alias for common tasks (cache rebuild, unit tests, translations, ModuleTools)
-- ModuleTools integration: link/unlink packages, dbinstall/codeinstall, Fred link
-- Framework repository cloning and configuration
-- Development tools: Fred, ZnunyCodePolicy, module-tools
-- Interactive setup with user prompts, environment configuration management
-- Backup and restore functionality, comprehensive status reporting
-- Built-in help, examples, and version commands
-- Experimental local web dashboard for development (Docker Compose on `127.0.0.1`, default port `9999`): `zd dashboard start|stop|remove|build|restart|status`; UI served from the repo mount (`dev/dashboard`)
-
----
-
-## Release Notes Format
-
-### Added
-
-- New features
-
-### Changed
-
-- Changes in existing functionality
-
-### Deprecated
-
-- Soon-to-be removed features
-
-### Removed
-
-- Removed features
-
-### Fixed
-
-- Bug fixes
-
-### Security
-
-- Security improvements
+- Multi-instance Docker environment: run several Znuny frameworks in parallel via `znuny-dev.sh` / `zd`
+- Multi-database support per instance: MariaDB, MySQL, or PostgreSQL
+- Instance modes: shared DB (default) or dedicated DB + network per instance
+- Automatic HTTP port assignment (`BASE_PORT`, default 10000+) and per-instance Compose generation
+- Setup flow: `setup-all`, `setup-status`, `setup-env`, `setup-alias`, framework / tools / packages / Compose
+- Instance lifecycle: create, remove, start, stop, restart, build, status (`--json`), logs, shell, console
+- Global `zd` alias with shell tab-completion (bash/zsh)
+- Host overrides via `configs/` (`instance/my.env`, `framework/Config.pm` injected on container start)
+- Module-Tools integration: link/unlink packages and tools, dbinstall/codeinstall, install/uninstall
+- Developer tools: Fred, ZnunyCodePolicy (link helpers included)
+- `zd random-data-insert` for seed data on new instances
+- Local web dashboard (`zd dashboard`, default `http://127.0.0.1:9999/`) with host opener for folder/IDE actions
+- Docs: `docs/usage.md`, `docs/dashboard.md`; `zd help` / `zd examples` / `zd version`
+- Built-in test suite entry (`zd test`) and GitHub Actions lint/unittest workflows

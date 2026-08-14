@@ -2,11 +2,11 @@
 name: GitHub Pages
 
 on:
-  # release:
-  #   types:
-  #     - published
-  # push:
-  #   branches: ["dev", "dev-update"]
+  release:
+    types:
+      - published
+  push:
+    branches: ["dev"]
   workflow_dispatch: # Allows you to run this workflow manually from the Actions tab
 
 jobs:

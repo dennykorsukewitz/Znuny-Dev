@@ -25,7 +25,9 @@ Be respectful and constructive. Focus on the technical problem and a clear fix.
 
 ## Development setup
 
-Prerequisites: Docker, Docker Compose, Git, Bash.
+Prerequisites and full walkthrough: [docs/setup.md](docs/setup.md)
+
+Quick start:
 
 ```bash
 git clone https://github.com/dennykorsukewitz/Znuny-Dev.git znuny-dev

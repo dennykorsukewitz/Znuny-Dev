@@ -34,27 +34,23 @@ A comprehensive Docker-based development environment for Znuny that enables work
 
 ## 📋 Prerequisites
 
-- Docker and Docker Compose
+- Docker and Docker Compose — see [docs/setup.md](docs/setup.md) (macOS, Windows/WSL 2, Linux)
 - Git
 - Bash (available on all platforms)
 
 ## 🛠️ Installation
 
-### 1. Clone Repository
+**Full step-by-step guide:** [docs/setup.md](docs/setup.md) — read it completely before running setup.
+
+Quick start:
 
 ```bash
 git clone https://github.com/dennykorsukewitz/Znuny-Dev/ znuny-dev
 cd znuny-dev
-```
 
-### 2. Setup-All
-
-```bash
-# Make all scripts executable
 chmod -R +x dev/scripts
 chmod +x znuny-dev.sh
 
-# Setup complete environment (or: zd setup-all after alias is configured)
 ./znuny-dev.sh setup-all
 ```
 
@@ -123,6 +119,7 @@ Znuny-Dev/
 ├── .env                                  # Global config (from dev/templates/env/)
 ├── RELEASE                               # Version and build information
 ├── docs/                                 # Extra documentation
+│   ├── setup.md                          # Installation & setup (step-by-step)
 │   ├── usage.md                          # Full zd command reference
 │   └── dashboard.md                      # Local dashboard
 ├── configs/                              # Optional host overrides (see Configuration)

@@ -19,6 +19,8 @@ When your shell is inside a checkout under `FRAMEWORKS_DIR` (e.g. `frameworks/de
 
 ## Setup
 
+Step-by-step installation: [setup.md](setup.md)
+
 | Command | Purpose |
 | --- | --- |
 | `zd setup-status [--verbose]` | Setup status overview |

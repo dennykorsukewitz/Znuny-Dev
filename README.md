@@ -32,6 +32,8 @@ A comprehensive Docker-based development environment for Znuny that enables work
 - **Bash Scripts**: Cross-platform compatibility
 - **Optional local dashboard**: instance overview at `http://127.0.0.1:9999/` — see [docs/dashboard.md](docs/dashboard.md)
 
+![Local dashboard — cards, table, instance actions](docs/images/dashboard.gif)
+
 ## 📋 Prerequisites
 
 - Docker and Docker Compose — see [docs/setup.md](docs/setup.md) (macOS, Windows/WSL 2, Linux)
@@ -53,6 +55,10 @@ chmod +x znuny-dev.sh
 
 ./znuny-dev.sh setup-all
 ```
+
+![Create instance — `zd create`](docs/images/create.gif)
+
+Full walkthrough: [docs/setup.md](docs/setup.md)
 
 ## 🎯 Usage
 
@@ -87,6 +93,10 @@ zd dashboard start   # optional — http://127.0.0.1:9999/
 More commands (setup, Module-Tools install/uninstall, CodePolicy, tests, release): [docs/usage.md](docs/usage.md).
 Dashboard details: [docs/dashboard.md](docs/dashboard.md).
 
+### Local dashboard
+
+Start with `zd dashboard start`, then open [http://127.0.0.1:9999/](http://127.0.0.1:9999/). Card and table views, Docker health, start/stop/restart, workspace and IDE links — see the preview under [Features](#-features).
+
 ## ⚙️ Configuration
 
 ### Project configs (`configs/`)
@@ -119,6 +129,7 @@ Znuny-Dev/
 ├── .env                                  # Global config (from dev/templates/env/)
 ├── RELEASE                               # Version and build information
 ├── docs/                                 # Extra documentation
+│   ├── images/                           # README previews (create.gif, dashboard.gif)
 │   ├── setup.md                          # Installation & setup (step-by-step)
 │   ├── usage.md                          # Full zd command reference
 │   └── dashboard.md                      # Local dashboard

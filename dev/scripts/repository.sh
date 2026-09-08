@@ -201,6 +201,17 @@ clone_repository() {
     print_status "Target directory: $FRAMEWORKS_DIR_REL/$(basename "$target_dir")"
     print_status "Branch: $branch"
 
+    # git clone fails with "Unable to read current working directory" if cwd is
+    # inside the target (e.g. after rm -rf of an existing checkout you stood in).
+    local parent_dir
+    parent_dir="$(dirname "$target_dir")"
+    case "$(pwd)" in
+        "$target_dir"|"$target_dir"/*)
+            print_warning "Working directory is inside clone target; switching to $parent_dir"
+            cd "$parent_dir" || cd "${ZNUNY_DEV_DIR:-.}" || return 1
+            ;;
+    esac
+
     # Check if target directory already exists
     if [ -d "$target_dir" ]; then
         if [ "$(ls -A "$target_dir" 2>/dev/null)" ]; then

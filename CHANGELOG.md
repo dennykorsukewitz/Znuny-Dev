@@ -2,6 +2,16 @@
 
 All notable changes to the Znuny Development Environment will be documented in this file.
 
+## [UNRELEASED] - YYYY-MM-DD
+
+### Added
+
+- New features
+
+### Changed
+
+- Leave the clone target before `rm -rf` / `git clone` so a fresh checkout does not fail with `Unable to read current working directory` when the previous framework directory was the shell cwd.
+
 ## [1.0.0] - 2026-08-14
 
 ### Added

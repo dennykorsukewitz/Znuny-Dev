@@ -331,10 +331,11 @@ If you skipped steps or need to re-run parts:
 
 ### WSL: Git ownership (`www-data`)
 
-# Bind mounts on Linux/WSL keep container UIDs. Apache still runs as www-data,
-# but `zd start` maps that account to HOST_UID/HOST_GID (your WSL user). Host `git pull` then works without chown.
-# Recreate the instance once: `zd setup-compose && zd start <framework>` (or just `zd start` — instance env gets HOST_UID).
-# Override: `HOST_UID` / `HOST_GID` in `.env` or `configs/instance/my.env`. Skip mapping when HOST_UID is 0 (e.g. dashboard as root without forwarded IDs).
+Bind mounts on Linux/WSL keep container UIDs. Apache still runs as www-data, but `zd start` maps that account to HOST_UID/HOST_GID (your WSL user). Host `git pull` then works without chown.
+
+Recreate the instance once: `zd setup-compose && zd start <framework>` (or just `zd start` — instance env gets HOST_UID).
+
+Override: `HOST_UID` / `HOST_GID` in `.env` or `configs/instance/my.env`. Skip mapping when HOST_UID is 0 (e.g. dashboard as root without forwarded IDs).
 
 On **WSL 2**, Docker uses real Linux UIDs. macOS Docker often remaps anyway.
 

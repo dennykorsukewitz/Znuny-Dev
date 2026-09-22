@@ -30,6 +30,13 @@ compose_dashboard() {
     compose_dir=$(dirname "$compose_file")
     local dc
     dc=$(get_compose_cmd 2>/dev/null) || dc="docker compose"
+    if [ -z "${HOST_UID:-}" ] || [ "${HOST_UID}" = "0" ]; then
+        if [ "$(id -u)" != "0" ]; then
+            HOST_UID="$(id -u)"
+            HOST_GID="$(id -g)"
+        fi
+    fi
+    export HOST_UID HOST_GID
     (
         cd "$compose_dir" && $dc -f "$(basename "$compose_file")" -p znuny "$@"
     )

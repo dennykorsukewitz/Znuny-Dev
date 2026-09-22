@@ -50,6 +50,8 @@ services:
       - ZNUNY_PORT=${FRAMEWORK_PORT}
       - FRAMEWORK_NAME=${FRAMEWORK_NAME}
       - ZNUNY_USE_MOD_PERL=${ZNUNY_USE_MOD_PERL:-false}
+      - HOST_UID=${HOST_UID:-}
+      - HOST_GID=${HOST_GID:-}
     depends_on:
       - znuny-postgresql
     networks:

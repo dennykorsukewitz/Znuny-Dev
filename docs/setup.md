@@ -323,9 +323,21 @@ If you skipped steps or need to re-run parts:
 | --- | --- |
 | `Cannot connect to the Docker daemon` | Start Docker Desktop (macOS/Windows) or `sudo systemctl start docker` (Linux) |
 | `docker compose: command not found` | Install `docker-compose-plugin` (Linux) or update Docker Desktop |
-| WSL: slow or permission errors | Use Linux path under `~`, enable WSL integration in Docker Desktop |
+| WSL: slow I/O | Use Linux path under `~` (not `/mnt/c/...`), enable WSL integration in Docker Desktop |
+| WSL: `git pull` fails, files owned by `www-data` | Instance must receive `HOST_UID` (your WSL user). See [WSL: Git ownership (`www-data`)](#wsl-git-ownership-www-data). |
 | `zd: command not found` | Run `source ~/.zshrc` or use `./znuny-dev.sh` |
 | No frameworks in Step 5 | Run `zd setup-framework` first |
 | SSH clone fails | Configure SSH keys / use HTTPS URLs in `configs/instance/my.env` |
+
+### WSL: Git ownership (`www-data`)
+
+# Bind mounts on Linux/WSL keep container UIDs. Apache still runs as www-data,
+# but `zd start` maps that account to HOST_UID/HOST_GID (your WSL user). Host `git pull` then works without chown.
+# Recreate the instance once: `zd setup-compose && zd start <framework>` (or just `zd start` — instance env gets HOST_UID).
+# Override: `HOST_UID` / `HOST_GID` in `.env` or `configs/instance/my.env`. Skip mapping when HOST_UID is 0 (e.g. dashboard as root without forwarded IDs).
+
+On **WSL 2**, Docker uses real Linux UIDs. macOS Docker often remaps anyway.
+
+If files are still UID 33: start did not receive HOST_UID. From WSL run `zd start <framework>` (not as root). Dashboard: `zd dashboard restart` so the dashboard container gets HOST_UID.
 
 For development contributions, see [CONTRIBUTING.md](../CONTRIBUTING.md).

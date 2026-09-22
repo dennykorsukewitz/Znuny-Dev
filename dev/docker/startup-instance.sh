@@ -226,23 +226,65 @@ update_config_custom() {
     log "Config.pm: block replaced with configs/framework/Config.pm"
 }
 
+# Bind mounts on Linux/WSL keep container UIDs on the host. Map www-data to HOST_UID
+# (from `zd start`) so Apache writes as the developer and host git pull works.
+align_www_data_to_host() {
+    local host_uid="${HOST_UID:-}"
+    local host_gid="${HOST_GID:-}"
+
+    if [ -z "$host_uid" ] || [ "$host_uid" = "0" ]; then
+        log "HOST_UID unset or 0 – leaving www-data UID unchanged"
+        return 0
+    fi
+    if [ -z "$host_gid" ] || [ "$host_gid" = "0" ]; then
+        host_gid="$host_uid"
+    fi
+
+    local current_uid current_gid
+    current_uid=$(id -u www-data 2>/dev/null || echo "33")
+    current_gid=$(id -g www-data 2>/dev/null || echo "33")
+    if [ "$current_uid" = "$host_uid" ] && [ "$current_gid" = "$host_gid" ]; then
+        log "www-data already at host UID/GID $host_uid:$host_gid"
+        return 0
+    fi
+
+    log "Mapping www-data to host UID/GID $host_uid:$host_gid (bind-mount Git/Apache)"
+    groupmod --non-unique -g "$host_gid" www-data 2>/dev/null ||
+        log "WARNING: Could not set www-data GID to $host_gid"
+    usermod --non-unique -u "$host_uid" -g "$host_gid" www-data 2>/dev/null ||
+        log "WARNING: Could not set www-data UID to $host_uid"
+
+    # Image baked Apache paths as UID 33; they must follow the new www-data UID.
+    chown -R www-data:www-data /var/log/apache2 /var/run/apache2 /var/lock/apache2 /var/lib/znuny /var/log/znuny 2>/dev/null || true
+}
+
 # Function to setup znuny user
 setup_znuny_user() {
     log "Setting up znuny user..."
 
+    align_www_data_to_host
+
+    # Get www-data user info
+    local www_data_uid www_data_gid
+    www_data_uid=$(id -u www-data 2>/dev/null || echo "33")
+    www_data_gid=$(id -g www-data 2>/dev/null || echo "33")
+
     # Check if znuny user already exists
     if id "znuny" >/dev/null 2>&1; then
         log "User 'znuny' already exists"
+
+        # Older containers got a system UID here (useradd without --non-unique failed on UID 33).
+        # Realign so the bind-mounted framework keeps one owner instead of flipping to another UID.
+        if [ "$(id -u znuny)" != "$www_data_uid" ] || [ "$(id -g znuny)" != "$www_data_gid" ]; then
+            log "Realigning znuny to UID/GID of www-data ($www_data_uid:$www_data_gid)..."
+            usermod --non-unique --uid "$www_data_uid" --gid "$www_data_gid" znuny 2>/dev/null ||
+                log "WARNING: Could not realign znuny UID/GID"
+        fi
     else
-        log "Creating user 'znuny'..."
+        log "Creating user 'znuny' with UID/GID of www-data ($www_data_uid:$www_data_gid)..."
 
-        # Get www-data user info
-        local www_data_uid www_data_gid
-        www_data_uid=$(id -u www-data 2>/dev/null || echo "33")
-        www_data_gid=$(id -g www-data 2>/dev/null || echo "33")
-
-        # Create znuny user with same UID/GID as www-data
-        useradd -u "$www_data_uid" -g "$www_data_gid" -d /home/znuny -s /usr/bin/zsh -m znuny 2>/dev/null || {
+        # --non-unique is required: www-data already owns this UID/GID.
+        useradd --non-unique -u "$www_data_uid" -g "$www_data_gid" -d /home/znuny -s /usr/bin/zsh -m znuny 2>/dev/null || {
             # If useradd fails, try with adduser
             adduser --system --group --home /opt/znuny --shell /usr/bin/zsh znuny 2>/dev/null || {
                 log "WARNING: Could not create znuny user, continuing with www-data"
@@ -252,13 +294,14 @@ setup_znuny_user() {
 
         # Ensure znuny user has proper home directory and permissions
         mkdir -p /home/znuny
-        chown znuny:znuny /home/znuny
+        chown "$www_data_uid:$www_data_gid" /home/znuny
 
         log "User 'znuny' created successfully"
     fi
 
-    # Ensure znuny user has access to framework directory
-    chown -R znuny:znuny "$FRAMEWORK_DIR" 2>/dev/null || true
+    # Ensure znuny user has access to framework directory.
+    # Use numeric IDs: the leftover 'znuny' group of older containers has a different GID.
+    chown -R "$www_data_uid:$www_data_gid" "$FRAMEWORK_DIR" 2>/dev/null || true
 
     # Add znuny user to www-data group for web server access
     usermod -a -G www-data znuny 2>/dev/null || true
@@ -373,7 +416,7 @@ echo "╚═══════════════════════�
 
 znuny-welcome
 EOF
-        chown znuny:znuny /home/znuny/.zshrc 2>/dev/null || true
+        chown "$www_data_uid:$www_data_gid" /home/znuny/.zshrc 2>/dev/null || true
         log "zsh configuration created"
     fi
 

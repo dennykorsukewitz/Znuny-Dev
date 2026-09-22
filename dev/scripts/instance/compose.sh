@@ -320,6 +320,46 @@ remove_all_compose() {
 # Docker Compose Execution
 # ========================================
 
+# Linux/WSL bind mounts keep container UIDs. Pass the host developer UID into the
+# instance (and skip UID 0 so a dashboard-as-root start does not map www-data to root).
+export_bind_mount_ids() {
+    local current_uid
+    current_uid="$(id -u)"
+    if [ -z "${HOST_UID:-}" ] || [ "${HOST_UID}" = "0" ]; then
+        if [ "$current_uid" != "0" ]; then
+            HOST_UID="$current_uid"
+            HOST_GID="$(id -g)"
+        fi
+    fi
+    if [ -n "${HOST_UID:-}" ] && [ "${HOST_UID}" != "0" ]; then
+        if [ -z "${HOST_GID:-}" ] || [ "${HOST_GID}" = "0" ]; then
+            HOST_GID="$HOST_UID"
+        fi
+        export HOST_UID HOST_GID
+    fi
+}
+
+# Persist into instance env_file so existing compose files (no HOST_UID in environment:) still pass it.
+upsert_instance_host_ids() {
+    local env_file="$1"
+    [ -f "$env_file" ] || return 0
+    [ -n "${HOST_UID:-}" ] && [ "${HOST_UID}" != "0" ] || return 0
+    _upsert_env_kv "$env_file" HOST_UID "$HOST_UID"
+    _upsert_env_kv "$env_file" HOST_GID "$HOST_GID"
+}
+
+_upsert_env_kv() {
+    local env_file="$1"
+    local key="$2"
+    local val="$3"
+    if grep -q "^${key}=" "$env_file"; then
+        sed -i.bak "s|^${key}=.*|${key}=${val}|" "$env_file"
+        rm -f "${env_file}.bak"
+    else
+        printf '\n%s=%s\n' "$key" "$val" >> "$env_file"
+    fi
+}
+
 # Function to execute docker-compose commands (supports "docker compose" and "docker-compose")
 docker_compose() {
     local framework="$1"
@@ -338,6 +378,8 @@ docker_compose() {
 
     compose_dir="$(dirname "$compose_file")"
     compose_basename="$(basename "$compose_file")"
+    export_bind_mount_ids
+    upsert_instance_host_ids "$compose_dir/$framework.env"
     cd "$compose_dir"
 
     case "$action" in

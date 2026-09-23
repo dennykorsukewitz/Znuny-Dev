@@ -66,7 +66,7 @@ _zd() {
             selenium)
                 if [ "${COMP_CWORD}" -eq 2 ]; then
                     # shellcheck disable=SC2207
-                    COMPREPLY=($(compgen -W "start stop status remove" -- "$cur"))
+                    COMPREPLY=($(compgen -W "start stop restart status remove" -- "$cur"))
                 fi
                 return 0
                 ;;

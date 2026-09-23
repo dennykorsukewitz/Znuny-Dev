@@ -48,7 +48,14 @@ const ZD_REGISTRY = {
     "db-start": { buildArgv: (framework) => ["db-start", framework] },
     "db-stop": { buildArgv: (framework) => ["db-stop", framework] },
     "db-restart": { buildArgv: (framework) => ["db-restart", framework] },
+    "service-start": { service: true },
+    "service-stop": { service: true },
+    "service-restart": { service: true },
 };
+
+/** Shared DB containers and per-instance DB containers, plus Selenium. */
+const SERVICE_NAME_RE =
+    /^znuny-(mariadb|mysql|postgresql|selenium)$|^znuny-[a-z0-9][a-z0-9._-]{0,80}-(mariadb|mysql|postgresql)$/;
 
 function jsonError(res, status, error, detail) {
     const payload = { error };
@@ -374,6 +381,58 @@ async function handleOpenIde(req, res, framework, ideId) {
     });
 }
 
+function handleServiceCommand(res, command, name) {
+    if (typeof name !== "string" || !SERVICE_NAME_RE.test(name)) {
+        jsonError(res, 400, "unknown service");
+        return;
+    }
+    const action = command.slice("service-".length);
+    if (name === "znuny-selenium") {
+        runInstanceScript(["selenium", action], res);
+        return;
+    }
+    const child = spawn("docker", [action, name], {
+        stdio: ["ignore", "pipe", "pipe"],
+    });
+    let out = "";
+    let err = "";
+    child.stdout.on("data", (c) => {
+        out += c;
+    });
+    child.stderr.on("data", (c) => {
+        err += c;
+    });
+    child.on("error", (e) => {
+        if (!res.headersSent) {
+            jsonError(
+                res,
+                500,
+                "docker spawn failed",
+                String(e && e.message ? e.message : e).slice(0, 500),
+            );
+        }
+    });
+    child.on("close", (code) => {
+        if (res.headersSent) {
+            return;
+        }
+        if (code !== 0) {
+            jsonError(
+                res,
+                500,
+                "docker " + action + " failed",
+                (err || out || "exit " + code).trim().slice(0, 2000),
+            );
+            return;
+        }
+        res.writeHead(200, {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-store",
+        });
+        res.end(JSON.stringify({ ok: true, name, action }));
+    });
+}
+
 function handlePostZd(req, res) {
     let raw = "";
     let tooBig = false;
@@ -403,6 +462,10 @@ function handlePostZd(req, res) {
         const command = body.command;
         if (typeof command !== "string" || !ZD_REGISTRY[command]) {
             jsonError(res, 400, "unknown or missing command");
+            return;
+        }
+        if (ZD_REGISTRY[command].service) {
+            handleServiceCommand(res, command, body.name);
             return;
         }
         const framework = body.framework;

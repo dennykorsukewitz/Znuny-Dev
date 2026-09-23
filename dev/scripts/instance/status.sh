@@ -302,6 +302,134 @@ show_all_instance_status() {
 #   _get_release_version            VERSION from host RELEASE or /opt/znuny/RELEASE in container.
 #   _print_one_instance_json         Build one instance JSON object (used in a loop by the collector).
 
+# Shared and dedicated database containers, plus the Selenium browser container.
+# Selenium is always listed so the dashboard can start it when the container is absent.
+# Order: Selenium first, other non-database services later, databases last.
+_service_label() {
+    local name="$1"
+    local engine=""
+    local slug=""
+    case "$name" in
+        znuny-selenium)
+            printf 'Selenium'
+            return 0
+            ;;
+        znuny-mariadb)
+            printf 'MariaDB'
+            return 0
+            ;;
+        znuny-mysql)
+            printf 'MySQL'
+            return 0
+            ;;
+        znuny-postgresql)
+            printf 'PostgreSQL'
+            return 0
+            ;;
+        *-mariadb) engine="MariaDB" ;;
+        *-mysql) engine="MySQL" ;;
+        *-postgresql) engine="PostgreSQL" ;;
+        *)
+            printf '%s' "$name"
+            return 0
+            ;;
+    esac
+    slug="${name#znuny-}"
+    slug="${slug%-mariadb}"
+    slug="${slug%-mysql}"
+    slug="${slug%-postgresql}"
+    printf '%s · %s' "$engine" "$slug"
+}
+
+_print_one_service_json() {
+    local name="$1"
+    local kind="database"
+    local shared=false
+    case "$name" in
+        znuny-selenium) kind="selenium" ;;
+    esac
+    case "$name" in
+        znuny-mariadb|znuny-mysql|znuny-postgresql|znuny-selenium) shared=true ;;
+    esac
+
+    local running=false
+    local health="stopped"
+    local docker_status=""
+    local ports=""
+    local exists=false
+
+    if printf '%s\n' "$_SJC_PS_ALL_NAMES" | grep -qxF "$name"; then
+        exists=true
+    elif docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qxF "$name"; then
+        exists=true
+    fi
+
+    if [ "$exists" = true ]; then
+        if printf '%s\n' "$_SJC_PS_NAMES" | grep -qxF "$name"; then
+            running=true
+            docker_status=$(_sjc_ps_running_status "$name")
+        elif docker ps --format '{{.Names}}' 2>/dev/null | grep -qxF "$name"; then
+            running=true
+            docker_status=$(docker ps --filter "name=^/${name}$" --format '{{.Status}}' | head -1)
+        else
+            docker_status=$(docker ps -a --filter "name=^/${name}$" --format '{{.Status}}' | head -1)
+        fi
+        docker_status=$(printf '%s' "$docker_status" | tr -d '\n\r')
+        ports=$(docker ps -a --filter "name=^/${name}$" --format '{{.Ports}}' | head -1 | tr -d '\n\r')
+        health=$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{if .State.Running}}no-health-check{{else}}stopped{{end}}{{end}}' "$name" 2>/dev/null | tr -d '\n\r' || true)
+        if [ "$running" != true ]; then
+            health="stopped"
+        fi
+        [ -z "$health" ] && health="unknown"
+    fi
+
+    printf '{'
+    printf '"kind":"%s",' "$(json_escape_string "$kind")"
+    printf '"name":"%s",' "$(json_escape_string "$name")"
+    printf '"label":"%s",' "$(json_escape_string "$(_service_label "$name")")"
+    printf '"shared":%s,' "$(_print_bool_json "$shared")"
+    printf '"running":%s,' "$(_print_bool_json "$running")"
+    printf '"health":"%s",' "$(json_escape_string "$health")"
+    printf '"docker_status":"%s",' "$(json_escape_string "$docker_status")"
+    printf '"ports":"%s"' "$(json_escape_string "$ports")"
+    if [ "$kind" = "selenium" ]; then
+        printf ',"url":"http://127.0.0.1:7900/"'
+    fi
+    printf '}'
+}
+
+_print_services_json() {
+    local db_names=()
+    local name
+    if [ -n "${_SJC_PS_ALL_NAMES:-}" ]; then
+        while IFS= read -r name; do
+            [ -n "$name" ] || continue
+            case "$name" in
+                znuny-selenium) ;;
+                znuny-mariadb|znuny-mysql|znuny-postgresql) db_names+=("$name") ;;
+                znuny-*-mariadb|znuny-*-mysql|znuny-*-postgresql) db_names+=("$name") ;;
+            esac
+        done <<< "$_SJC_PS_ALL_NAMES"
+    fi
+
+    local sorted=""
+    if [ "${#db_names[@]}" -gt 0 ]; then
+        sorted=$(printf '%s\n' "${db_names[@]}" | sort -u)
+    fi
+
+    printf '"services":['
+    _print_one_service_json "znuny-selenium"
+    local db_name
+    if [ -n "$sorted" ]; then
+        while IFS= read -r db_name; do
+            [ -n "$db_name" ] || continue
+            printf ','
+            _print_one_service_json "$db_name"
+        done <<< "$sorted"
+    fi
+    printf ']'
+}
+
 print_status_json_collection() {
     local framework="${1:-}"
     local verbose_mode="${2:-false}"
@@ -331,7 +459,9 @@ print_status_json_collection() {
         printf '{"generated_at":"%s","instances":[' "$generated_at"
         _status_json_docker_cache_load "$verbose_mode"
         _print_one_instance_json "$framework" "$verbose_mode"
-        printf ']}\n'
+        printf '],'
+        _print_services_json
+        printf '}\n'
         _status_json_docker_cache_clear
         return 0
     fi
@@ -347,7 +477,9 @@ print_status_json_collection() {
         first=false
         _print_one_instance_json "$inst" "$verbose_mode"
     done
-    printf ']}\n'
+    printf '],'
+    _print_services_json
+    printf '}\n'
     _status_json_docker_cache_clear
 }
 

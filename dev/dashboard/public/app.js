@@ -1478,6 +1478,7 @@
         setStored(storageSortKey, s.sortKey);
         setStored(storageSortDir, s.sortDir);
         renderView();
+        renderServices(lastData);
     }
 
     function handleTableSortHeaderClick(sortKey) {
@@ -1913,6 +1914,296 @@
         lastData = data;
         updateMetaFromData(data);
         renderView();
+        renderServices(data);
+    }
+
+    function serviceStatusDotHtml(service) {
+        var running = !!service.running;
+        var health = service.health || "";
+        var dotClass = "stopped";
+        if (running) {
+            var h = String(health).toLowerCase();
+            if (h === "unhealthy") {
+                dotClass = "error";
+            } else if (h === "healthy" || h === "no-health-check" || h === "") {
+                dotClass = "";
+            } else {
+                dotClass = "warning";
+            }
+        }
+        var kind = service.kind === "selenium" ? "instance" : "database";
+        return (
+            '<span class="container-status status-dot' +
+            (dotClass ? " " + dotClass : "") +
+            '" title="' +
+            escapeHtml(healthStatusTooltip(health, running, kind)) +
+            '"></span>'
+        );
+    }
+
+    function renderServiceCard(service) {
+        var kind = service.kind === "selenium" ? "selenium" : "database";
+        var kindLabel = kind === "selenium" ? "Selenium" : "Database";
+        var scope = service.shared ? "Shared" : "Dedicated";
+        var lines = "";
+        lines +=
+            '<article class="instance-card service-card service-card-' +
+            kind +
+            '">';
+        lines += '<div class="instance-header">';
+        lines += '<div class="instance-name">';
+        lines += "<h2>" + escapeHtml(service.label || service.name || "") + "</h2>";
+        lines += '<span class="service-kind">' + escapeHtml(kindLabel) + "</span>";
+        lines += "</div>";
+        lines += serviceStatusDotHtml(service);
+        lines += "</div>";
+        lines += '<div class="instance-details">';
+        lines += '<table class="instance-detail-table"><tbody>';
+        lines += detailRow(
+            "Container",
+            healthPill(service.health, service.running, kind === "selenium" ? "instance" : "database") +
+                " <code>" +
+                escapeHtml(service.name || "") +
+                "</code>"
+        );
+        lines += detailRow("Scope", escapeHtml(scope));
+        if (service.ports) {
+            lines += detailRow("Ports", "<code>" + escapeHtml(service.ports) + "</code>");
+        }
+        if (kind === "selenium") {
+            var watch = service.running
+                ? '<a href="http://127.0.0.1:7900/" target="_blank" rel="noopener">http://127.0.0.1:7900/</a>'
+                : "http://127.0.0.1:7900/";
+            lines += detailRow(
+                "Watch",
+                watch + ' <span class="cell-muted">password secret</span>'
+            );
+        }
+        lines += "</tbody></table></div>";
+        lines += '<div class="service-actions">';
+        lines +=
+            '<button type="button" class="actions-menu-item" data-service-command="service-start" data-service-name="' +
+            escapeHtml(service.name || "") +
+            '">Start</button>';
+        lines +=
+            '<button type="button" class="actions-menu-item" data-service-command="service-stop" data-service-name="' +
+            escapeHtml(service.name || "") +
+            '">Stop</button>';
+        lines +=
+            '<button type="button" class="actions-menu-item" data-service-command="service-restart" data-service-name="' +
+            escapeHtml(service.name || "") +
+            '">Restart</button>';
+        lines += "</div></article>";
+        return lines;
+    }
+
+    function renderServiceGroup(title, services) {
+        if (!services.length) {
+            return "";
+        }
+        var html = '<div class="services-group">';
+        if (title) {
+            html +=
+                '<h3 class="services-group-title">' +
+                escapeHtml(title) +
+                "</h3>";
+        }
+        html += '<div class="services-grid">';
+        var i;
+        for (i = 0; i < services.length; i++) {
+            html += renderServiceCard(services[i]);
+        }
+        html += "</div></div>";
+        return html;
+    }
+
+    function serviceActionsHtml(service) {
+        var name = escapeHtml(service.name || "");
+        return (
+            '<div class="service-actions service-actions-menu">' +
+            '<button type="button" class="actions-menu-item" data-service-command="service-start" data-service-name="' +
+            name +
+            '">Start</button>' +
+            '<button type="button" class="actions-menu-item" data-service-command="service-stop" data-service-name="' +
+            name +
+            '">Stop</button>' +
+            '<button type="button" class="actions-menu-item" data-service-command="service-restart" data-service-name="' +
+            name +
+            '">Restart</button>' +
+            "</div>"
+        );
+    }
+
+    function renderServicesTable(services) {
+        var html =
+            '<div class="instances-view instances-table-wrap services-table-wrap">' +
+            '<table class="instances-table services-table"><thead><tr>' +
+            tableStaticHeaderHtml("Status", "cell-status") +
+            tableStaticHeaderHtml("Name") +
+            tableStaticHeaderHtml("Kind") +
+            tableStaticHeaderHtml("Container") +
+            tableStaticHeaderHtml("Scope") +
+            tableStaticHeaderHtml("Ports") +
+            tableStaticHeaderHtml("Actions", "cell-actions") +
+            "</tr></thead><tbody>";
+        var i;
+        for (i = 0; i < services.length; i++) {
+            html += renderServiceTableRow(services[i]);
+        }
+        html += "</tbody></table></div>";
+        return html;
+    }
+
+    function renderServiceTableRow(service) {
+        var kind = service.kind === "selenium" ? "selenium" : "database";
+        var kindLabel = kind === "selenium" ? "Selenium" : "Database";
+        var scope = service.shared ? "Shared" : "Dedicated";
+        var pillKind = kind === "selenium" ? "instance" : "database";
+        var nameHtml = "<strong>" + escapeHtml(service.label || service.name || "") + "</strong>";
+        if (kind === "selenium") {
+            var watch = service.running
+                ? '<a href="http://127.0.0.1:7900/" target="_blank" rel="noopener">Watch</a>'
+                : "<span>Watch</span>";
+            nameHtml +=
+                '<div class="service-table-watch">' +
+                watch +
+                ' <span class="cell-muted">password secret</span></div>';
+        }
+        return (
+            '<tr class="instance-table-main-row service-table-row service-table-row-' +
+            kind +
+            '">' +
+            '<td class="cell-status">' +
+            serviceStatusDotHtml(service) +
+            "</td>" +
+            "<td>" +
+            nameHtml +
+            "</td>" +
+            "<td>" +
+            escapeHtml(kindLabel) +
+            "</td>" +
+            "<td>" +
+            healthPill(service.health, service.running, pillKind) +
+            ' <code class="cell-muted">' +
+            escapeHtml(service.name || "") +
+            "</code></td>" +
+            "<td>" +
+            escapeHtml(scope) +
+            "</td>" +
+            "<td><code>" +
+            escapeHtml(service.ports || "—") +
+            "</code></td>" +
+            '<td class="cell-actions">' +
+            serviceActionsHtml(service) +
+            "</td></tr>"
+        );
+    }
+
+    /** Selenium first, other non-database kinds next, databases last. */
+    function orderedServices(data) {
+        var list = (data && data.services) || [];
+        var selenium = [];
+        var others = [];
+        var databases = [];
+        var i;
+        var kind;
+        for (i = 0; i < list.length; i++) {
+            if (!list[i]) {
+                continue;
+            }
+            kind = list[i].kind;
+            if (kind === "selenium") {
+                selenium.push(list[i]);
+            } else if (kind && kind !== "database") {
+                others.push(list[i]);
+            } else {
+                databases.push(list[i]);
+            }
+        }
+        return selenium.concat(others, databases);
+    }
+
+    function renderServices(data) {
+        var el = document.getElementById("services");
+        if (!el) {
+            return;
+        }
+        var rows = orderedServices(data);
+        if (!rows.length) {
+            el.hidden = true;
+            el.innerHTML = "";
+            el.className = "services-section";
+            return;
+        }
+        el.hidden = false;
+        var view = "cards";
+        if (document.getElementById("view-table")) {
+            view = getToolbarState().view;
+        }
+        if (view === "table") {
+            el.className = "services-section services-section-table";
+            el.innerHTML =
+                '<h2 class="services-heading">Services</h2>' +
+                renderServicesTable(rows);
+            return;
+        }
+        el.className = "services-section";
+        el.innerHTML =
+            '<h2 class="services-heading">Services</h2>' +
+            renderServiceGroup("", rows);
+    }
+
+    function postServiceCommand(command, name, actionsEl) {
+        var banner = document.getElementById("error-banner");
+        banner.hidden = true;
+        banner.textContent = "";
+        if (actionsEl) {
+            actionsEl.classList.add("instance-actions--busy");
+        }
+        return fetch("/api/zd", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                command: command,
+                name: name,
+            }),
+        })
+            .then(function (r) {
+                return r.text().then(function (text) {
+                    var data = null;
+                    if (text) {
+                        try {
+                            data = JSON.parse(text);
+                        } catch (ignore) {
+                            throw new Error(
+                                "Invalid response (not JSON): " +
+                                    text.trim().slice(0, 280)
+                            );
+                        }
+                    }
+                    if (!r.ok) {
+                        var detail = (data && (data.detail || data.error)) || "";
+                        throw new Error(
+                            detail
+                                ? "HTTP " + r.status + ": " + detail
+                                : "HTTP " + r.status
+                        );
+                    }
+                    return data;
+                });
+            })
+            .then(function () {
+                return loadStatus({ showProgress: false });
+            })
+            .catch(function (e) {
+                banner.hidden = false;
+                banner.textContent = (e && e.message) || "Could not run command.";
+            })
+            .finally(function () {
+                if (actionsEl) {
+                    actionsEl.classList.remove("instance-actions--busy");
+                }
+            });
     }
 
     function portStackHtml(row) {
@@ -2729,6 +3020,21 @@
         if (!e.target.closest(".actions-menu")) {
             closeAllActionsDropdowns();
         }
+    });
+
+    document.getElementById("services").addEventListener("click", function (e) {
+        var btn = e.target.closest("[data-service-command]");
+        if (!btn || btn.disabled) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        var actions = btn.closest(".service-actions");
+        postServiceCommand(
+            btn.getAttribute("data-service-command") || "",
+            btn.getAttribute("data-service-name") || "",
+            actions
+        );
     });
 
     document.getElementById("instances").addEventListener("click", function (e) {

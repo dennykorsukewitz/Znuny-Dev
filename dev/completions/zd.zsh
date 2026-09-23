@@ -61,7 +61,7 @@ _zd() {
                 ;;
             selenium)
                 if (( CURRENT == 3 )); then
-                    compadd start stop status remove
+                    compadd start stop restart status remove
                 fi
                 return 0
                 ;;

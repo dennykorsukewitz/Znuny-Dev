@@ -7,6 +7,7 @@ All notable changes to the Znuny Development Environment will be documented in t
 ### Added
 
 - Shared Selenium Chrome (`zd selenium start`) on `znuny-network` (hostname `selenium`, port 4444). Opt-in `ENABLE_SELENIUM=y` makes instance startup write `SeleniumTestsConfig` and `TestHTTPHostname` so browser unit tests can run.
+- Dashboard services block, visually separate from instances, lists database containers and Selenium with start / stop / restart.
 - Document WSL bind-mount ownership: `zd start` maps container `www-data` to `HOST_UID`/`HOST_GID` so host `git pull` works without a manual `chown`.
 
 ### Changed

@@ -63,6 +63,7 @@ Optional later: OS login autostart (launchd / systemd / Task Scheduler) wrapping
 
 - List instances (cards or table), sort and filter layout
 - See Docker health (instance + database)
+- Services block under the instances: database containers and Selenium (start / stop / restart, noVNC link)
 - Start / stop / restart / build / remove instances
 - Open Znuny agent/customer login links
 - Open host workspace / IDE

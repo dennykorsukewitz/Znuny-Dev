@@ -12,6 +12,7 @@ show_usage_selenium() {
     echo ""
     print_command "${ZD_CMD:-./znuny-dev.sh} selenium start    # Start shared Chrome"
     print_command "${ZD_CMD:-./znuny-dev.sh} selenium stop     # Stop container"
+    print_command "${ZD_CMD:-./znuny-dev.sh} selenium restart  # Restart container"
     print_command "${ZD_CMD:-./znuny-dev.sh} selenium status   # Show container state"
     print_command "${ZD_CMD:-./znuny-dev.sh} selenium remove   # Stop and remove container"
     echo ""
@@ -63,6 +64,19 @@ selenium() {
         print_status "Stopping Selenium container..."
         compose_selenium stop
         print_success "Selenium stopped."
+        ;;
+    restart)
+        if ! check_command docker; then
+            print_error "docker not found"
+            return 1
+        fi
+        print_status "Restarting Selenium container..."
+        if docker ps -a --format '{{.Names}}' | grep -qx 'znuny-selenium'; then
+            compose_selenium restart
+        else
+            compose_selenium up -d
+        fi
+        print_success "Selenium: http://selenium:4444/wd/hub (noVNC http://127.0.0.1:7900/)"
         ;;
     remove)
         if ! check_command docker; then

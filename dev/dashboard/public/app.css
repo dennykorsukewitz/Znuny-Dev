@@ -1032,6 +1032,116 @@ body.theme-dark .hero .toolbar-select option {
   width: 100%;
 }
 
+/* Shared DB and Selenium — same card chrome as instances, own block underneath. */
+.services-section {
+  margin: 4px 0 36px;
+  padding-top: 22px;
+  border-top: 1px solid color-mix(in srgb, var(--border) 70%, var(--zn-orange));
+}
+
+.services-heading {
+  margin: 0 0 16px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text);
+}
+
+.services-group + .services-group {
+  margin-top: 18px;
+}
+
+.services-group-title {
+  margin: 0 0 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.services-grid {
+  display: grid;
+  gap: clamp(14px, 2vw, 24px);
+  grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
+}
+
+.service-card.service-card-database {
+  border-left-color: var(--accent-database);
+}
+
+.service-card.service-card-selenium {
+  border-left-color: var(--accent-instance);
+}
+
+.service-kind {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.service-card-database .service-kind {
+  color: var(--accent-database);
+}
+
+.service-card-selenium .service-kind {
+  color: var(--accent-instance);
+}
+
+.service-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 12px 14px;
+}
+
+.service-card .service-actions .actions-menu-item {
+  width: auto;
+  flex: 1 1 auto;
+  margin-top: 0;
+  text-align: center;
+}
+
+.service-card .service-actions .actions-menu-item + .actions-menu-item {
+  margin-top: 0;
+}
+
+.services-section-table .services-table-wrap {
+  margin-bottom: 0;
+}
+
+.instances-table .service-actions {
+  padding: 0;
+  flex-wrap: nowrap;
+}
+
+.instances-table .service-actions-menu {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.instances-table .service-actions-menu .actions-menu-item {
+  width: auto;
+  flex: 1 1 auto;
+  margin-top: 0;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.instances-table .service-actions-menu .actions-menu-item + .actions-menu-item {
+  margin-top: 0;
+}
+
+.service-table-watch {
+  margin-top: 2px;
+  font-size: 0.8rem;
+}
+
 /* Card grid: column count follows instance count (set in app.js). Max 5 per row from 6+ instances. */
 .instances-grid-cols-1 {
   grid-template-columns: minmax(0, min(50%, 36rem));
@@ -1343,7 +1453,8 @@ a.cell-port-link:hover {
   vertical-align: middle;
 }
 
-.instances-table .cell-status .instance-status.status-dot {
+.instances-table .cell-status .instance-status.status-dot,
+.instances-table .cell-status .container-status.status-dot {
   vertical-align: middle;
 }
 
@@ -1354,6 +1465,14 @@ a.cell-port-link:hover {
 
 .instances-table tbody tr.instance-table-main-row td.cell-status {
   border-left: 4px solid var(--zn-orange);
+}
+
+.services-table tbody tr.service-table-row-database td.cell-status {
+  border-left-color: var(--accent-database);
+}
+
+.services-table tbody tr.service-table-row-selenium td.cell-status {
+  border-left-color: var(--accent-instance);
 }
 
 .instances-table tbody tr.table-more-row td:first-child {

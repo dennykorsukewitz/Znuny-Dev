@@ -7,8 +7,8 @@
  * Created / start times: port 10000 = oldest (2026-04-07), each +1 day through 10009 (2026-04-16).
  * UI shows started_at when set (see formatCreated in app.js). Mock generated_at is 2026-04-17.
  *
- * services: shared + dedicated DB containers (MariaDB, MySQL, PostgreSQL) and Selenium.
- * Order matches zd status --json: DB names sorted, Selenium last.
+ * services: Selenium first, then shared + dedicated DB containers (MariaDB, MySQL, PostgreSQL).
+ * Order matches zd status --json: Selenium, then other non-database services, databases last.
  * Selenium has no HEALTHCHECK, so a running container reports no-health-check.
  */
 
@@ -534,6 +534,7 @@ function getZnunyDashboardStatusMock() {
             })(),
         ],
         services: [
+            mockSeleniumService(true),
             mockDbService(
                 "znuny-bugfix-mariadb",
                 "MariaDB · bugfix",
@@ -633,7 +634,6 @@ function getZnunyDashboardStatusMock() {
                 "",
                 ""
             ),
-            mockSeleniumService(true),
         ],
     };
 }

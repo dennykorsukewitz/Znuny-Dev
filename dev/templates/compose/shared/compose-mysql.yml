@@ -52,6 +52,8 @@ services:
       - ZNUNY_USE_MOD_PERL=${ZNUNY_USE_MOD_PERL:-false}
       - HOST_UID=${HOST_UID:-}
       - HOST_GID=${HOST_GID:-}
+      - ENABLE_SELENIUM=${ENABLE_SELENIUM:-n}
+      - ZNUNY_CONTAINER_NAME=znuny-${FRAMEWORK_SLUG}-instance
     depends_on:
       - znuny-mysql
     networks:

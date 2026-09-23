@@ -1,0 +1,24 @@
+# Shared Selenium Chrome for Znuny browser unit tests.
+# Same Compose project as instances: docker compose -p znuny (see dev/scripts/selenium.sh).
+# Never use `compose down --remove-orphans`: other project containers would count as orphans.
+# Hostname `selenium` on znuny-network is what scripts/test/Selenium expect (port 4444).
+# Run: zd selenium start
+# noVNC (watch the browser): http://127.0.0.1:7900/  password: secret
+services:
+  selenium:
+    image: selenium/standalone-chrome:4.49.0
+    container_name: znuny-selenium
+    shm_size: "2gb"
+    ports:
+      - "127.0.0.1:4444:4444"
+      - "127.0.0.1:7900:7900"
+    networks:
+      znuny-network:
+        aliases:
+          - selenium
+    restart: unless-stopped
+
+networks:
+  znuny-network:
+    name: znuny-network
+    driver: bridge

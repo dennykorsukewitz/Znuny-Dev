@@ -45,6 +45,10 @@ if [ -f "$(dirname "$0")/dashboard.sh" ]; then
     source "$(dirname "$0")/dashboard.sh"
 fi
 
+if [ -f "$(dirname "$0")/selenium.sh" ]; then
+    source "$(dirname "$0")/selenium.sh"
+fi
+
 if [ -f "$(dirname "$0")/instance/execute.sh" ]; then
     source "$(dirname "$0")/instance/execute.sh"
 fi
@@ -2446,6 +2450,10 @@ main() {
             ;;
         dashboard)
             dashboard "$@"
+            exit 0
+            ;;
+        selenium)
+            selenium "$@"
             exit 0
             ;;
         create)

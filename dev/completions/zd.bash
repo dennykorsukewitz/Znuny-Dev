@@ -63,6 +63,13 @@ _zd() {
             help|examples|example|version|dev|setup-all|setup-env|setup-alias|setup-tools|setup-compose|setup-remove|setup-packages|setup-repository-sources|setup-status|sync-indices|test|tests|release|dashboard|remove_alias|remove_frameworks|remove_tools|remove_instances|remove_composes)
                 return 0
                 ;;
+            selenium)
+                if [ "${COMP_CWORD}" -eq 2 ]; then
+                    # shellcheck disable=SC2207
+                    COMPREPLY=($(compgen -W "start stop status remove" -- "$cur"))
+                fi
+                return 0
+                ;;
             *)
                 # shellcheck disable=SC2207
                 COMPREPLY=($(compgen -W "$frameworks" -- "$cur"))

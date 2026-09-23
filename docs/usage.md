@@ -99,6 +99,7 @@ zd container-log
 | `zd reb <framework>` | Config rebuild (`--cleanup` on Znuny 7+) |
 | `zd del <framework>` | Cache delete + loader cleanup |
 | `zd unit <framework>` | Unit tests (`Dev::UnitTest::Run`) |
+| `zd selenium start` | Shared Chrome for Selenium unit tests |
 | `zd translate <framework>` | Config sync/rebuild + TranslationsUpdate |
 | `zd contributors <framework>` | ContributorsListUpdate |
 | `zd sql-schema <framework>` | XML2SQL for `*schema.xml` |
@@ -217,6 +218,29 @@ zd test
 zd test -v -t instance
 zd release 1.0.0
 ```
+
+---
+
+## Selenium
+
+Shared Chrome for browser unit tests. One container on `znuny-network`, hostname `selenium`, port `4444`. Dedicated instances are on their own network and cannot reach this hub.
+
+```bash
+zd selenium start
+zd selenium status
+zd selenium stop
+zd selenium remove
+```
+
+noVNC (watch the browser): `http://127.0.0.1:7900/` (password `secret`).
+
+Per instance, set `ENABLE_SELENIUM=y` in `instances/<name>/<name>.env`, regenerate Compose, and recreate the instance. Startup then writes `SeleniumTestsConfig` and `TestHTTPHostname` (the app container name, port 80) into `Kernel/Config.pm`.
+
+```bash
+zd unit dev Selenium/Agent/AgentTicketQueue.t
+```
+
+`scripts/test/Selenium/Base/Selenium.t` forces the legacy WebDriver protocol and stays red against this Selenium 4 image.
 
 ---
 

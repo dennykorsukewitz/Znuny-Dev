@@ -339,6 +339,18 @@ export_bind_mount_ids() {
     fi
 }
 
+# Compose interpolates ${ENABLE_SELENIUM:-n} from the shell, not from env_file.
+# Read the instance env so a value of y is not replaced by the default n.
+export_instance_selenium_flag() {
+    local env_file="$1"
+    [ -f "$env_file" ] || return 0
+    local val
+    val=$(grep "^ENABLE_SELENIUM=" "$env_file" 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || true)
+    if [ -n "$val" ]; then
+        export ENABLE_SELENIUM="$val"
+    fi
+}
+
 # Persist into instance env_file so existing compose files (no HOST_UID in environment:) still pass it.
 upsert_instance_host_ids() {
     local env_file="$1"
@@ -379,6 +391,7 @@ docker_compose() {
     compose_dir="$(dirname "$compose_file")"
     compose_basename="$(basename "$compose_file")"
     export_bind_mount_ids
+    export_instance_selenium_flag "$compose_dir/$framework.env"
     upsert_instance_host_ids "$compose_dir/$framework.env"
     cd "$compose_dir"
 
@@ -431,6 +444,7 @@ docker_compose_app_service() {
 
     compose_dir="$(dirname "$compose_file")"
     compose_basename="$(basename "$compose_file")"
+    export_instance_selenium_flag "$compose_dir/$framework.env"
     local framework_slug
     framework_slug=$(get_framework_slug "$framework")
     local svc="znuny-${framework_slug}-instance"

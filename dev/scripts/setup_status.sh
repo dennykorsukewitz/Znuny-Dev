@@ -46,7 +46,7 @@ setup_status() {
     # Check shared containers
     if check_command docker && docker info >/dev/null 2>&1; then
         local shared_containers
-        shared_containers=$(docker ps -a --format "{{.Names}} {{.Status}}" | grep -E "znuny_selenium|znuny-mariadb|znuny-mysql|znuny-postgresql" 2>/dev/null || true)
+        shared_containers=$(docker ps -a --format "{{.Names}} {{.Status}}" | grep -E "znuny-selenium|znuny-mariadb|znuny-mysql|znuny-postgresql" 2>/dev/null || true)
         if [ -n "$shared_containers" ]; then
             print "   ✅ Shared containers:"
             echo "$shared_containers" | while read -r container_name container_status; do

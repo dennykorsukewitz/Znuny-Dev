@@ -423,6 +423,9 @@ main() {
         dashboard)
             "$SCRIPTS_DIR/instance.sh" dashboard "${@:2}"
             ;;
+        selenium)
+            "$SCRIPTS_DIR/instance.sh" selenium "${@:2}"
+            ;;
         instance-log|log)
             "$SCRIPTS_DIR/instance.sh" log "${@:2}"
             ;;

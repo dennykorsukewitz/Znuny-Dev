@@ -226,6 +226,119 @@ update_config_custom() {
     log "Config.pm: block replaced with configs/framework/Config.pm"
 }
 
+# Drop a previously generated Selenium block so turning ENABLE_SELENIUM off is idempotent.
+strip_selenium_config_block() {
+    local config_pm="$1"
+    local tmp_file
+    tmp_file="$(mktemp)"
+    if ! awk '
+        /znuny-dev selenium start/ { skip = 1; next }
+        /znuny-dev selenium end/ { skip = 0; next }
+        skip { next }
+        { print }
+    ' "$config_pm" > "$tmp_file"; then
+        rm -f "$tmp_file"
+        return 1
+    fi
+    mv "$tmp_file" "$config_pm"
+}
+
+# When ENABLE_SELENIUM=y, write SeleniumTestsConfig into the custom block of Config.pm.
+# TestHTTPHostname is the app container name so Chrome on znuny-network opens port 80,
+# not the host-published port. is_wd3 => 1 matches Selenium 4 (Znuny defaults Chrome to legacy).
+update_config_selenium() {
+    local config_pm="$FRAMEWORK_DIR/Kernel/Config.pm"
+    local enabled
+    enabled=$(printf '%s' "${ENABLE_SELENIUM:-n}" | tr '[:upper:]' '[:lower:]')
+
+    if [ ! -f "$config_pm" ]; then
+        log "Config.pm not found, skipping SeleniumTestsConfig"
+        return 0
+    fi
+
+    if ! strip_selenium_config_block "$config_pm"; then
+        log "WARNING: Failed to strip previous SeleniumTestsConfig"
+        return 1
+    fi
+
+    case "$enabled" in
+        y|yes|true|1) ;;
+        *)
+            return 0
+            ;;
+    esac
+
+    local container_name="${ZNUNY_CONTAINER_NAME:-}"
+    if [ -z "$container_name" ] && [ -n "${FRAMEWORK_NAME:-}" ]; then
+        container_name="znuny-$(printf '%s' "$FRAMEWORK_NAME" | tr '[:upper:]' '[:lower:]')-instance"
+    fi
+    if [ -z "$container_name" ]; then
+        log "WARNING: ENABLE_SELENIUM is set but ZNUNY_CONTAINER_NAME and FRAMEWORK_NAME are empty. Skipping SeleniumTestsConfig."
+        return 0
+    fi
+    if ! printf '%s' "$container_name" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$'; then
+        log "WARNING: ZNUNY_CONTAINER_NAME is not a safe hostname: $container_name. Skipping SeleniumTestsConfig."
+        return 0
+    fi
+    if ! grep -q "insert your own config settings" "$config_pm"; then
+        log "WARNING: Config.pm has no custom config block. Skipping SeleniumTestsConfig."
+        return 0
+    fi
+
+    local snippet_file
+    snippet_file="$(mktemp)"
+    cat > "$snippet_file" << EOF
+    # --- znuny-dev selenium start ---
+    \$Self->{TestHTTPHostname} = '${container_name}';
+    \$Self->{SeleniumTestsConfig} = {
+        remote_server_addr => 'selenium',
+        port               => '4444',
+        platform           => 'ANY',
+        browser_name       => 'chrome',
+        is_wd3             => 1,
+        extra_capabilities => {
+            'goog:chromeOptions' => {
+                args => [ 'disable-dev-shm-usage', 'disable-gpu', 'no-sandbox' ],
+            },
+        },
+    };
+    # --- znuny-dev selenium end ---
+EOF
+
+    local tmp_file
+    tmp_file="$(mktemp)"
+    if ! awk -v snippet="$snippet_file" '
+        /insert your own config settings/ { seen_insert = 1 }
+        seen_insert && !opened && $0 ~ /^[[:space:]]*#[[:space:]]*-+[[:space:]]*#$/ {
+            opened = 1
+            print
+            next
+        }
+        opened && !inserted && $0 ~ /^[[:space:]]*#[[:space:]]*-+[[:space:]]*#$/ {
+            while ((getline line < snippet) > 0) print line
+            close(snippet)
+            print ""
+            inserted = 1
+        }
+        { print }
+    ' "$config_pm" > "$tmp_file"; then
+        log "WARNING: Failed to insert SeleniumTestsConfig (awk failed)."
+        rm -f "$tmp_file" "$snippet_file"
+        return 1
+    fi
+    rm -f "$snippet_file"
+    if ! mv "$tmp_file" "$config_pm"; then
+        log "WARNING: Failed to replace Config.pm with SeleniumTestsConfig."
+        rm -f "$tmp_file"
+        return 1
+    fi
+    if ! grep -q "znuny-dev selenium start" "$config_pm"; then
+        log "WARNING: SeleniumTestsConfig was not inserted into Config.pm."
+        return 1
+    fi
+    log "Config.pm: SeleniumTestsConfig written for ${container_name}"
+}
+
 # Bind mounts on Linux/WSL keep container UIDs on the host. Map www-data to HOST_UID
 # (from `zd start`) so Apache writes as the developer and host git pull works.
 align_www_data_to_host() {
@@ -452,6 +565,9 @@ setup_framework_config() {
         log "Updating configs/framework/Config.pm snippet into Kernel/Config.pm..."
         update_config_custom
     fi
+
+    # Opt-in Selenium hub config. Runs after the snippet replace so the block is not wiped.
+    update_config_selenium
 
     # Set proper permissions
     chmod 644 "$FRAMEWORK_DIR/Kernel/Config.pm"

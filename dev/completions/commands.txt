@@ -23,6 +23,7 @@ restart
 build
 status
 dashboard
+selenium
 log
 container-log
 shell

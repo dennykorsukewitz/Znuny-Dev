@@ -65,6 +65,7 @@ show_usage() {
     print_command "$ZD_CMD reb <framework>"                    "Maint::Config::Rebuild (--cleanup on Znuny 7+)"
     print_command "$ZD_CMD del <framework>"                    "Maint::Cache::Delete + Maint::Loader::CacheCleanup"
     print_command "$ZD_CMD unit <framework>"                   "Dev::UnitTest::Run --verbose --test"
+    print_command "$ZD_CMD selenium [start|stop|status|remove]" "Shared Chrome for Selenium unit tests (hostname selenium:4444)"
     print_command "$ZD_CMD translate <framework>"              "Maint::Config::Sync + Maint::Config::Rebuild + Dev::Tools::TranslationsUpdate --generate-po"
     print_command "$ZD_CMD contributors <framework>"          "Dev::Code::ContributorsListUpdate"
     print_command "$ZD_CMD sql-schema <framework>"              "Dev::Tools::Database::XML2SQL (*schema.xml -> SQL, --split-files)"
@@ -146,6 +147,14 @@ show_usage_examples() {
     print_command "$ZD_CMD dashboard build [--no-cache]" ""
     print_command "$ZD_CMD dashboard restart" ""
     print_command "$ZD_CMD dashboard status" ""
+    echo ""
+
+    print_subheader "Selenium:"
+    echo ""
+    print_command "$ZD_CMD selenium start" ""
+    print_command "$ZD_CMD selenium stop" ""
+    print_command "$ZD_CMD selenium status" ""
+    print_command "$ZD_CMD selenium remove" ""
     echo ""
 
     print_subheader "Create Example:"

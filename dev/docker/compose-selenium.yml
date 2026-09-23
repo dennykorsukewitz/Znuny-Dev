@@ -17,6 +17,16 @@ services:
         aliases:
           - selenium
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS http://localhost:4444/status | jq -e '.value.ready == true' >/dev/null",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 networks:
   znuny-network:

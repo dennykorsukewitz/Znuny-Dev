@@ -9,7 +9,7 @@
  *
  * services: Selenium first, then shared + dedicated DB containers (MariaDB, MySQL, PostgreSQL).
  * Order matches zd status --json: Selenium, then other non-database services, databases last.
- * Selenium has no HEALTHCHECK, so a running container reports no-health-check.
+ * A running Selenium container reports healthy (Compose health check on /status).
  */
 
 function mockLoginUrl(entryUrl, login, password) {
@@ -98,8 +98,8 @@ function mockSeleniumService(running) {
         label: "Selenium",
         shared: true,
         running: running,
-        health: running ? "no-health-check" : "stopped",
-        docker_status: running ? "Up 4 hours" : "",
+        health: running ? "healthy" : "stopped",
+        docker_status: running ? "Up 4 hours (healthy)" : "",
         ports: running
             ? "127.0.0.1:4444->4444/tcp, 127.0.0.1:7900->7900/tcp"
             : "",

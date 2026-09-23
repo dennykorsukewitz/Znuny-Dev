@@ -234,6 +234,8 @@ zd selenium remove
 
 noVNC (watch the browser): `http://127.0.0.1:7900/` (password `secret`).
 
+Docker marks the container healthy when `http://localhost:4444/status` reports `ready`.
+
 Per instance, set `ENABLE_SELENIUM=y` in `instances/<name>/<name>.env`, regenerate Compose, and recreate the instance. Startup then writes `SeleniumTestsConfig` and `TestHTTPHostname` (the app container name, port 80) into `Kernel/Config.pm`.
 
 ```bash

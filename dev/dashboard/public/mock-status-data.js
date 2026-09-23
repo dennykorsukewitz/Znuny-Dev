@@ -6,6 +6,10 @@
  *
  * Created / start times: port 10000 = oldest (2026-04-07), each +1 day through 10009 (2026-04-16).
  * UI shows started_at when set (see formatCreated in app.js). Mock generated_at is 2026-04-17.
+ *
+ * services: shared + dedicated DB containers (MariaDB, MySQL, PostgreSQL) and Selenium.
+ * Order matches zd status --json: DB names sorted, Selenium last.
+ * Selenium has no HEALTHCHECK, so a running container reports no-health-check.
  */
 
 function mockLoginUrl(entryUrl, login, password) {
@@ -71,6 +75,35 @@ function mockCli(framework) {
         zd_cmd: "zd",
         console: "zd console " + framework,
         shell: "zd shell " + framework,
+    };
+}
+
+function mockDbService(name, label, shared, running, health, dockerStatus, ports) {
+    return {
+        kind: "database",
+        name: name,
+        label: label,
+        shared: shared,
+        running: running,
+        health: health,
+        docker_status: dockerStatus,
+        ports: ports,
+    };
+}
+
+function mockSeleniumService(running) {
+    return {
+        kind: "selenium",
+        name: "znuny-selenium",
+        label: "Selenium",
+        shared: true,
+        running: running,
+        health: running ? "no-health-check" : "stopped",
+        docker_status: running ? "Up 4 hours" : "",
+        ports: running
+            ? "127.0.0.1:4444->4444/tcp, 127.0.0.1:7900->7900/tcp"
+            : "",
+        url: "http://127.0.0.1:7900/",
     };
 }
 
@@ -309,19 +342,19 @@ function getZnunyDashboardStatusMock() {
                     health: "healthy",
                 },
                 database: {
-                    container: "znuny-itsm-mariadb",
+                    container: "znuny-itsm-mysql",
                     running: true,
-                    docker_status: "Up 5 days (healthy)",
-                    health: "healthy",
+                    docker_status: "Up 5 days (unhealthy)",
+                    health: "unhealthy",
                 },
                 configuration: {
                     framework_index: "5",
                     framework_name: fw,
                     web_interface: "http://localhost:10005",
                     http_port: "10005",
-                    database: "mariadb (Port: 3306)",
+                    database: "mysql (Port: 3306)",
                     database_url:
-                        "mysql://itsm:itsm@127.0.0.1:3307/itsm",
+                        "mysql://itsm:itsm@127.0.0.1:3312/itsm",
                     instance_mode: "shared",
                     git_branch: "develop",
                     directory: "/znuny-dev/instances/itsm",
@@ -433,9 +466,9 @@ function getZnunyDashboardStatusMock() {
                     health: "unhealthy",
                 },
                 database: {
-                    container: "znuny-mariadb-shared",
+                    container: "znuny-mariadb",
                     running: true,
-                    docker_status: "Up 2 days (healthy)",
+                    docker_status: "Up 10 days (healthy)",
                     health: "healthy",
                 },
                 configuration: {
@@ -474,9 +507,9 @@ function getZnunyDashboardStatusMock() {
                     health: "healthy",
                 },
                 database: {
-                    container: "znuny-customer-ak-postgres",
+                    container: "znuny-customer-ak-postgresql",
                     running: true,
-                    docker_status: "Up 1 day (healthy)",
+                    docker_status: "Up 1 day",
                     health: "no-health-check",
                 },
                 configuration: {
@@ -499,6 +532,108 @@ function getZnunyDashboardStatusMock() {
                 verbose: null,
                 };
             })(),
+        ],
+        services: [
+            mockDbService(
+                "znuny-bugfix-mariadb",
+                "MariaDB · bugfix",
+                false,
+                true,
+                "healthy",
+                "Up 3 days (healthy) — very long status text for layout overflow testing",
+                "0.0.0.0:3313->3306/tcp"
+            ),
+            mockDbService(
+                "znuny-customer-ak-postgresql",
+                "PostgreSQL · customer-ak",
+                false,
+                true,
+                "no-health-check",
+                "Up 1 day",
+                "0.0.0.0:5433->5432/tcp"
+            ),
+            mockDbService(
+                "znuny-demo-mariadb",
+                "MariaDB · demo",
+                false,
+                true,
+                "healthy",
+                "Up 6 days (healthy)",
+                "0.0.0.0:3311->3306/tcp"
+            ),
+            mockDbService(
+                "znuny-itsm-mysql",
+                "MySQL · itsm",
+                false,
+                true,
+                "unhealthy",
+                "Up 5 days (unhealthy)",
+                "0.0.0.0:3312->3306/tcp"
+            ),
+            mockDbService(
+                "znuny-lts-mariadb",
+                "MariaDB · lts",
+                false,
+                true,
+                "healthy",
+                "Up 9 days (healthy)",
+                "0.0.0.0:3314->3306/tcp"
+            ),
+            mockDbService(
+                "znuny-mariadb",
+                "MariaDB",
+                true,
+                true,
+                "healthy",
+                "Up 10 days (healthy)",
+                "0.0.0.0:3307->3306/tcp"
+            ),
+            mockDbService(
+                "znuny-mysql",
+                "MySQL",
+                true,
+                true,
+                "healthy",
+                "Up 10 days (healthy)",
+                "0.0.0.0:3308->3306/tcp"
+            ),
+            mockDbService(
+                "znuny-postgresql",
+                "PostgreSQL",
+                true,
+                false,
+                "stopped",
+                "Exited (0) 2 days ago",
+                ""
+            ),
+            mockDbService(
+                "znuny-rel-6_5-dev-mariadb",
+                "MariaDB · rel-6_5-dev",
+                false,
+                true,
+                "healthy",
+                "Up 8 days (healthy)",
+                "0.0.0.0:3315->3306/tcp"
+            ),
+            mockDbService(
+                "znuny-rel-7_3-dev-mariadb",
+                "MariaDB · rel-7_3-dev",
+                false,
+                true,
+                "healthy",
+                "Up 7 days (healthy)",
+                "0.0.0.0:3316->3306/tcp"
+            ),
+            mockDbService(
+                "znuny-sandbox-qa-mariadb",
+                "MariaDB · sandbox-qa",
+                false,
+                false,
+                "stopped",
+                "",
+                ""
+            ),
+            mockSeleniumService(true),
         ],
     };
 }

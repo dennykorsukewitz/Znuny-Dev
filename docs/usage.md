@@ -232,7 +232,7 @@ zd selenium stop
 zd selenium remove
 ```
 
-noVNC (watch the browser): `http://127.0.0.1:7900/` (password `secret`).
+noVNC (watch the browser): `http://127.0.0.1:7900/`.
 
 Docker marks the container healthy when `http://localhost:4444/status` reports `ready`.
 

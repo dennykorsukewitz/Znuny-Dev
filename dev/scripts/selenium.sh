@@ -8,7 +8,7 @@ show_usage_selenium() {
     print_header "znuny-dev selenium"
     echo ""
     print_status "Shared Chrome on znuny-network, hostname selenium:4444"
-    print_status "noVNC: http://127.0.0.1:7900/ (password: secret)"
+    print_status "noVNC: http://127.0.0.1:7900/"
     echo ""
     print_command "${ZD_CMD:-./znuny-dev.sh} selenium start    # Start shared Chrome"
     print_command "${ZD_CMD:-./znuny-dev.sh} selenium stop     # Stop container"

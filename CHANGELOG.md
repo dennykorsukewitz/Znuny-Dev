@@ -13,6 +13,7 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Changed
 
+- Selenium noVNC no longer asks for the image default password `secret` (`SE_VNC_NO_PASSWORD=1`). Recreate the container with `zd selenium start` so a running `znuny-selenium` picks it up.
 - Leave the clone target before `rm -rf` / `git clone` so a fresh checkout does not fail with `Unable to read current working directory` when the previous framework directory was the shell cwd.
 
 ### Fixed

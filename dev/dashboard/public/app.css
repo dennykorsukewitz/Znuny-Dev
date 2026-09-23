@@ -1137,11 +1137,6 @@ body.theme-dark .hero .toolbar-select option {
   margin-top: 0;
 }
 
-.service-table-watch {
-  margin-top: 2px;
-  font-size: 0.8rem;
-}
-
 /* Card grid: column count follows instance count (set in app.js). Max 5 per row from 6+ instances. */
 .instances-grid-cols-1 {
   grid-template-columns: minmax(0, min(50%, 36rem));
@@ -1739,6 +1734,11 @@ body.app-dialog-open {
   position: relative;
 }
 
+/* Open menu must paint over neighbouring rows (flip-up on the last row). */
+.instances-table td.cell-actions:has(.actions-menu-open) {
+  z-index: 6;
+}
+
 .cell-actions-toolbar {
   display: flex;
   flex-direction: row;
@@ -1808,6 +1808,12 @@ body.app-dialog-open {
   background: var(--surface);
   box-shadow: 0 10px 28px var(--shadow);
   box-sizing: border-box;
+}
+
+/* Last table rows: open upward so the wrap's overflow does not clip the menu. */
+.actions-menu-dropdown-up {
+  top: auto;
+  bottom: calc(100% + 4px);
 }
 
 .actions-menu-note {

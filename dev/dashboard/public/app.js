@@ -1047,6 +1047,57 @@
         return html;
     }
 
+    function clearTableDropdownPadding() {
+        var wraps = document.querySelectorAll(".instances-table-wrap");
+        var i;
+        for (i = 0; i < wraps.length; i++) {
+            wraps[i].style.paddingBottom = "";
+        }
+    }
+
+    function resetActionsDropdownPlacement(menu) {
+        var panel = menu.querySelector(".actions-menu-dropdown");
+        if (panel) {
+            panel.classList.remove("actions-menu-dropdown-up");
+        }
+    }
+
+    function placeActionsDropdown(menu, panel) {
+        panel.classList.remove("actions-menu-dropdown-up");
+        clearTableDropdownPadding();
+        var toggle = menu.querySelector(".actions-menu-toggle");
+        if (!toggle) {
+            return;
+        }
+        var toggleRect = toggle.getBoundingClientRect();
+        var panelHeight = panel.offsetHeight;
+        var gap = 6;
+        var limitBottom = window.innerHeight - 8;
+        var limitTop = 8;
+        var wrap = menu.closest(".instances-table-wrap");
+        if (wrap) {
+            var wrapRect = wrap.getBoundingClientRect();
+            if (wrapRect.bottom < limitBottom) {
+                limitBottom = wrapRect.bottom;
+            }
+            if (wrapRect.top > limitTop) {
+                limitTop = wrapRect.top;
+            }
+        }
+        var spaceBelow = limitBottom - toggleRect.bottom - gap;
+        var spaceAbove = toggleRect.top - limitTop - gap;
+        if (spaceBelow >= panelHeight) {
+            return;
+        }
+        if (spaceAbove >= panelHeight) {
+            panel.classList.add("actions-menu-dropdown-up");
+            return;
+        }
+        if (wrap && spaceBelow < panelHeight) {
+            wrap.style.paddingBottom = panelHeight - spaceBelow + gap + "px";
+        }
+    }
+
     function closeAllActionsDropdowns() {
         var openMenus = document.querySelectorAll(".actions-menu-open");
         var i;
@@ -1060,8 +1111,10 @@
             if (toggle) {
                 toggle.setAttribute("aria-expanded", "false");
             }
+            resetActionsDropdownPlacement(menu);
             menu.classList.remove("actions-menu-open");
         }
+        clearTableDropdownPadding();
     }
 
     function toggleActionsDropdown(toggleBtn) {
@@ -1079,6 +1132,7 @@
             panel.hidden = false;
             toggleBtn.setAttribute("aria-expanded", "true");
             menu.classList.add("actions-menu-open");
+            placeActionsDropdown(menu, panel);
         }
     }
 
@@ -1941,6 +1995,27 @@
         );
     }
 
+    /** noVNC link for Selenium. Tooltip includes a password only when one is set. */
+    function seleniumLoginHtml(service) {
+        if (!service || service.kind !== "selenium") {
+            return '<span class="cell-muted">—</span>';
+        }
+        var url = service.url || "http://127.0.0.1:7900/";
+        var password = service.password || "";
+        var title = "Open noVNC";
+        if (password) {
+            title = TOOLTIPS.login.titlePrefix + password;
+        }
+        return (
+            '<span class="login-links">' +
+            '<a class="btn btn-accent btn-compact login-link" href="' +
+            escapeHtml(url) +
+            '" target="_blank" rel="noopener noreferrer" title="' +
+            escapeHtml(title) +
+            '">Watch</a></span>'
+        );
+    }
+
     function renderServiceCard(service) {
         var kind = service.kind === "selenium" ? "selenium" : "database";
         var kindLabel = kind === "selenium" ? "Selenium" : "Database";
@@ -1971,13 +2046,7 @@
             lines += detailRow("Ports", "<code>" + escapeHtml(service.ports) + "</code>");
         }
         if (kind === "selenium") {
-            var watch = service.running
-                ? '<a href="http://127.0.0.1:7900/" target="_blank" rel="noopener">http://127.0.0.1:7900/</a>'
-                : "http://127.0.0.1:7900/";
-            lines += detailRow(
-                "Watch",
-                watch + ' <span class="cell-muted">password secret</span>'
-            );
+            lines += detailRow("Login", seleniumLoginHtml(service));
         }
         lines += "</tbody></table></div>";
         lines += '<div class="service-actions">';
@@ -2044,6 +2113,7 @@
             tableStaticHeaderHtml("Container") +
             tableStaticHeaderHtml("Scope") +
             tableStaticHeaderHtml("Ports") +
+            tableStaticHeaderHtml("Login") +
             tableStaticHeaderHtml("Actions", "cell-actions") +
             "</tr></thead><tbody>";
         var i;
@@ -2059,16 +2129,8 @@
         var kindLabel = kind === "selenium" ? "Selenium" : "Database";
         var scope = service.shared ? "Shared" : "Dedicated";
         var pillKind = kind === "selenium" ? "instance" : "database";
-        var nameHtml = "<strong>" + escapeHtml(service.label || service.name || "") + "</strong>";
-        if (kind === "selenium") {
-            var watch = service.running
-                ? '<a href="http://127.0.0.1:7900/" target="_blank" rel="noopener">Watch</a>'
-                : "<span>Watch</span>";
-            nameHtml +=
-                '<div class="service-table-watch">' +
-                watch +
-                ' <span class="cell-muted">password secret</span></div>';
-        }
+        var nameHtml =
+            "<strong>" + escapeHtml(service.label || service.name || "") + "</strong>";
         return (
             '<tr class="instance-table-main-row service-table-row service-table-row-' +
             kind +
@@ -2093,6 +2155,9 @@
             "<td><code>" +
             escapeHtml(service.ports || "—") +
             "</code></td>" +
+            '<td class="cell-login">' +
+            seleniumLoginHtml(service) +
+            "</td>" +
             '<td class="cell-actions">' +
             serviceActionsHtml(service) +
             "</td></tr>"

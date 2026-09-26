@@ -2895,7 +2895,8 @@ button.package-count:hover {
 }
 
 .packages-dialog-followup[hidden],
-.packages-apply-plan[hidden] {
+.packages-apply-plan[hidden],
+.packages-followup-option[hidden] {
   display: none !important;
 }
 
@@ -3008,6 +3009,15 @@ button.package-count:hover {
   .packages-dialog-list {
     max-height: 28vh;
   }
+}
+
+#packages-dialog-apply:disabled,
+#packages-dialog-apply:disabled:hover {
+  color: var(--muted);
+  border-color: color-mix(in srgb, var(--muted) 45%, var(--border));
+  background: color-mix(in srgb, var(--muted) 8%, var(--surface));
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 .packages-dialog-unlink-all {

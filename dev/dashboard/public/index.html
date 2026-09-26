@@ -226,28 +226,42 @@
           <pre id="packages-dialog-log" class="packages-dialog-log" hidden></pre>
           <div class="packages-dialog-followup" role="group" aria-label="Steps after link or unlink" hidden>
             <p class="packages-followup-label">Afterwards, if checked</p>
-            <label class="packages-followup-option" title="Module::Database::Install for each newly linked package (zd dbinstall)">
+            <label class="packages-followup-option" id="packages-row-dbinstall" title="Module::Database::Install for each newly linked package (zd dbinstall)">
               <input type="checkbox" id="packages-opt-dbinstall" checked/>
               <span class="packages-followup-copy">
                 <span class="packages-followup-name">DBInstall</span>
                 <span class="packages-followup-hint">each new package</span>
               </span>
             </label>
-            <label class="packages-followup-option" title="Module::Code::Install for each newly linked package (zd codeinstall)">
+            <label class="packages-followup-option" id="packages-row-codeinstall" title="Module::Code::Install for each newly linked package (zd codeinstall)">
               <input type="checkbox" id="packages-opt-codeinstall" checked/>
               <span class="packages-followup-copy">
                 <span class="packages-followup-name">CodeInstall</span>
                 <span class="packages-followup-hint">each new package</span>
               </span>
             </label>
-            <label class="packages-followup-option" title="Maint::Config::Rebuild (zd rebuild)">
+            <label class="packages-followup-option" id="packages-row-dbuninstall" hidden title="Module::Database::Uninstall for each unlinked package (zd dbuninstall)">
+              <input type="checkbox" id="packages-opt-dbuninstall"/>
+              <span class="packages-followup-copy">
+                <span class="packages-followup-name">DBUninstall</span>
+                <span class="packages-followup-hint">each unlinked package</span>
+              </span>
+            </label>
+            <label class="packages-followup-option" id="packages-row-codeuninstall" hidden title="Module::Code::Uninstall for each unlinked package (zd codeuninstall)">
+              <input type="checkbox" id="packages-opt-codeuninstall"/>
+              <span class="packages-followup-copy">
+                <span class="packages-followup-name">CodeUninstall</span>
+                <span class="packages-followup-hint">each unlinked package</span>
+              </span>
+            </label>
+            <label class="packages-followup-option" id="packages-row-rebuild" title="Maint::Config::Rebuild (zd rebuild)">
               <input type="checkbox" id="packages-opt-rebuild" checked/>
               <span class="packages-followup-copy">
                 <span class="packages-followup-name">Rebuild Config</span>
                 <span class="packages-followup-hint">once</span>
               </span>
             </label>
-            <label class="packages-followup-option" title="Maint::Cache::Delete and Maint::Loader::CacheCleanup (zd delete)">
+            <label class="packages-followup-option" id="packages-row-config" title="Maint::Cache::Delete and Maint::Loader::CacheCleanup (zd delete)">
               <input type="checkbox" id="packages-opt-config" checked/>
               <span class="packages-followup-copy">
                 <span class="packages-followup-name">Delete Cache</span>

@@ -98,7 +98,7 @@
             count: "Number of packages and tools linked into this framework (symlinks under /opt/packages/ and /opt/tools/)",
             manage: "Link or unlink packages, Fred, and ZnunyCodePolicy",
             apply:
-                "Apply newly checked packages and tools",
+                "Apply link and unlink changes",
             filter: "Filter the package list",
             unlinkAll:
                 "Uncheck every linked package and tool that still exists on disk",
@@ -106,6 +106,10 @@
                 "Module::Database::Install for each newly linked package (zd dbinstall)",
             codeinstall:
                 "Module::Code::Install for each newly linked package (zd codeinstall)",
+            dbuninstall:
+                "Module::Database::Uninstall for each unlinked package (zd dbuninstall)",
+            codeuninstall:
+                "Module::Code::Uninstall for each unlinked package (zd codeuninstall)",
             rebuild: "Rebuild Config — Maint::Config::Rebuild (zd rebuild)",
             config:
                 "Delete Cache — Maint::Cache::Delete and Maint::Loader::CacheCleanup (zd delete)",
@@ -2892,16 +2896,29 @@
             return;
         }
         var diff = packageSelectionDiff();
-        var newLinks = diff.toLink.length + diff.toLinkTools.length;
-        var unlinks = diff.toUnlink.length + diff.toUnlinkTools.length;
+        var newPackageLinks = diff.toLink.length;
+        var newLinks = newPackageLinks + diff.toLinkTools.length;
+        var packageUnlinks = diff.toUnlink.length;
+        var unlinks = packageUnlinks + diff.toUnlinkTools.length;
         var followup = document.querySelector(
             "#packages-dialog .packages-dialog-followup"
         );
+        var showFollowup = newLinks > 0 || unlinks > 0;
         if (followup) {
-            followup.hidden = newLinks === 0;
+            followup.hidden = !showFollowup;
         }
-        updatePackageApplyPlan(diff, newLinks > 0 || unlinks > 0);
-        if (!packageDialogState || packageDialogState.busy || newLinks === 0) {
+        setFollowupRow("packages-row-dbinstall", newPackageLinks > 0);
+        setFollowupRow("packages-row-codeinstall", newPackageLinks > 0);
+        setFollowupRow("packages-row-dbuninstall", packageUnlinks > 0);
+        setFollowupRow("packages-row-codeuninstall", packageUnlinks > 0);
+        setFollowupRow("packages-row-rebuild", showFollowup);
+        setFollowupRow("packages-row-config", showFollowup);
+        updatePackageApplyPlan(diff, showFollowup);
+        if (
+            !packageDialogState ||
+            packageDialogState.busy ||
+            !showFollowup
+        ) {
             btn.disabled = true;
             btn.textContent = "Apply";
             return;
@@ -2945,6 +2962,13 @@
         el.hidden = !html;
     }
 
+    function setFollowupRow(id, show) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.hidden = !show;
+        }
+    }
+
     function linkedDialogCount() {
         if (!packageDialogState) {
             return 0;
@@ -2972,6 +2996,8 @@
         var ids = [
             "packages-opt-dbinstall",
             "packages-opt-codeinstall",
+            "packages-opt-dbuninstall",
+            "packages-opt-codeuninstall",
             "packages-opt-rebuild",
             "packages-opt-config",
         ];
@@ -2988,6 +3014,8 @@
         var pairs = [
             ["packages-opt-dbinstall", !saved || !!saved.dbinstall],
             ["packages-opt-codeinstall", !saved || !!saved.codeinstall],
+            ["packages-opt-dbuninstall", !!(saved && saved.dbuninstall)],
+            ["packages-opt-codeuninstall", !!(saved && saved.codeuninstall)],
             ["packages-opt-rebuild", !saved || !!saved.rebuild],
             ["packages-opt-config", !saved || !!saved.config],
         ];
@@ -3009,6 +3037,8 @@
         return {
             dbinstall: checked("packages-opt-dbinstall"),
             codeinstall: checked("packages-opt-codeinstall"),
+            dbuninstall: checked("packages-opt-dbuninstall"),
+            codeuninstall: checked("packages-opt-codeuninstall"),
             rebuild: checked("packages-opt-rebuild"),
             config: checked("packages-opt-config"),
         };
@@ -3361,7 +3391,12 @@
             return;
         }
         var diff = packageSelectionDiff();
-        if (diff.toLink.length === 0 && diff.toLinkTools.length === 0) {
+        if (
+            diff.toLink.length === 0 &&
+            diff.toUnlink.length === 0 &&
+            diff.toLinkTools.length === 0 &&
+            diff.toUnlinkTools.length === 0
+        ) {
             return;
         }
         var framework = packageDialogState.framework;
@@ -3374,6 +3409,24 @@
         var statusEl = document.getElementById("packages-dialog-status");
         var jobs = [];
         var p;
+        if (follow.dbuninstall) {
+            for (p = 0; p < diff.toUnlink.length; p++) {
+                jobs.push({
+                    command: "dbuninstall",
+                    field: "packages",
+                    names: [diff.toUnlink[p]],
+                });
+            }
+        }
+        if (follow.codeuninstall) {
+            for (p = 0; p < diff.toUnlink.length; p++) {
+                jobs.push({
+                    command: "codeuninstall",
+                    field: "packages",
+                    names: [diff.toUnlink[p]],
+                });
+            }
+        }
         if (diff.toUnlink.length) {
             jobs.push({
                 command: "unlink",

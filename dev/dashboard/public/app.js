@@ -97,7 +97,8 @@
         packages: {
             count: "Number of packages and tools linked into this framework (symlinks under /opt/packages/ and /opt/tools/)",
             manage: "Link or unlink packages, Fred, and ZnunyCodePolicy",
-            apply: "Apply link and unlink changes",
+            apply:
+                "Apply newly checked packages and tools",
             filter: "Filter the package list",
             unlinkAll:
                 "Uncheck every linked package and tool that still exists on disk",
@@ -2891,12 +2892,14 @@
             return;
         }
         var diff = packageSelectionDiff();
-        var n =
-            diff.toLink.length +
-            diff.toUnlink.length +
-            diff.toLinkTools.length +
-            diff.toUnlinkTools.length;
-        if (!packageDialogState || packageDialogState.busy || n === 0) {
+        var newLinks = diff.toLink.length + diff.toLinkTools.length;
+        var followup = document.querySelector(
+            "#packages-dialog .packages-dialog-followup"
+        );
+        if (followup) {
+            followup.hidden = newLinks === 0;
+        }
+        if (!packageDialogState || packageDialogState.busy || newLinks === 0) {
             btn.disabled = true;
             btn.textContent = "Apply";
             return;
@@ -3334,12 +3337,7 @@
             return;
         }
         var diff = packageSelectionDiff();
-        if (
-            diff.toLink.length === 0 &&
-            diff.toUnlink.length === 0 &&
-            diff.toLinkTools.length === 0 &&
-            diff.toUnlinkTools.length === 0
-        ) {
+        if (diff.toLink.length === 0 && diff.toLinkTools.length === 0) {
             return;
         }
         var framework = packageDialogState.framework;

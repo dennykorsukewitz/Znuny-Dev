@@ -224,7 +224,7 @@
           <div id="packages-dialog-list" class="packages-dialog-list"></div>
           <p id="packages-dialog-status" class="packages-dialog-status" role="status"></p>
           <pre id="packages-dialog-log" class="packages-dialog-log" hidden></pre>
-          <div class="packages-dialog-followup" role="group" aria-label="Steps after link or unlink">
+          <div class="packages-dialog-followup" role="group" aria-label="Steps after link or unlink" hidden>
             <p class="packages-followup-label">Afterwards, if checked</p>
             <label class="packages-followup-option" title="Module::Database::Install for each newly linked package (zd dbinstall)">
               <input type="checkbox" id="packages-opt-dbinstall" checked/>
@@ -255,9 +255,9 @@
               </span>
             </label>
           </div>
+          <div id="packages-apply-plan" class="packages-apply-plan" hidden></div>
           <div class="app-dialog-actions">
             <button type="button" class="btn packages-dialog-unlink-all" id="packages-dialog-unlink-all" hidden title="Uncheck every linked package and tool that still exists on disk">Unlink all</button>
-            <button type="button" class="btn" data-packages-close="1">Cancel</button>
             <button type="button" class="btn btn-primary" id="packages-dialog-apply" disabled>Apply</button>
           </div>
         </div>

@@ -780,9 +780,22 @@ body.theme-dark .hero {
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
+/* Standard button. primary, danger, and accent modifiers override this. */
 .btn {
   margin: 0;
-  border: 1px solid transparent;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--heading);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.btn:hover {
+  border-color: var(--zn-orange);
+  color: var(--zn-orange);
+  background: color-mix(in srgb, var(--zn-orange) 8%, var(--surface));
 }
 
 .btn-primary {
@@ -1616,18 +1629,6 @@ a.cell-port-link:hover {
   pointer-events: none;
 }
 
-.instance-actions .btn-secondary {
-  background: transparent;
-  color: var(--heading);
-  border: 1px solid var(--border);
-}
-
-.instance-actions .btn-secondary:hover {
-  background: color-mix(in srgb, var(--heading) 10%, var(--surface));
-  border-color: var(--zn-orange);
-  color: var(--zn-orange);
-}
-
 .btn-danger {
   background: transparent;
   color: var(--bad);
@@ -1644,9 +1645,10 @@ a.cell-port-link:hover {
   inset: 0;
   z-index: 1000;
   display: flex;
-  align-items: center;
+  align-items: safe center;
   justify-content: center;
   padding: 24px;
+  overflow: auto;
 }
 
 .app-dialog[hidden] {
@@ -1772,23 +1774,6 @@ a.cell-port-link:hover {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-}
-
-/* Standard Close / Cancel in dialogs. Use this for new dismiss buttons. */
-.btn-dismiss {
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--heading);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.btn-dismiss:hover {
-  border-color: var(--zn-orange);
-  color: var(--zn-orange);
-  background: color-mix(in srgb, var(--zn-orange) 8%, var(--surface));
 }
 
 body.app-dialog-open {
@@ -2942,18 +2927,12 @@ button.package-count:hover {
 
 .packages-dialog-unlink-all {
   margin-right: auto;
-  padding: 7px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--heading);
-  font-size: 0.78rem;
-  font-weight: 600;
 }
 
 .packages-dialog-unlink-all:hover {
   border-color: var(--bad);
   color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 8%, var(--surface));
 }
 
 .instances-table .cell-packages {

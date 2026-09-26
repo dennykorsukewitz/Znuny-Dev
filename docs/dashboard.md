@@ -6,6 +6,22 @@ Default URL: [http://127.0.0.1:9999/](http://127.0.0.1:9999/)
 
 ---
 
+## Requirements
+
+- **Docker** and Docker Compose. The dashboard HTTP server runs in a container (`dev/dashboard/Dockerfile`, image `node:22-alpine`). Host Node.js is not required for the UI, status, or instance actions.
+
+### Optional: host opener
+
+**Node.js on the host** is optional. It is only used for Folder and IDE buttons. `zd dashboard start` launches `supervisor.mjs` with the host `node` binary (`opener.mjs` on `127.0.0.1:9998`) when `node` is installed. Without it, the container still starts and prints `node not found — workspace links need opener (install Node.js)`. Cards, table, Docker health, instance actions, service actions, and login links keep working.
+
+```bash
+node --version
+```
+
+Current Node.js LTS is enough. The opener scripts are plain ESM (`.mjs`).
+
+---
+
 ## Commands
 
 ```bash
@@ -46,7 +62,7 @@ Compose stack: `dev/docker/compose-dashboard.yml`.
 
 ## Host opener / supervisor
 
-Folder and IDE buttons need a **host** process (`opener.mjs` on `127.0.0.1:9998`). The Docker container cannot start host processes when that listener is dead.
+Folder and IDE buttons use an optional host process (`opener.mjs` on `127.0.0.1:9998`) and **Node.js on the host**. The Docker container cannot start host processes when that listener is dead. The rest of the dashboard works without it. See [Optional: host opener](#optional-host-opener).
 
 **Cross-platform approach:** `zd dashboard start` launches `supervisor.mjs` on the host. It:
 

@@ -40,6 +40,10 @@ A comprehensive Docker-based development environment for Znuny that enables work
 - Git
 - Bash (available on all platforms)
 
+Optional:
+
+- Node.js on the host — only for [dashboard](docs/dashboard.md) Folder / IDE buttons. The dashboard works without it. The UI runs Node.js 22 inside Docker.
+
 ## 🛠️ Installation
 
 **Full step-by-step guide:** [docs/setup.md](docs/setup.md) — read it completely before running setup.

@@ -10,7 +10,7 @@ Step-by-step guide for a fresh **Znuny-Dev** environment. Command reference afte
 
 Znuny-Dev runs multiple Znuny framework instances in Docker. Before the first instance exists, you prepare:
 
-1. **Prerequisites** — Git, Docker (with Compose)
+1. **Prerequisites** — Git, Docker (with Compose). Node.js on the host is optional (dashboard opener only)
 2. **Directory structure** — plan where frameworks, packages, and tools live on disk
 3. **Project checkout** — clone this repository
 4. **Optional config** — `configs/instance/my.env` before `setup-all`
@@ -85,6 +85,16 @@ sudo usermod -aG docker "$USER"
 # Log out and back in, then:
 docker info
 ```
+
+### Node.js (optional, dashboard opener)
+
+Optional on the **host**. Only Folder and IDE buttons in the local dashboard use it. `zd dashboard start` runs `node dev/dashboard/supervisor.mjs` outside Docker when `node` is installed. The dashboard HTTP server already includes Node.js 22 in its image, so the UI, status, and instance actions work without a host install.
+
+```bash
+node --version
+```
+
+Without host Node.js the dashboard container still starts. Workspace and IDE links do not. Details: [dashboard.md](dashboard.md#optional-host-opener).
 
 ---
 

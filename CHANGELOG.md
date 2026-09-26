@@ -6,6 +6,7 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Added
 
+- Document host Node.js as optional for the dashboard opener (Folder / IDE). The dashboard UI, status, and instance actions work without it; the HTTP server uses Node.js 22 inside its Docker image.
 - Shared Selenium Chrome (`zd selenium start`) on `znuny-network` (hostname `selenium`, port 4444). Opt-in `ENABLE_SELENIUM=y` makes instance startup write `SeleniumTestsConfig` and `TestHTTPHostname` so browser unit tests can run.
 - Selenium Docker health check: `znuny-selenium` is healthy when `http://localhost:4444/status` reports `ready`.
 - Dashboard services block, visually separate from instances, lists database containers and Selenium with start / stop / restart.

@@ -1,6 +1,6 @@
 # TODO
 
-- [ ] documentation dashboard needs Node.js
+- [x] documentation dashboard needs Node.js
 - [ ] add overview of linked packages
 
 ## Features

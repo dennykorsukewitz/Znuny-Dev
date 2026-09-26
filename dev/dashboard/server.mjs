@@ -970,8 +970,58 @@ async function tryRestartOpener() {
     };
 }
 
-/** Restart opener (if up) then this dashboard container. Respond first — process dies. */
+/**
+ * Ask the host helper to run `zd dashboard restart` (container + opener).
+ * Returns true when the helper acks. The helper restarts this container.
+ */
+async function requestHostDashboardRestart() {
+    const root = getZnunyDevDir();
+    const trigger = path.join(root, ".dashboard-host-restart");
+    const ack = path.join(root, ".dashboard-host-restart.ack");
+    const token = String(Date.now());
+    try {
+        fs.unlinkSync(ack);
+    } catch {
+        /* no previous ack */
+    }
+    try {
+        fs.writeFileSync(trigger, token + "\n");
+    } catch {
+        return false;
+    }
+    const deadline = Date.now() + 2000;
+    while (Date.now() < deadline) {
+        try {
+            const got = fs.readFileSync(ack, "utf8").trim();
+            if (got === token) {
+                return true;
+            }
+        } catch {
+            /* helper has not acked yet */
+        }
+        await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    return false;
+}
+
+/** Restart via host `zd dashboard restart` when the helper is up; else container-only. */
 async function handleDashboardRestart(res) {
+    const inDocker = fs.existsSync("/.dockerenv");
+    if (inDocker && (await requestHostDashboardRestart())) {
+        res.writeHead(200, {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-store",
+        });
+        res.end(
+            JSON.stringify({
+                ok: true,
+                restarting: true,
+                via: "zd dashboard restart",
+            }),
+        );
+        return;
+    }
+
     const containerName =
         process.env.DASHBOARD_CONTAINER_NAME || "znuny-dashboard";
     const openerResult = await tryRestartOpener();

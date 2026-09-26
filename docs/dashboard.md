@@ -62,7 +62,7 @@ Compose stack: `dev/docker/compose-dashboard.yml`.
 
 ## Host opener / supervisor
 
-Folder and IDE buttons use an optional host process (`opener.mjs` on `127.0.0.1:9998`) and **Node.js on the host**. The Docker container cannot start host processes when that listener is dead. The rest of the dashboard works without it. See [Optional: host opener](#optional-host-opener).
+Folder and IDE buttons use an optional host process (`opener.mjs` on `127.0.0.1:9998`) and **Node.js on the host**. `zd dashboard start` also starts a host helper (`host-restart-agent.mjs`, launchd on macOS, systemd --user or nohup on Linux). The dashboard Restart button writes `.dashboard-host-restart`; the helper then runs `zd dashboard restart` on the host, which restarts the container and the opener. Without that helper (or without host Node.js), the button can only restart the container.
 
 When the opener is down, Folder and IDE buttons are gray and struck through. Hover shows `Run zd dashboard restart`. `/api/config` reports `opener_available`.
 
@@ -71,9 +71,7 @@ When the opener is down, Folder and IDE buttons are gray and struck through. Hov
 - keeps `opener.mjs` alive (respawn on crash / exit)
 - watches repo-root `.opener-wake` so a GUI restart can wake opener again while the supervisor is still running
 
-GUI **Dashboard restart**: soft-restarts opener when reachable; if not, writes `.opener-wake`. If the supervisor itself is gone (e.g. after reboot), run `zd dashboard start` or `zd dashboard restart` once on the host.
-
-Optional later: OS login autostart (launchd / systemd / Task Scheduler) wrapping the same `supervisor.mjs`.
+GUI **Dashboard restart** asks the host helper to run `zd dashboard restart` (container and opener). If the helper is not running, the button only restarts the container and, when the opener is already up, soft-restarts it.
 
 ---
 

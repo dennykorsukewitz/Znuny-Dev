@@ -38,6 +38,9 @@ logs/
 .opener.pid
 .supervisor.pid
 .opener-wake
+.dashboard-host-restart
+.dashboard-host-restart.ack
+.host-restart-agent.pid
 .DS_Store
 Thumbs.db
 

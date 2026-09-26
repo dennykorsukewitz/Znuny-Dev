@@ -47,6 +47,7 @@ remove_dashboard() {
     compose_dashboard down
     docker rm -f znuny-dashboard znuny-dev-dashboard 2>/dev/null || true
     stop_opener
+    uninstall_host_restart_agent
 }
 
 supervisor_pidfile() {
@@ -82,6 +83,152 @@ stop_opener() {
     fi
 }
 
+host_restart_label() {
+    echo "com.znuny-dev.dashboard-host-restart"
+}
+
+# Keep a host process that can run `zd dashboard restart` for the GUI button.
+# The dashboard container cannot cold-start Finder / IDE on the host.
+install_host_restart_agent() {
+    if [ -f /.dockerenv ] || [ -n "${ZNUNY_HOST_RESTART_AGENT:-}" ]; then
+        return 0
+    fi
+    if ! check_command node; then
+        return 0
+    fi
+    local node_bin
+    node_bin=$(command -v node)
+    case "$(uname -s)" in
+        Darwin)
+            install_host_restart_agent_macos "$node_bin"
+            ;;
+        Linux)
+            install_host_restart_agent_linux "$node_bin"
+            ;;
+    esac
+}
+
+host_restart_path_env() {
+    local node_bin="$1"
+    local docker_bin path_env
+    docker_bin=$(command -v docker 2>/dev/null || true)
+    path_env="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+    if [ -n "$docker_bin" ]; then
+        path_env="$(dirname "$docker_bin"):${path_env}"
+    fi
+    path_env="$(dirname "$node_bin"):${path_env}"
+    echo "$path_env"
+}
+
+install_host_restart_agent_macos() {
+    local node_bin="$1"
+    local label plist uid path_env
+    label=$(host_restart_label)
+    uid=$(id -u)
+    plist="${HOME}/Library/LaunchAgents/${label}.plist"
+    path_env=$(host_restart_path_env "$node_bin")
+    mkdir -p "${HOME}/Library/LaunchAgents"
+    cat >"$plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>${label}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>${node_bin}</string>
+    <string>${ZNUNY_DEV_DIR}/dev/dashboard/host-restart-agent.mjs</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>${ZNUNY_DEV_DIR}</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>ZNUNY_DEV_DIR</key>
+    <string>${ZNUNY_DEV_DIR}</string>
+    <key>PATH</key>
+    <string>${path_env}</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+</dict>
+</plist>
+EOF
+    launchctl bootout "gui/${uid}/${label}" >/dev/null 2>&1 || true
+    launchctl bootstrap "gui/${uid}" "$plist"
+    launchctl enable "gui/${uid}/${label}" >/dev/null 2>&1 || true
+}
+
+install_host_restart_agent_linux() {
+    local node_bin="$1"
+    local unit_dir unit path_env
+    unit_dir="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user"
+    unit="${unit_dir}/znuny-dev-dashboard-host-restart.service"
+    path_env=$(host_restart_path_env "$node_bin")
+    mkdir -p "$unit_dir"
+    cat >"$unit" <<EOF
+[Unit]
+Description=Znuny-Dev dashboard host restart helper
+
+[Service]
+ExecStart=${node_bin} ${ZNUNY_DEV_DIR}/dev/dashboard/host-restart-agent.mjs
+WorkingDirectory=${ZNUNY_DEV_DIR}
+Environment=ZNUNY_DEV_DIR=${ZNUNY_DEV_DIR}
+Environment=PATH=${path_env}
+Restart=always
+
+[Install]
+WantedBy=default.target
+EOF
+    if command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+        systemctl --user daemon-reload
+        systemctl --user enable --now znuny-dev-dashboard-host-restart.service
+        return 0
+    fi
+    local pidfile="${ZNUNY_DEV_DIR}/.host-restart-agent.pid"
+    local pid=""
+    if [ -f "$pidfile" ]; then
+        pid=$(cat "$pidfile" 2>/dev/null || true)
+        if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+            return 0
+        fi
+    fi
+    ZNUNY_DEV_DIR="$ZNUNY_DEV_DIR" PATH="$path_env" nohup "$node_bin" \
+        "$ZNUNY_DEV_DIR/dev/dashboard/host-restart-agent.mjs" \
+        >>"$ZNUNY_DEV_DIR/.dashboard-host-restart.log" 2>&1 &
+    echo $! >"$pidfile"
+}
+
+uninstall_host_restart_agent() {
+    if [ -f /.dockerenv ]; then
+        return 0
+    fi
+    case "$(uname -s)" in
+        Darwin)
+            local label uid
+            label=$(host_restart_label)
+            uid=$(id -u)
+            launchctl bootout "gui/${uid}/${label}" >/dev/null 2>&1 || true
+            ;;
+        Linux)
+            if command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
+                systemctl --user disable --now znuny-dev-dashboard-host-restart.service >/dev/null 2>&1 || true
+            fi
+            local pidfile="${ZNUNY_DEV_DIR}/.host-restart-agent.pid"
+            if [ -f "$pidfile" ]; then
+                local pid
+                pid=$(cat "$pidfile" 2>/dev/null || true)
+                if [ -n "$pid" ]; then
+                    kill "$pid" 2>/dev/null || true
+                fi
+                rm -f "$pidfile"
+            fi
+            ;;
+    esac
+}
+
 opener_health_ok() {
     local port="${1:-9998}"
     if ! check_command curl; then
@@ -94,6 +241,7 @@ start_opener() {
     if [ -f /.dockerenv ]; then
         return 0
     fi
+    install_host_restart_agent
     if ! check_command node; then
         print_warning "node not found — workspace links need opener (install Node.js)"
         return 0
@@ -184,6 +332,7 @@ dashboard() {
         print_status "Stopping dashboard container..."
         compose_dashboard down
         stop_opener
+        uninstall_host_restart_agent
         print_success "Dashboard stopped."
         ;;
     remove)

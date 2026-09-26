@@ -17,6 +17,7 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Changed
 
+- Dashboard dialogs fit the viewport. Status legend, about, packages, and confirm scroll inside the panel on short or narrow screens, and the close icon stays in the corner.
 - Dashboard dev tools that can be linked come from `DEV_TOOL_IDS` in `.env` (default `Fred,ZnunyCodePolicy`). `load_environment` appends that default when the key is missing.
 - Selenium noVNC no longer asks for the image default password `secret` (`SE_VNC_NO_PASSWORD=1`). Recreate the container with `zd selenium start` so a running `znuny-selenium` picks it up.
 - Leave the clone target before `rm -rf` / `git clone` so a fresh checkout does not fail with `Unable to read current working directory` when the previous framework directory was the shell cwd.

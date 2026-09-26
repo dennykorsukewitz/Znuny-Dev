@@ -846,11 +846,6 @@ body.theme-dark .hero {
   border: 1px solid var(--border);
 }
 
-.status-legend-dialog {
-  padding: 16px;
-  align-items: center;
-}
-
 .status-legend-sections {
   display: flex;
   flex-direction: column;
@@ -884,13 +879,13 @@ body.theme-dark .hero {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: 10.5rem minmax(0, 1fr);
+  grid-template-columns: minmax(0, 10.5rem) minmax(0, 1fr);
   column-gap: 20px;
   row-gap: 0;
 }
 
 .status-legend-grid-dots {
-  grid-template-columns: 3.5rem minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
 .status-legend-grid-head,
@@ -936,10 +931,12 @@ body.theme-dark .hero {
 
 .status-legend-grid-pills .status-legend-col-mark .pill {
   width: 100%;
+  max-width: 100%;
   text-align: center;
   font-size: 0.88rem;
   padding: 5px 10px;
   box-sizing: border-box;
+  overflow-wrap: anywhere;
 }
 
 .status-legend-col-desc {
@@ -951,7 +948,7 @@ body.theme-dark .hero {
   flex-shrink: 0;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 640px) {
   .status-legend-grid,
   .status-legend-grid-dots {
     grid-template-columns: minmax(0, 1fr);
@@ -1647,7 +1644,8 @@ a.cell-port-link:hover {
   display: flex;
   align-items: safe center;
   justify-content: center;
-  padding: 24px;
+  box-sizing: border-box;
+  padding: 12px;
   overflow: auto;
 }
 
@@ -1664,7 +1662,13 @@ a.cell-port-link:hover {
 .app-dialog-panel {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
   width: min(420px, 100%);
+  max-height: 100%;
+  min-height: 0;
+  overflow: auto;
   padding: 20px 22px;
   border-radius: 12px;
   border: 1px solid var(--border);
@@ -1673,12 +1677,8 @@ a.cell-port-link:hover {
 }
 
 .app-dialog-panel.status-legend-dialog-panel {
-  width: min(720px, 96vw);
-  max-width: 96vw;
-  max-height: none;
-  padding: 28px 36px 24px;
-  display: flex;
-  flex-direction: column;
+  width: min(720px, 100%);
+  padding: 22px 24px 16px;
 }
 
 .status-legend-dialog-panel .app-dialog-title {
@@ -1688,9 +1688,7 @@ a.cell-port-link:hover {
 }
 
 .status-legend-dialog-panel .status-legend-body {
-  flex: 0 1 auto;
-  overflow: visible;
-  margin: 0 0 22px;
+  margin: 0 0 16px;
   padding: 0;
 }
 
@@ -1713,20 +1711,21 @@ a.cell-port-link:hover {
 }
 
 .app-dialog-x {
-  position: absolute;
-  top: 12px;
-  right: 12px;
+  position: sticky;
+  top: 0;
   z-index: 2;
+  align-self: flex-end;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 28px;
   height: 28px;
-  margin: 0;
+  margin: 0 0 -28px;
   padding: 0;
   border: 1px solid transparent;
   border-radius: 6px;
-  background: transparent;
+  background: var(--surface);
   color: var(--label);
   cursor: pointer;
 }
@@ -1772,6 +1771,7 @@ a.cell-port-link:hover {
 
 .app-dialog-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
 }
@@ -2483,8 +2483,8 @@ body.theme-dark .about-pacman-icon {
 }
 
 .app-dialog-panel.about-dialog-panel {
-  width: min(600px, 96vw);
-  padding: 26px 30px 22px;
+  width: min(600px, 100%);
+  padding: 22px 24px 16px;
 }
 
 .about-dialog-panel .app-dialog-title {
@@ -2638,9 +2638,14 @@ body.theme-dark .about-pacman-icon {
   text-decoration: none;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .about-dialog-links {
     grid-template-columns: 1fr;
+  }
+
+  .about-dialog-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
   }
 }
 
@@ -2778,10 +2783,7 @@ button.package-count:hover {
 }
 
 .packages-dialog-panel {
-  width: min(560px, 96vw);
-  max-height: min(80vh, 720px);
-  display: flex;
-  flex-direction: column;
+  width: min(560px, 100%);
 }
 
 .packages-dialog-note {
@@ -2919,9 +2921,37 @@ button.package-count:hover {
   color: var(--label);
 }
 
-@media (max-width: 420px) {
+@media (max-width: 640px) {
+  .app-dialog {
+    padding: 8px;
+  }
+
+  .app-dialog-panel,
+  .app-dialog-panel.status-legend-dialog-panel,
+  .app-dialog-panel.about-dialog-panel {
+    padding: 16px 14px 14px;
+    border-radius: 10px;
+  }
+
+  .status-legend-dialog-panel .app-dialog-title,
+  .about-dialog-panel .app-dialog-title {
+    font-size: 1.2rem;
+  }
+
+  .status-legend-dialog-panel .app-dialog-title {
+    margin-bottom: 14px;
+  }
+
+  .status-legend-block {
+    padding: 12px;
+  }
+
   .packages-dialog-followup {
     grid-template-columns: 1fr;
+  }
+
+  .packages-dialog-list {
+    max-height: 28vh;
   }
 }
 

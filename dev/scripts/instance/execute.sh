@@ -316,8 +316,13 @@ execute_module_tools_command() {
 
     local container_name
     container_name=$(get_instance_container_name "$framework")
+    # -t needs a terminal. The dashboard spawns this without a TTY.
+    local docker_tty=()
+    if [ -t 1 ]; then
+        docker_tty=(-t)
+    fi
     # Run as www-data (same ApplicationUser / file owner as console) so ModuleTools can write under /opt/znuny
-    if docker exec -t "$container_name" su -s /bin/bash -c "cd /opt/znuny && perl /opt/tools/module-tools/bin/znuny.ModuleTools.pl $command $*" www-data; then
+    if docker exec "${docker_tty[@]}" "$container_name" su -s /bin/bash -c "cd /opt/znuny && perl /opt/tools/module-tools/bin/znuny.ModuleTools.pl $command $*" www-data; then
         return 0
     else
         print_error "Module-tools command failed: $command"

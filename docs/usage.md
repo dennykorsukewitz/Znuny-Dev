@@ -248,7 +248,7 @@ zd unit dev Selenium/Agent/AgentTicketQueue.t
 
 ## Dashboard
 
-Local web UI for instance overview. See [dashboard.md](dashboard.md). The UI runs in Docker (Node.js 22). Host Node.js is optional and only used for Folder and IDE buttons.
+Local web UI for instance overview, including linked packages per instance (link / unlink from the UI, plus Fred and ZnunyCodePolicy). See [dashboard.md](dashboard.md). The UI runs in Docker (Node.js 22). Host Node.js is optional and only used for Folder and IDE buttons.
 
 ```bash
 zd dashboard start

@@ -92,6 +92,12 @@
             moreIdesMenu: "Other editors on this system",
             frameworkWeb: "Open Znuny web interface: {url}",
         },
+        packages: {
+            count: "Number of packages and tools linked into this framework (symlinks under /opt/packages/ and /opt/tools/)",
+            manage: "Link or unlink packages, Fred, and ZnunyCodePolicy",
+            apply: "Apply link and unlink changes",
+            filter: "Filter the package list",
+        },
         login: {
             titlePrefix: "Login · ",
             titleSeparator: " / ",
@@ -221,6 +227,29 @@
         );
     }
 
+    function syncAppDialogBodyClass() {
+        var ids = [
+            "confirm-dialog",
+            "about-dialog",
+            "status-legend-dialog",
+            "packages-dialog",
+        ];
+        var i;
+        var open = false;
+        for (i = 0; i < ids.length; i++) {
+            var el = document.getElementById(ids[i]);
+            if (el && !el.hidden) {
+                open = true;
+                break;
+            }
+        }
+        if (open) {
+            document.body.classList.add("app-dialog-open");
+        } else {
+            document.body.classList.remove("app-dialog-open");
+        }
+    }
+
     function openAboutDialog() {
         var dlg = document.getElementById("about-dialog");
         if (!dlg) {
@@ -240,12 +269,7 @@
             return;
         }
         dlg.hidden = true;
-        if (
-            document.getElementById("confirm-dialog").hidden &&
-            document.getElementById("status-legend-dialog").hidden
-        ) {
-            document.body.classList.remove("app-dialog-open");
-        }
+        syncAppDialogBodyClass();
         var btn = document.getElementById("btn-about");
         if (btn) {
             btn.focus();
@@ -271,12 +295,7 @@
             return;
         }
         dlg.hidden = true;
-        if (
-            document.getElementById("confirm-dialog").hidden &&
-            document.getElementById("about-dialog").hidden
-        ) {
-            document.body.classList.remove("app-dialog-open");
-        }
+        syncAppDialogBodyClass();
         var btn = document.getElementById("btn-status-legend");
         if (btn) {
             btn.focus();
@@ -1210,7 +1229,7 @@
     function finishConfirm(ok) {
         var dlg = document.getElementById("confirm-dialog");
         dlg.hidden = true;
-        document.body.classList.remove("app-dialog-open");
+        syncAppDialogBodyClass();
         if (confirmDone) {
             var done = confirmDone;
             confirmDone = null;
@@ -1888,6 +1907,7 @@
             tableSortHeaderHtml("port", "Port") +
             tableStaticHeaderHtml("Login") +
             tableStaticHeaderHtml("Workspace") +
+            tableStaticHeaderHtml("Packages") +
             tableStaticHeaderHtml("Actions", "cell-actions") +
             "</tr></thead><tbody>";
 
@@ -1944,6 +1964,10 @@
             hostWorkspaceButtonsHtml(row) +
             "</td>";
         lines +=
+            '<td class="cell-packages">' +
+            renderPackagesHtml(row) +
+            "</td>";
+        lines +=
             '<td class="cell-actions">' +
             renderActionsCell(row) +
             "</td>";
@@ -1955,7 +1979,7 @@
                 '<tr class="table-more-row" id="' +
                 moreId +
                 '" hidden>' +
-                '<td colspan="9">' +
+                '<td colspan="10">' +
                 '<div class="table-more-inner">' +
                 renderInstanceExtraHtml(row) +
                 "</div></td></tr>";
@@ -2689,6 +2713,513 @@
         return '<span class="login-links">' + parts.join("") + "</span>";
     }
 
+    function linkedPackageList(row) {
+        var list = row && row.linked_packages;
+        if (!list || !list.length) {
+            return [];
+        }
+        return list;
+    }
+
+    function linkedToolList(row) {
+        var list = row && row.linked_tools;
+        if (!list || !list.length) {
+            return [];
+        }
+        return list;
+    }
+
+    function linkedItemCount(row) {
+        return linkedPackageList(row).length + linkedToolList(row).length;
+    }
+
+    function devToolLabel(id) {
+        return id;
+    }
+
+    function findInstanceRow(framework) {
+        if (!lastData || !lastData.instances) {
+            return null;
+        }
+        var i;
+        for (i = 0; i < lastData.instances.length; i++) {
+            if (lastData.instances[i].framework === framework) {
+                return lastData.instances[i];
+            }
+        }
+        return null;
+    }
+
+    function renderPackagesHtml(row) {
+        var count = linkedItemCount(row);
+        var fw = row.framework || "";
+        var running = !!(row.instance && row.instance.running);
+        var html = '<div class="package-summary">';
+        if (running) {
+            html +=
+                '<button type="button" class="package-count" data-framework="' +
+                escapeHtml(fw) +
+                '" title="' +
+                escapeHtml(TOOLTIPS.packages.manage) +
+                '">' +
+                String(count) +
+                "</button>";
+        } else {
+            html +=
+                '<span class="package-count" title="' +
+                escapeHtml(TOOLTIPS.packages.count) +
+                '">' +
+                String(count) +
+                "</span>";
+        }
+        if (running) {
+            html +=
+                '<button type="button" class="btn packages-manage-btn" data-framework="' +
+                escapeHtml(fw) +
+                '" title="' +
+                escapeHtml(TOOLTIPS.packages.manage) +
+                '">Manage</button>';
+        }
+        html += "</div>";
+        return html;
+    }
+
+    var packageDialogState = null;
+
+    function packageSelectionDiff() {
+        var toLink = [];
+        var toUnlink = [];
+        var toLinkTools = [];
+        var toUnlinkTools = [];
+        if (!packageDialogState) {
+            return {
+                toLink: toLink,
+                toUnlink: toUnlink,
+                toLinkTools: toLinkTools,
+                toUnlinkTools: toUnlinkTools,
+            };
+        }
+        var boxes = document.querySelectorAll(
+            "#packages-dialog-list input[data-package-name], #packages-dialog-list input[data-tool-name]"
+        );
+        var i;
+        for (i = 0; i < boxes.length; i++) {
+            var toolName = boxes[i].getAttribute("data-tool-name") || "";
+            var name = toolName || boxes[i].getAttribute("data-package-name") || "";
+            var wasLinked = toolName
+                ? !!packageDialogState.linkedTools[name]
+                : !!packageDialogState.linked[name];
+            var nowLinked = !!boxes[i].checked;
+            if (boxes[i].disabled) {
+                continue;
+            }
+            if (nowLinked && !wasLinked) {
+                if (toolName) {
+                    toLinkTools.push(name);
+                } else {
+                    toLink.push(name);
+                }
+            }
+            if (!nowLinked && wasLinked) {
+                if (toolName) {
+                    toUnlinkTools.push(name);
+                } else {
+                    toUnlink.push(name);
+                }
+            }
+        }
+        return {
+            toLink: toLink,
+            toUnlink: toUnlink,
+            toLinkTools: toLinkTools,
+            toUnlinkTools: toUnlinkTools,
+        };
+    }
+
+    function updatePackageApplyButton() {
+        var btn = document.getElementById("packages-dialog-apply");
+        if (!btn) {
+            return;
+        }
+        var diff = packageSelectionDiff();
+        var n =
+            diff.toLink.length +
+            diff.toUnlink.length +
+            diff.toLinkTools.length +
+            diff.toUnlinkTools.length;
+        if (!packageDialogState || packageDialogState.busy || n === 0) {
+            btn.disabled = true;
+            btn.textContent = "Apply";
+            return;
+        }
+        btn.disabled = false;
+        var parts = [];
+        if (diff.toLink.length || diff.toLinkTools.length) {
+            parts.push(
+                "link " +
+                    String(diff.toLink.length + diff.toLinkTools.length)
+            );
+        }
+        if (diff.toUnlink.length || diff.toUnlinkTools.length) {
+            parts.push(
+                "unlink " +
+                    String(diff.toUnlink.length + diff.toUnlinkTools.length)
+            );
+        }
+        btn.textContent = "Apply (" + parts.join(", ") + ")";
+    }
+
+    function renderToolOption(id, label, linkedTools, isMissing) {
+        var html =
+            '<label class="package-option' +
+            (isMissing ? " package-option-missing" : "") +
+            '">';
+        html +=
+            '<input type="checkbox" data-tool-name="' +
+            escapeHtml(id) +
+            '"';
+        if (linkedTools[id]) {
+            html += " checked";
+        }
+        if (isMissing) {
+            html += " disabled";
+        }
+        html += ">";
+        html += "<span>" + escapeHtml(label) + "</span>";
+        if (isMissing) {
+            html += '<span class="cell-muted">not in tools/</span>';
+        }
+        html += '<span class="pill package-tool-pill">tool</span>';
+        html += "</label>";
+        return html;
+    }
+
+    function renderPackageOptions(available, missing, linked, tools, linkedTools) {
+        var list = document.getElementById("packages-dialog-list");
+        var combined = available.slice();
+        var i;
+        for (i = 0; i < missing.length; i++) {
+            combined.push(missing[i]);
+        }
+        combined.sort(function (a, b) {
+            var aLinked = linked[a] ? 0 : 1;
+            var bLinked = linked[b] ? 0 : 1;
+            if (aLinked !== bLinked) {
+                return aLinked - bLinked;
+            }
+            return String(a).localeCompare(String(b));
+        });
+        if (combined.length === 0 && (!tools || tools.length === 0)) {
+            list.innerHTML =
+                '<p class="cell-muted">No packages in packages/.</p>';
+            return;
+        }
+        var html = "";
+        for (i = 0; i < tools.length; i++) {
+            html += renderToolOption(
+                tools[i].id,
+                tools[i].label,
+                linkedTools,
+                !!tools[i].missing
+            );
+        }
+        for (i = 0; i < combined.length; i++) {
+            var name = combined[i];
+            var isMissing = false;
+            var j;
+            for (j = 0; j < missing.length; j++) {
+                if (missing[j] === name) {
+                    isMissing = true;
+                    break;
+                }
+            }
+            html +=
+                '<label class="package-option' +
+                (isMissing ? " package-option-missing" : "") +
+                '">';
+            html +=
+                '<input type="checkbox" data-package-name="' +
+                escapeHtml(name) +
+                '"';
+            if (linked[name]) {
+                html += " checked";
+            }
+            if (isMissing) {
+                html += " disabled";
+            }
+            html += ">";
+            html += "<span>" + escapeHtml(name) + "</span>";
+            if (isMissing) {
+                html += '<span class="cell-muted">not in packages/</span>';
+            }
+            html += "</label>";
+        }
+        list.innerHTML = html;
+    }
+
+    function filterPackageOptions() {
+        var filter = document.getElementById("packages-dialog-filter");
+        var q = filter ? String(filter.value || "").trim().toLowerCase() : "";
+        var options = document.querySelectorAll(
+            "#packages-dialog-list .package-option"
+        );
+        var i;
+        for (i = 0; i < options.length; i++) {
+            var text = String(options[i].textContent || "").toLowerCase();
+            if (!q || text.indexOf(q) !== -1) {
+                options[i].hidden = false;
+            } else {
+                options[i].hidden = true;
+            }
+        }
+    }
+
+    function closePackagesDialog() {
+        var dlg = document.getElementById("packages-dialog");
+        if (!dlg || dlg.hidden) {
+            return;
+        }
+        dlg.hidden = true;
+        packageDialogState = null;
+        syncAppDialogBodyClass();
+    }
+
+    function openPackagesDialog(framework) {
+        var row = findInstanceRow(framework);
+        if (!row || !(row.instance && row.instance.running)) {
+            return;
+        }
+        var names = linkedPackageList(row);
+        var linked = {};
+        var i;
+        for (i = 0; i < names.length; i++) {
+            linked[names[i]] = true;
+        }
+        var toolNames = linkedToolList(row);
+        var linkedTools = {};
+        for (i = 0; i < toolNames.length; i++) {
+            linkedTools[toolNames[i]] = true;
+        }
+        var available = [];
+        if (lastData && lastData.available_packages) {
+            available = lastData.available_packages.slice();
+        }
+        var missing = [];
+        for (i = 0; i < names.length; i++) {
+            var found = false;
+            var j;
+            for (j = 0; j < available.length; j++) {
+                if (available[j] === names[i]) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                missing.push(names[i]);
+            }
+        }
+        var tools = [];
+        var catalog = (lastData && lastData.dev_tools) || [];
+        for (i = 0; i < catalog.length; i++) {
+            if (!catalog[i] || !catalog[i].id) {
+                continue;
+            }
+            tools.push({
+                id: catalog[i].id,
+                label: catalog[i].label || devToolLabel(catalog[i].id),
+                missing: false,
+            });
+        }
+        for (i = 0; i < toolNames.length; i++) {
+            var inCatalog = false;
+            for (j = 0; j < tools.length; j++) {
+                if (tools[j].id === toolNames[i]) {
+                    inCatalog = true;
+                    break;
+                }
+            }
+            if (!inCatalog) {
+                tools.push({
+                    id: toolNames[i],
+                    label: devToolLabel(toolNames[i]),
+                    missing: true,
+                });
+            }
+        }
+        packageDialogState = {
+            framework: framework,
+            linked: linked,
+            linkedTools: linkedTools,
+            busy: false,
+            applyToken: null,
+        };
+        var title = document.getElementById("packages-dialog-title");
+        if (title) {
+            title.textContent = "Packages — " + framework;
+        }
+        var filter = document.getElementById("packages-dialog-filter");
+        if (filter) {
+            filter.value = "";
+        }
+        renderPackageOptions(available, missing, linked, tools, linkedTools);
+        var statusEl = document.getElementById("packages-dialog-status");
+        if (statusEl) {
+            statusEl.textContent = "";
+        }
+        updatePackageApplyButton();
+        var dlg = document.getElementById("packages-dialog");
+        dlg.hidden = false;
+        document.body.classList.add("app-dialog-open");
+        if (filter) {
+            filter.focus();
+        }
+    }
+
+    function readZdJsonResponse(r) {
+        return r.text().then(function (text) {
+            var data = null;
+            if (text) {
+                try {
+                    data = JSON.parse(text);
+                } catch (ignore) {
+                    throw new Error(
+                        "Invalid response (not JSON): " +
+                            text.trim().slice(0, 280)
+                    );
+                }
+            }
+            if (!r.ok) {
+                var detail = (data && (data.detail || data.error)) || "";
+                throw new Error(
+                    detail
+                        ? "HTTP " + r.status + ": " + detail
+                        : "HTTP " + r.status
+                );
+            }
+            return data;
+        });
+    }
+
+    function postZdItems(command, framework, field, names) {
+        var body = {
+            command: command,
+            framework: framework,
+        };
+        body[field] = names;
+        return fetch("/api/zd", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        }).then(readZdJsonResponse);
+    }
+
+    function applyPackageDialog() {
+        if (!packageDialogState || packageDialogState.busy) {
+            return;
+        }
+        var diff = packageSelectionDiff();
+        if (
+            diff.toLink.length === 0 &&
+            diff.toUnlink.length === 0 &&
+            diff.toLinkTools.length === 0 &&
+            diff.toUnlinkTools.length === 0
+        ) {
+            return;
+        }
+        var framework = packageDialogState.framework;
+        var applyToken = {};
+        packageDialogState.busy = true;
+        packageDialogState.applyToken = applyToken;
+        updatePackageApplyButton();
+        var statusEl = document.getElementById("packages-dialog-status");
+        var jobs = [];
+        if (diff.toUnlink.length) {
+            jobs.push({
+                command: "unlink",
+                field: "packages",
+                names: diff.toUnlink,
+            });
+        }
+        if (diff.toUnlinkTools.length) {
+            jobs.push({
+                command: "unlink-tool",
+                field: "tools",
+                names: diff.toUnlinkTools,
+            });
+        }
+        if (diff.toLink.length) {
+            jobs.push({
+                command: "link",
+                field: "packages",
+                names: diff.toLink,
+            });
+        }
+        if (diff.toLinkTools.length) {
+            jobs.push({
+                command: "link-tool",
+                field: "tools",
+                names: diff.toLinkTools,
+            });
+        }
+        var chain = Promise.resolve();
+        var i;
+        for (i = 0; i < jobs.length; i++) {
+            (function (job) {
+                chain = chain.then(function () {
+                    if (statusEl) {
+                        statusEl.textContent =
+                            "zd " +
+                            job.command +
+                            " " +
+                            framework +
+                            " " +
+                            job.names.join(" ") +
+                            " --only";
+                    }
+                    return postZdItems(
+                        job.command,
+                        framework,
+                        job.field,
+                        job.names
+                    );
+                });
+            })(jobs[i]);
+        }
+        chain
+            .then(function () {
+                return new Promise(function (resolve) {
+                    window.setTimeout(resolve, 1000);
+                });
+            })
+            .then(function () {
+                closePackagesDialog();
+                return loadStatus({ showProgress: false });
+            })
+            .catch(function (e) {
+                var banner = document.getElementById("error-banner");
+                banner.hidden = false;
+                banner.textContent =
+                    (e && e.message) || "Could not update packages.";
+                return loadStatus({ showProgress: false }).then(function () {
+                    if (
+                        !packageDialogState ||
+                        packageDialogState.applyToken !== applyToken
+                    ) {
+                        return;
+                    }
+                    var fw = packageDialogState.framework;
+                    openPackagesDialog(fw);
+                    var statusAfter = document.getElementById(
+                        "packages-dialog-status"
+                    );
+                    if (statusAfter) {
+                        statusAfter.textContent =
+                            (e && e.message) || "Could not update packages.";
+                    }
+                });
+            });
+    }
+
     /** Toggle extra-details panel on a card (card background click). */
     function toggleInstanceExtraPanel(card) {
         var panel = card.querySelector(".instance-extra");
@@ -2747,6 +3278,7 @@
         lines += detailRow("Created", formatCreated(inst));
         lines += detailRow("Port", portStackHtml(row));
         lines += detailRow("Login", renderLoginLinksHtml(row));
+        lines += detailRow("Packages", renderPackagesHtml(row));
         if (cfg.host_workspace && String(cfg.host_workspace).trim()) {
             lines += detailRow("Workspace", hostWorkspaceButtonsHtml(row));
         }
@@ -3057,6 +3589,24 @@
             finishConfirm(t.getAttribute("data-confirm") === "1");
         }
     });
+    document.getElementById("packages-dialog").addEventListener("click", function (e) {
+        var t = e.target.closest("[data-packages-close]");
+        if (t) {
+            if (packageDialogState && packageDialogState.busy) {
+                return;
+            }
+            closePackagesDialog();
+        }
+    });
+    document.getElementById("packages-dialog-apply").addEventListener("click", function () {
+        applyPackageDialog();
+    });
+    document.getElementById("packages-dialog-filter").addEventListener("input", function () {
+        filterPackageOptions();
+    });
+    document.getElementById("packages-dialog-list").addEventListener("change", function () {
+        updatePackageApplyButton();
+    });
     document.addEventListener("keydown", function (e) {
         if (e.key !== "Escape") {
             return;
@@ -3070,6 +3620,14 @@
         var legendDlg = document.getElementById("status-legend-dialog");
         if (legendDlg && !legendDlg.hidden) {
             closeStatusLegendDialog();
+            return;
+        }
+        var packagesDlg = document.getElementById("packages-dialog");
+        if (packagesDlg && !packagesDlg.hidden) {
+            if (packageDialogState && packageDialogState.busy) {
+                return;
+            }
+            closePackagesDialog();
             return;
         }
         var dlg = document.getElementById("confirm-dialog");
@@ -3137,6 +3695,20 @@
                 ideBtn.getAttribute("data-framework") || "",
                 ideBtn.getAttribute("data-ide") || ""
             );
+            return;
+        }
+
+        var packagesBtn = e.target.closest(
+            ".packages-manage-btn, button.package-count"
+        );
+        if (packagesBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (!packagesBtn.disabled) {
+                openPackagesDialog(
+                    packagesBtn.getAttribute("data-framework") || ""
+                );
+            }
             return;
         }
 

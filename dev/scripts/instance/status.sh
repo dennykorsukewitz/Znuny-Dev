@@ -430,6 +430,369 @@ _print_services_json() {
     printf ']'
 }
 
+# Package directory basename safe to pass to zd link/unlink (no shell metacharacters).
+_package_name_ok() {
+    local name="$1"
+    if [ -z "$name" ] || [ "${#name}" -gt 180 ]; then
+        return 1
+    fi
+    case "$name" in
+        *[!A-Za-z0-9._+-]*) return 1 ;;
+    esac
+    case "$name" in
+        [A-Za-z0-9]*) return 0 ;;
+    esac
+    return 1
+}
+
+# Host FRAMEWORK_DIR from the instance env is invisible inside the dashboard container.
+# Fall back to FRAMEWORKS_DIR/<basename> (/frameworks mount or host checkout).
+_resolve_framework_checkout() {
+    local framework_dir="$1"
+    local framework_name="$2"
+    local base=""
+
+    if [ -n "$framework_dir" ] && [ -d "$framework_dir" ]; then
+        printf '%s' "$framework_dir"
+        return 0
+    fi
+
+    if [ -n "$framework_dir" ]; then
+        base=$(basename "$framework_dir")
+    fi
+    if [ -z "$base" ] || [ "$base" = "." ] || [ "$base" = "/" ]; then
+        base="$framework_name"
+    fi
+
+    if [ -n "${FRAMEWORKS_DIR:-}" ] && [ -n "$base" ] && [ -d "${FRAMEWORKS_DIR}/$base" ]; then
+        printf '%s' "${FRAMEWORKS_DIR}/$base"
+        return 0
+    fi
+    if [ -n "$base" ] && [ -d "/frameworks/$base" ]; then
+        printf '%s' "/frameworks/$base"
+        return 0
+    fi
+
+    printf '%s' "$framework_dir"
+}
+
+# Rows are "P<TAB>package" or "T<TAB>tool". Tool names come from DEV_TOOL_IDS.
+# Module::File::Link stores absolute symlink targets under /opt/packages/ or /opt/tools/.
+_emit_link_rows() {
+    local framework_dir="$1"
+    local packages_dir="$2"
+    local tools_dir="$3"
+
+    if [ -z "$framework_dir" ] || [ ! -d "$framework_dir" ]; then
+        return 0
+    fi
+
+    if command -v node >/dev/null 2>&1; then
+        LINK_ROOT="$framework_dir" LINK_HOST="${packages_dir:-}" LINK_TOOLS="${tools_dir:-}" LINK_TOOL_IDS="${DEV_TOOL_IDS:-Fred,ZnunyCodePolicy}" node <<'EOF'
+const fs = require("fs");
+const path = require("path");
+const root = process.env.LINK_ROOT || "";
+const hostRaw = process.env.LINK_HOST || "";
+const toolsRaw = process.env.LINK_TOOLS || "";
+const hostPrefix = hostRaw ? hostRaw.replace(/\/+$/, "") + "/" : "";
+const toolsPrefix = toolsRaw ? toolsRaw.replace(/\/+$/, "") + "/" : "";
+const seen = new Set();
+const seenTools = new Set();
+const nameRe = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,179}$/;
+const toolAllow = {};
+String(process.env.LINK_TOOL_IDS || "Fred,ZnunyCodePolicy").split(",").forEach(function (part) {
+    var toolName = part.trim();
+    if (nameRe.test(toolName)) {
+        toolAllow[toolName] = 1;
+    }
+});
+
+function consider(target) {
+    var rest = "";
+    if (target.indexOf("/opt/packages/") === 0) {
+        rest = target.slice("/opt/packages/".length);
+    } else if (target.indexOf("/packages/") === 0) {
+        rest = target.slice("/packages/".length);
+    } else if (hostPrefix && target.indexOf(hostPrefix) === 0) {
+        rest = target.slice(hostPrefix.length);
+    }
+    if (rest) {
+        var name = rest.split("/")[0];
+        if (nameRe.test(name)) {
+            seen.add(name);
+        }
+    }
+    rest = "";
+    if (target.indexOf("/opt/tools/") === 0) {
+        rest = target.slice("/opt/tools/".length);
+    } else if (toolsPrefix && target.indexOf(toolsPrefix) === 0) {
+        rest = target.slice(toolsPrefix.length);
+    }
+    if (rest) {
+        var toolName = rest.split("/")[0];
+        if (toolAllow[toolName]) {
+            seenTools.add(toolName);
+        }
+    }
+}
+
+function walk(dir) {
+    var entries;
+    try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch (error) {
+        return;
+    }
+    var i;
+    for (i = 0; i < entries.length; i++) {
+        var ent = entries[i];
+        var full = path.join(dir, ent.name);
+        if (ent.isSymbolicLink()) {
+            try {
+                consider(fs.readlinkSync(full));
+            } catch (error) {
+                /* dangling or unreadable link */
+            }
+            continue;
+        }
+        if (ent.name === ".git" || ent.name === "node_modules") {
+            continue;
+        }
+        if (ent.isDirectory()) {
+            walk(full);
+        }
+    }
+}
+
+if (root) {
+    walk(root);
+}
+seen.forEach(function (name) {
+    process.stdout.write("P\t" + name + "\n");
+});
+seenTools.forEach(function (name) {
+    process.stdout.write("T\t" + name + "\n");
+});
+EOF
+        return 0
+    fi
+
+    find "$framework_dir" -name .git -prune -o -type l -exec readlink {} + 2>/dev/null \
+        | awk -v host="$packages_dir" -v tools="$tools_dir" -v tool_ids="${DEV_TOOL_IDS:-Fred,ZnunyCodePolicy}" '
+            function tool_ok(name,   n, i, part) {
+                n = split(tool_ids, parts, ",")
+                for (i = 1; i <= n; i++) {
+                    part = parts[i]
+                    gsub(/^[ \t]+|[ \t]+$/, "", part)
+                    if (part == name) {
+                        return 1
+                    }
+                }
+                return 0
+            }
+            function take(kind, rest,   slash, name) {
+                slash = index(rest, "/")
+                if (slash == 0) {
+                    name = rest
+                } else {
+                    name = substr(rest, 1, slash - 1)
+                }
+                if (kind == "P" && name ~ /^[A-Za-z0-9][A-Za-z0-9._+-]*$/ && length(name) <= 180) {
+                    seen[kind "\t" name] = 1
+                }
+                if (kind == "T" && tool_ok(name)) {
+                    seen[kind "\t" name] = 1
+                }
+            }
+            {
+                if (index($0, "/opt/packages/") == 1) {
+                    take("P", substr($0, 15))
+                } else if (index($0, "/packages/") == 1) {
+                    take("P", substr($0, 11))
+                } else if (host != "" && index($0, host "/") == 1) {
+                    take("P", substr($0, length(host) + 2))
+                } else if (index($0, "/opt/tools/") == 1) {
+                    take("T", substr($0, 12))
+                } else if (tools != "" && index($0, tools "/") == 1) {
+                    take("T", substr($0, length(tools) + 2))
+                }
+            }
+            END {
+                for (row in seen) {
+                    print row
+                }
+            }
+        '
+}
+
+# One symlink walk per checkout. Later calls with the same directory reuse it.
+_ensure_link_scan() {
+    local framework_dir="$1"
+    if [ "${_SCAN_DIR:-}" = "$framework_dir" ]; then
+        return 0
+    fi
+    _SCAN_DIR="$framework_dir"
+    _SCAN_RAW=""
+    if [ -z "$framework_dir" ] || [ ! -d "$framework_dir" ]; then
+        return 0
+    fi
+    _SCAN_RAW=$(_emit_link_rows "$framework_dir" "${PACKAGES_DIR:-}" "${TOOLS_DIR:-}" | sort -u)
+}
+
+_print_scanned_kind_json() {
+    local kind="$1"
+    local names=()
+    local k n
+    if [ -n "${_SCAN_RAW:-}" ]; then
+        while IFS=$'\t' read -r k n; do
+            [ "$k" = "$kind" ] || continue
+            [ -n "$n" ] || continue
+            names+=("$n")
+        done <<< "$_SCAN_RAW"
+    fi
+    if [ "${#names[@]}" -eq 0 ]; then
+        printf '[]'
+        return 0
+    fi
+    _print_json_string_list "${names[@]}"
+}
+
+_print_linked_packages_json() {
+    local checkout_dir="$1"
+    _ensure_link_scan "$checkout_dir"
+    _print_scanned_kind_json "P"
+}
+
+_dev_tool_ids() {
+    REPLY_DEV_TOOL_IDS=()
+    local raw="${DEV_TOOL_IDS:-Fred,ZnunyCodePolicy}"
+    local part rest
+    rest="$raw"
+    while [ -n "$rest" ]; do
+        part="${rest%%,*}"
+        if [ "$part" = "$rest" ]; then
+            rest=""
+        else
+            rest="${rest#*,}"
+        fi
+        part=$(printf '%s' "$part" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if _package_name_ok "$part"; then
+            REPLY_DEV_TOOL_IDS+=("$part")
+        fi
+    done
+}
+
+_print_linked_tools_json() {
+    local checkout_dir="$1"
+    local first=true
+    local id k n found
+    _ensure_link_scan "$checkout_dir"
+    _dev_tool_ids
+    printf '['
+    if [ "${#REPLY_DEV_TOOL_IDS[@]}" -eq 0 ]; then
+        printf ']'
+        return 0
+    fi
+    for id in "${REPLY_DEV_TOOL_IDS[@]}"; do
+        found=false
+        if [ -n "${_SCAN_RAW:-}" ]; then
+            while IFS=$'\t' read -r k n; do
+                if [ "$k" = "T" ] && [ "$n" = "$id" ]; then
+                    found=true
+                    break
+                fi
+            done <<< "$_SCAN_RAW"
+        fi
+        if [ "$found" = true ]; then
+            if [ "$first" = false ]; then
+                printf ','
+            fi
+            first=false
+            printf '"%s"' "$(json_escape_string "$id")"
+        fi
+    done
+    printf ']'
+}
+
+# Configured dev tools when those checkouts exist under TOOLS_DIR.
+_print_dev_tools_json() {
+    local dir="${TOOLS_DIR:-}"
+    local first=true
+    local id
+    if [ -z "$dir" ] || [ ! -d "$dir" ]; then
+        if [ -d /tools ]; then
+            dir=/tools
+        fi
+    fi
+    _dev_tool_ids
+    printf '['
+    if [ "${#REPLY_DEV_TOOL_IDS[@]}" -eq 0 ]; then
+        printf ']'
+        return 0
+    fi
+    for id in "${REPLY_DEV_TOOL_IDS[@]}"; do
+        if [ -z "$dir" ] || [ ! -d "$dir/$id" ]; then
+            continue
+        fi
+        if [ "$first" = false ]; then
+            printf ','
+        fi
+        first=false
+        printf '{"id":"%s","label":"%s"}' "$(json_escape_string "$id")" "$(json_escape_string "$id")"
+    done
+    printf ']'
+}
+
+# Print a JSON string array. Caller must pass at least one name (bash 3.2 + set -u).
+_print_json_string_list() {
+    local first=true
+    local name
+    printf '['
+    for name in "$@"; do
+        if [ "$first" = true ]; then
+            first=false
+        else
+            printf ','
+        fi
+        printf '"%s"' "$(json_escape_string "$name")"
+    done
+    printf ']'
+}
+
+_read_lines_to_name_array() {
+    local _line
+    REPLY_NAMES=()
+    while IFS= read -r _line; do
+        [ -n "$_line" ] || continue
+        REPLY_NAMES+=("$_line")
+    done
+}
+
+# Top-level directories in PACKAGES_DIR (what `zd link <framework> <package>` accepts).
+_print_available_packages_json() {
+    local dir="${PACKAGES_DIR:-}"
+    local path base
+    local names=()
+
+    if [ -n "$dir" ] && [ -d "$dir" ]; then
+        for path in "$dir"/*; do
+            [ -d "$path" ] || continue
+            base=$(basename "$path")
+            if _package_name_ok "$base"; then
+                names+=("$base")
+            fi
+        done
+    fi
+
+    if [ "${#names[@]}" -eq 0 ]; then
+        printf '[]'
+        return 0
+    fi
+
+    _read_lines_to_name_array < <(printf '%s\n' "${names[@]}" | sort -u)
+    _print_json_string_list "${REPLY_NAMES[@]}"
+}
+
 print_status_json_collection() {
     local framework="${1:-}"
     local verbose_mode="${2:-false}"
@@ -456,7 +819,12 @@ print_status_json_collection() {
             printf '\n'
             return 1
         fi
-        printf '{"generated_at":"%s","instances":[' "$generated_at"
+        printf '{"generated_at":"%s",' "$generated_at"
+        printf '"available_packages":'
+        _print_available_packages_json
+        printf ',"dev_tools":'
+        _print_dev_tools_json
+        printf ',"instances":['
         _status_json_docker_cache_load "$verbose_mode"
         _print_one_instance_json "$framework" "$verbose_mode"
         printf '],'
@@ -469,7 +837,12 @@ print_status_json_collection() {
     local instances=()
     read_lines_to_array instances < <(get_available_instances)
     _status_json_docker_cache_load "$verbose_mode"
-    printf '{"generated_at":"%s","instances":[' "$generated_at"
+    printf '{"generated_at":"%s",' "$generated_at"
+    printf '"available_packages":'
+    _print_available_packages_json
+    printf ',"dev_tools":'
+    _print_dev_tools_json
+    printf ',"instances":['
     local first=true
     local inst
     for inst in "${instances[@]}"; do
@@ -892,6 +1265,13 @@ _print_one_instance_json() {
     printf '"console":"%s",' "$(json_escape_string "${cli_console:-}")"
     printf '"shell":"%s"' "$(json_escape_string "${cli_shell:-}")"
     printf '}'
+
+    local checkout_dir
+    checkout_dir=$(_resolve_framework_checkout "$framework_dir" "$framework_name")
+    printf ',"linked_packages":'
+    _print_linked_packages_json "$checkout_dir"
+    printf ',"linked_tools":'
+    _print_linked_tools_json "$checkout_dir"
 
     if [[ "$verbose_mode" == "true" ]] && check_command docker && docker info >/dev/null 2>&1; then
         local framework_slug

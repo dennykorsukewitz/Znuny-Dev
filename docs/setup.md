@@ -108,7 +108,7 @@ During **Step 3** of `setup-all`, you define three paths. They are stored in the
 | --- | --- | --- |
 | **frameworks/** | `FRAMEWORKS_DIR` | Git clones of Znuny (one folder per branch/checkout, e.g. `dev`, `rel-7_3-dev`). Each instance uses one framework directory. |
 | **packages/** | `PACKAGES_DIR` | Your Znuny packages (OPM modules). Linked into containers at `/opt/packages/` for live development (`zd link`, `zd install`). |
-| **tools/** | `TOOLS_DIR` | Developer tools cloned by setup: `module-tools`, `Fred`, `ZnunyCodePolicy`. Mounted at `/opt/tools/` in containers. |
+| **tools/** | `TOOLS_DIR` | Developer tools cloned by setup: `module-tools`, `Fred`, `ZnunyCodePolicy`. Mounted at `/opt/tools/` in containers. `DEV_TOOL_IDS` (default `Fred,ZnunyCodePolicy`) is the dashboard link/unlink list; it is appended to `.env` when missing. |
 
 **Why plan this early?**
 

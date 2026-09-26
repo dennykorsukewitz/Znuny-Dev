@@ -355,6 +355,47 @@ load_environment() {
             DEV_DIR_REL="${DEV_DIR_REL:-dev}"
         fi
     fi
+
+    # Dashboard link/unlink allowlist. Write the default into .env when the key is missing.
+    _ensure_dev_tool_ids
+}
+
+# Default DEV_TOOL_IDS when .env has no such key. Does not create .env.
+_ensure_dev_tool_ids() {
+    local default_ids="Fred,ZnunyCodePolicy"
+    local env_file=""
+    local my_env=""
+
+    if [ -n "${DEV_TOOL_IDS:-}" ]; then
+        return 0
+    fi
+
+    if [ -n "${ZNUNY_DEV_DIR:-}" ]; then
+        env_file="$ZNUNY_DEV_DIR/.env"
+        my_env="$ZNUNY_DEV_DIR/configs/instance/my.env"
+    fi
+
+    if [ -n "$env_file" ] && [ -f "$env_file" ] && grep -q '^DEV_TOOL_IDS=' "$env_file"; then
+        return 0
+    fi
+    if [ -n "$my_env" ] && [ -f "$my_env" ] && grep -q '^DEV_TOOL_IDS=' "$my_env"; then
+        return 0
+    fi
+
+    export DEV_TOOL_IDS="$default_ids"
+
+    if [ -z "$env_file" ] || [ ! -f "$env_file" ]; then
+        return 0
+    fi
+
+    if [ -s "$env_file" ]; then
+        local last_byte
+        last_byte=$(tail -c 1 "$env_file" || true)
+        if [ -n "$last_byte" ]; then
+            printf '\n' >> "$env_file"
+        fi
+    fi
+    printf '\n# Tool directory names the dashboard may link or unlink (comma-separated, under TOOLS_DIR).\nDEV_TOOL_IDS=%s\n' "$default_ids" >> "$env_file"
 }
 
 # Set ZD_CMD for help/examples: "zd" when alias is set, else "./znuny-dev.sh". Only set if not already set.

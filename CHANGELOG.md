@@ -6,6 +6,7 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Added
 
+- Dashboard lists linked packages per instance (count and names from framework symlinks) and can link or unlink one or more packages (`zd link` / `zd unlink --only`). Fred and ZnunyCodePolicy are in the same list and use `zd link-tool` / `zd unlink-tool --only`.
 - Document host Node.js as optional for the dashboard opener (Folder / IDE). The dashboard UI, status, and instance actions work without it; the HTTP server uses Node.js 22 inside its Docker image.
 - Shared Selenium Chrome (`zd selenium start`) on `znuny-network` (hostname `selenium`, port 4444). Opt-in `ENABLE_SELENIUM=y` makes instance startup write `SeleniumTestsConfig` and `TestHTTPHostname` so browser unit tests can run.
 - Selenium Docker health check: `znuny-selenium` is healthy when `http://localhost:4444/status` reports `ready`.
@@ -14,6 +15,7 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Changed
 
+- Dashboard dev tools that can be linked come from `DEV_TOOL_IDS` in `.env` (default `Fred,ZnunyCodePolicy`). `load_environment` appends that default when the key is missing.
 - Selenium noVNC no longer asks for the image default password `secret` (`SE_VNC_NO_PASSWORD=1`). Recreate the container with `zd selenium start` so a running `znuny-selenium` picks it up.
 - Leave the clone target before `rm -rf` / `git clone` so a fresh checkout does not fail with `Unable to read current working directory` when the previous framework directory was the shell cwd.
 

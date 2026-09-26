@@ -124,6 +124,11 @@ function getZnunyDashboardStatusMock() {
     var devPaths = mockPaths("10000");
     return {
         generated_at: "2026-04-17T14:00:00Z",
+        available_packages: ["FAQ", "GeneralCatalog", "ImportExport", "ITSMCore"],
+        dev_tools: [
+            { id: "Fred", label: "Fred" },
+            { id: "ZnunyCodePolicy", label: "ZnunyCodePolicy" },
+        ],
         instances: [
             /* 1 — dev (green) */
             {
@@ -160,6 +165,8 @@ function getZnunyDashboardStatusMock() {
                 paths: devPaths,
                 access: mockAccess(devPaths),
                 cli: mockCli("dev"),
+                linked_packages: ["FAQ", "ImportExport"],
+                linked_tools: ["Fred"],
                 verbose: null,
             },
             /* 2 — lts (green) */
@@ -405,6 +412,8 @@ function getZnunyDashboardStatusMock() {
                 paths: rt.paths,
                 access: rt.access,
                 cli: rt.cli,
+                linked_packages: ["GeneralCatalog"],
+                linked_tools: ["ZnunyCodePolicy"],
                 verbose: null,
                 };
             })(),

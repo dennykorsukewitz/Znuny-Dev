@@ -206,6 +206,21 @@
         </div>
       </div>
 
+      <div id="packages-dialog" class="app-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="packages-dialog-title">
+        <div class="app-dialog-backdrop" data-packages-close="1"></div>
+        <div class="app-dialog-panel packages-dialog-panel">
+          <h2 id="packages-dialog-title" class="app-dialog-title">Packages</h2>
+          <p class="app-dialog-message packages-dialog-note">Link and unlink only (<code>zd link</code> / <code>zd unlink --only</code>, tools via <code>zd link-tool</code> / <code>zd unlink-tool --only</code>). Does not install, uninstall, or rebuild the config cache.</p>
+          <input type="search" id="packages-dialog-filter" class="packages-dialog-filter" placeholder="Filter packages" aria-label="Filter packages"/>
+          <div id="packages-dialog-list" class="packages-dialog-list"></div>
+          <p id="packages-dialog-status" class="packages-dialog-status" role="status"></p>
+          <div class="app-dialog-actions">
+            <button type="button" class="btn packages-dialog-cancel" data-packages-close="1">Cancel</button>
+            <button type="button" class="btn btn-primary" id="packages-dialog-apply" disabled>Apply</button>
+          </div>
+        </div>
+      </div>
+
       <div id="confirm-dialog" class="app-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
         <div class="app-dialog-backdrop" data-confirm="0"></div>
         <div class="app-dialog-panel">

@@ -48,6 +48,8 @@
   --accent-instance-hover: #0f766e;
   --accent-database: #6366f1;
   --accent-database-hover: #4f46e5;
+  --accent-packages: var(--zn-purple);
+  --accent-packages-hover: var(--zn-purple-hover);
 
   --ok: #22c55e;
   --warn: #f59e0b;
@@ -2669,5 +2671,142 @@ body.theme-dark .about-pacman-icon {
 .about-dialog-support-btn:hover .about-dialog-heart {
   opacity: 1;
   transform: scale(1.15);
+}
+
+.package-summary {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.package-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-radius: 50%;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in srgb, var(--heading) 88%, var(--surface));
+  background: color-mix(in srgb, var(--heading) 14%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--heading) 28%, var(--surface));
+}
+
+button.package-count {
+  cursor: pointer;
+}
+
+button.package-count:hover {
+  border-color: var(--accent-packages);
+  color: var(--accent-packages);
+}
+
+/* Same shell as the Instance action button, purple instead of teal. */
+.packages-manage-btn {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  background: color-mix(in srgb, var(--accent-packages) 8%, var(--surface));
+  color: var(--accent-packages);
+  border: 1px solid color-mix(in srgb, var(--accent-packages) 45%, var(--border));
+}
+
+.packages-manage-btn:hover {
+  color: var(--accent-packages-hover);
+  border-color: var(--accent-packages);
+  background: color-mix(in srgb, var(--accent-packages) 14%, var(--surface));
+}
+
+.packages-dialog-panel {
+  width: min(560px, 96vw);
+  max-height: min(80vh, 720px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Same look as the Instance menu Start item. */
+.packages-dialog-cancel {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--heading);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.packages-dialog-cancel:hover {
+  border-color: var(--zn-orange);
+  color: var(--zn-orange);
+  background: color-mix(in srgb, var(--zn-orange) 8%, var(--surface));
+}
+
+.packages-dialog-note {
+  margin-top: 0;
+}
+
+.packages-dialog-filter {
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.packages-dialog-list {
+  overflow: auto;
+  max-height: 46vh;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.package-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  font-family: ui-monospace, "Courier New", monospace;
+  font-size: 0.82rem;
+}
+
+.package-option[hidden] {
+  display: none;
+}
+
+.package-option-missing {
+  opacity: 0.7;
+}
+
+.package-tool-pill {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: "Open Sans", "Segoe UI", system-ui, sans-serif;
+  background: color-mix(in srgb, var(--accent-packages) 18%, transparent);
+  color: var(--accent-packages);
+  border-color: color-mix(in srgb, var(--accent-packages) 42%, var(--border));
+}
+
+.packages-dialog-status {
+  min-height: 1.2em;
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--label);
+}
+
+.instances-table .cell-packages {
+  white-space: nowrap;
+  vertical-align: middle;
 }
 

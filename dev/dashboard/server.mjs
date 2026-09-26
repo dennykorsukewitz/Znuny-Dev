@@ -1,6 +1,8 @@
 /**
  * Minimal static server: GET /api/status, GET /api/health, POST /api/zd,
  * POST /api/dashboard/restart, GET|POST /api/open-workspace, static UI.
+ * POST /api/zd command "link" | "unlink" also accepts { packages: ["Name", ...] }
+ * and runs `zd link|unlink <framework> <packages...> --only`.
  */
 import http from "http";
 import fs from "fs";
@@ -32,6 +34,10 @@ const DASHBOARD_STATUS_SCRIPT = path.join(
 const ZD_BODY_MAX = 16384;
 /** Safe framework directory basename (matches typical frameworks/* names). */
 const FRAMEWORK_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+/** Package directory under packages/ — same charset status.sh `_package_name_ok` allows. */
+const PACKAGE_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,179}$/;
+const PACKAGE_LIST_MAX = 80;
+const DEFAULT_DEV_TOOL_IDS = "Fred,ZnunyCodePolicy";
 const OPENER_PORT = Number(process.env.OPENER_PORT || 9998);
 const OPENER_HOST = process.env.OPENER_HOST || "host.docker.internal";
 
@@ -48,6 +54,42 @@ const ZD_REGISTRY = {
     "db-start": { buildArgv: (framework) => ["db-start", framework] },
     "db-stop": { buildArgv: (framework) => ["db-stop", framework] },
     "db-restart": { buildArgv: (framework) => ["db-restart", framework] },
+    link: {
+        packages: true,
+        buildArgv: (framework, packages) => [
+            "link",
+            framework,
+            ...packages,
+            "--only",
+        ],
+    },
+    unlink: {
+        packages: true,
+        buildArgv: (framework, packages) => [
+            "unlink",
+            framework,
+            ...packages,
+            "--only",
+        ],
+    },
+    "link-tool": {
+        tools: true,
+        buildArgv: (framework, tools) => [
+            "link-tool",
+            framework,
+            ...tools,
+            "--only",
+        ],
+    },
+    "unlink-tool": {
+        tools: true,
+        buildArgv: (framework, tools) => [
+            "unlink-tool",
+            framework,
+            ...tools,
+            "--only",
+        ],
+    },
     "service-start": { service: true },
     "service-stop": { service: true },
     "service-restart": { service: true },
@@ -123,6 +165,199 @@ function runInstanceScript(argv, res) {
             res.end(JSON.stringify({ ok: true }));
         });
     });
+}
+
+function getPackagesDir() {
+    const candidates = ["/packages", path.join(getZnunyDevDir(), "..", "packages")];
+    for (const dir of candidates) {
+        try {
+            fs.accessSync(dir, fs.constants.R_OK);
+            return dir;
+        } catch {
+            /* next candidate */
+        }
+    }
+    return null;
+}
+
+function parsePackageNames(body) {
+    const raw = body && body.packages;
+    if (!Array.isArray(raw) || raw.length === 0) {
+        return { error: "packages must be a non-empty array" };
+    }
+    if (raw.length > PACKAGE_LIST_MAX) {
+        return { error: "too many packages" };
+    }
+    const seen = new Set();
+    const names = [];
+    for (const item of raw) {
+        if (typeof item !== "string" || !PACKAGE_NAME_RE.test(item)) {
+            return { error: "invalid package name" };
+        }
+        if (seen.has(item)) {
+            continue;
+        }
+        seen.add(item);
+        names.push(item);
+    }
+    if (names.length === 0) {
+        return { error: "packages must be a non-empty array" };
+    }
+    return { names };
+}
+
+function assertPackageDirectories(names) {
+    const root = getPackagesDir();
+    if (!root) {
+        return "packages directory not found";
+    }
+    let rootReal;
+    try {
+        rootReal = fs.realpathSync(root);
+    } catch {
+        return "packages directory not found";
+    }
+    for (const name of names) {
+        const dir = path.join(root, name);
+        let stat;
+        try {
+            stat = fs.statSync(dir);
+        } catch {
+            return "package not found: " + name;
+        }
+        if (!stat.isDirectory()) {
+            return "package is not a directory: " + name;
+        }
+        let real;
+        try {
+            real = fs.realpathSync(dir);
+        } catch {
+            return "package not found: " + name;
+        }
+        if (real !== rootReal && !real.startsWith(rootReal + path.sep)) {
+            return "package path escapes packages directory";
+        }
+    }
+    return null;
+}
+
+function getToolsDir() {
+    const candidates = ["/tools", path.join(getZnunyDevDir(), "..", "tools")];
+    for (const dir of candidates) {
+        try {
+            fs.accessSync(dir, fs.constants.R_OK);
+            return dir;
+        } catch {
+            /* next candidate */
+        }
+    }
+    return null;
+}
+
+function readEnvAssignment(filePath, key) {
+    let raw;
+    try {
+        raw = fs.readFileSync(filePath, "utf8");
+    } catch {
+        return undefined;
+    }
+    const match = raw.match(new RegExp("^" + key + "=(.*)$", "m"));
+    if (!match) {
+        return undefined;
+    }
+    let value = match[1].trim();
+    if (
+        (value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))
+    ) {
+        value = value.slice(1, -1);
+    }
+    return value;
+}
+
+function configuredDevToolIdSet() {
+    const root = getZnunyDevDir();
+    const fromMy = readEnvAssignment(
+        path.join(root, "configs", "instance", "my.env"),
+        "DEV_TOOL_IDS",
+    );
+    const fromDot = readEnvAssignment(path.join(root, ".env"), "DEV_TOOL_IDS");
+    const raw =
+        fromMy !== undefined
+            ? fromMy
+            : fromDot !== undefined
+              ? fromDot
+              : process.env.DEV_TOOL_IDS || DEFAULT_DEV_TOOL_IDS;
+    const ids = new Set();
+    for (const part of String(raw).split(",")) {
+        const name = part.trim();
+        if (PACKAGE_NAME_RE.test(name)) {
+            ids.add(name);
+        }
+    }
+    return ids;
+}
+
+function parseToolNames(body) {
+    const raw = body && body.tools;
+    const allowed = configuredDevToolIdSet();
+    if (!Array.isArray(raw) || raw.length === 0) {
+        return { error: "tools must be a non-empty array" };
+    }
+    if (raw.length > allowed.size) {
+        return { error: "too many tools" };
+    }
+    const seen = new Set();
+    const names = [];
+    for (const item of raw) {
+        if (typeof item !== "string" || !allowed.has(item)) {
+            return { error: "invalid tool name" };
+        }
+        if (seen.has(item)) {
+            continue;
+        }
+        seen.add(item);
+        names.push(item);
+    }
+    if (names.length === 0) {
+        return { error: "tools must be a non-empty array" };
+    }
+    return { names };
+}
+
+function assertToolDirectories(names) {
+    const root = getToolsDir();
+    if (!root) {
+        return "tools directory not found";
+    }
+    let rootReal;
+    try {
+        rootReal = fs.realpathSync(root);
+    } catch {
+        return "tools directory not found";
+    }
+    for (const name of names) {
+        const dir = path.join(root, name);
+        let stat;
+        try {
+            stat = fs.statSync(dir);
+        } catch {
+            return "tool not found: " + name;
+        }
+        if (!stat.isDirectory()) {
+            return "tool is not a directory: " + name;
+        }
+        let real;
+        try {
+            real = fs.realpathSync(dir);
+        } catch {
+            return "tool not found: " + name;
+        }
+        if (real !== rootReal && !real.startsWith(rootReal + path.sep)) {
+            return "tool path escapes tools directory";
+        }
+    }
+    return null;
 }
 
 function readFrameworkDirFromEnv(framework) {
@@ -474,9 +709,38 @@ function handlePostZd(req, res) {
             return;
         }
         const entry = ZD_REGISTRY[command];
+        let extra = null;
+        if (entry.packages) {
+            const parsed = parsePackageNames(body);
+            if (parsed.error) {
+                jsonError(res, 400, parsed.error);
+                return;
+            }
+            const packageError = assertPackageDirectories(parsed.names);
+            if (packageError) {
+                jsonError(res, 400, packageError);
+                return;
+            }
+            extra = parsed.names;
+        }
+        if (entry.tools) {
+            const parsed = parseToolNames(body);
+            if (parsed.error) {
+                jsonError(res, 400, parsed.error);
+                return;
+            }
+            const toolError = assertToolDirectories(parsed.names);
+            if (toolError) {
+                jsonError(res, 400, toolError);
+                return;
+            }
+            extra = parsed.names;
+        }
         let argv;
         try {
-            argv = entry.buildArgv(framework);
+            argv = extra
+                ? entry.buildArgv(framework, extra)
+                : entry.buildArgv(framework);
         } catch (e) {
             jsonError(
                 res,

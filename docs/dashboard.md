@@ -83,6 +83,7 @@ Optional later: OS login autostart (launchd / systemd / Task Scheduler) wrapping
 - Start / stop / restart / build / remove instances
 - Open Znuny agent/customer login links
 - Open host workspace / IDE
+- See linked packages per instance (count and names) and link or unlink them (`zd link` / `zd unlink --only`). Fred and ZnunyCodePolicy are in the same list (`zd link-tool` / `zd unlink-tool --only`).
 - About dialog (version, docs links, support)
 
 ---

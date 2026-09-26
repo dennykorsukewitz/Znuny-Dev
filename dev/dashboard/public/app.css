@@ -1430,7 +1430,7 @@ a.cell-port-link:hover {
   align-items: stretch;
 }
 
-.ide-actions-group .open-ide-link {
+.ide-actions-group:has(.actions-menu-ide-more) .open-ide-link {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }

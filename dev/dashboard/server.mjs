@@ -3,6 +3,8 @@
  * POST /api/dashboard/restart, GET|POST /api/open-workspace, static UI.
  * POST /api/zd command "link" | "unlink" also accepts { packages: ["Name", ...] }
  * and runs `zd link|unlink <framework> <packages...> --only`.
+ * "dbinstall" | "codeinstall" accept exactly one package name.
+ * "rebuild" runs Maint::Config::Rebuild. "delete" clears cache and loader cache.
  */
 import http from "http";
 import fs from "fs";
@@ -90,6 +92,26 @@ const ZD_REGISTRY = {
             "--only",
         ],
     },
+    dbinstall: {
+        packages: true,
+        buildArgv: (framework, packages) => {
+            if (packages.length !== 1) {
+                throw new Error("dbinstall accepts one package");
+            }
+            return ["dbinstall", framework, packages[0]];
+        },
+    },
+    codeinstall: {
+        packages: true,
+        buildArgv: (framework, packages) => {
+            if (packages.length !== 1) {
+                throw new Error("codeinstall accepts one package");
+            }
+            return ["codeinstall", framework, packages[0]];
+        },
+    },
+    rebuild: { buildArgv: (framework) => ["rebuild", framework] },
+    delete: { buildArgv: (framework) => ["delete", framework] },
     "service-start": { service: true },
     "service-stop": { service: true },
     "service-restart": { service: true },

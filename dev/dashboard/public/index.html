@@ -98,10 +98,13 @@
       <div id="status-legend-dialog" class="app-dialog status-legend-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="status-legend-dialog-title">
         <div class="app-dialog-backdrop" data-legend-close="1"></div>
         <div class="app-dialog-panel status-legend-dialog-panel">
+          <button type="button" class="app-dialog-x" data-legend-close="1" aria-label="Close" title="Close status legend dialog">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.7 3.7l8.6 8.6M12.3 3.7l-8.6 8.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
           <h2 id="status-legend-dialog-title" class="app-dialog-title">Status legend</h2>
           <div class="status-legend-body" id="status-legend-body" aria-label="Instance and container status meanings"></div>
           <div class="app-dialog-actions">
-            <button type="button" class="btn btn-secondary" data-legend-close="1">Close</button>
+            <button type="button" class="btn btn-dismiss" data-legend-close="1">Close</button>
           </div>
         </div>
       </div>
@@ -109,6 +112,9 @@
       <div id="about-dialog" class="app-dialog about-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="about-dialog-title">
         <div class="app-dialog-backdrop" data-about-close="1"></div>
         <div class="app-dialog-panel about-dialog-panel">
+          <button type="button" class="app-dialog-x" data-about-close="1" aria-label="Close" title="Close about dialog">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.7 3.7l8.6 8.6M12.3 3.7l-8.6 8.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
           <div class="about-dialog-header">
             <h2 id="about-dialog-title" class="app-dialog-title">
               <span class="about-dialog-logo" aria-hidden="true"></span>
@@ -201,7 +207,7 @@
                 Donate
               </a>
             </p>
-            <button type="button" class="btn btn-secondary" data-about-close="1">Close</button>
+            <button type="button" class="btn btn-dismiss" data-about-close="1">Close</button>
           </div>
         </div>
       </div>
@@ -209,13 +215,49 @@
       <div id="packages-dialog" class="app-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="packages-dialog-title">
         <div class="app-dialog-backdrop" data-packages-close="1"></div>
         <div class="app-dialog-panel packages-dialog-panel">
+          <button type="button" class="app-dialog-x" data-packages-close="1" aria-label="Close" title="Close dialog without changing packages">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.7 3.7l8.6 8.6M12.3 3.7l-8.6 8.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
           <h2 id="packages-dialog-title" class="app-dialog-title">Packages</h2>
-          <p class="app-dialog-message packages-dialog-note">Link and unlink only (<code>zd link</code> / <code>zd unlink --only</code>, tools via <code>zd link-tool</code> / <code>zd unlink-tool --only</code>). Does not install, uninstall, or rebuild the config cache.</p>
+          <p class="packages-dialog-note">File link and unlink stay <code>--only</code>.</p>
           <input type="search" id="packages-dialog-filter" class="packages-dialog-filter" placeholder="Filter packages" aria-label="Filter packages"/>
           <div id="packages-dialog-list" class="packages-dialog-list"></div>
           <p id="packages-dialog-status" class="packages-dialog-status" role="status"></p>
+          <pre id="packages-dialog-log" class="packages-dialog-log" hidden></pre>
+          <div class="packages-dialog-followup" role="group" aria-label="Steps after link or unlink">
+            <p class="packages-followup-label">Afterwards, if checked</p>
+            <label class="packages-followup-option" title="Module::Database::Install for each newly linked package (zd dbinstall)">
+              <input type="checkbox" id="packages-opt-dbinstall" checked/>
+              <span class="packages-followup-copy">
+                <span class="packages-followup-name">DBInstall</span>
+                <span class="packages-followup-hint">each new package</span>
+              </span>
+            </label>
+            <label class="packages-followup-option" title="Module::Code::Install for each newly linked package (zd codeinstall)">
+              <input type="checkbox" id="packages-opt-codeinstall" checked/>
+              <span class="packages-followup-copy">
+                <span class="packages-followup-name">CodeInstall</span>
+                <span class="packages-followup-hint">each new package</span>
+              </span>
+            </label>
+            <label class="packages-followup-option" title="Maint::Config::Rebuild (zd rebuild)">
+              <input type="checkbox" id="packages-opt-rebuild" checked/>
+              <span class="packages-followup-copy">
+                <span class="packages-followup-name">Rebuild Config</span>
+                <span class="packages-followup-hint">once</span>
+              </span>
+            </label>
+            <label class="packages-followup-option" title="Maint::Cache::Delete and Maint::Loader::CacheCleanup (zd delete)">
+              <input type="checkbox" id="packages-opt-config" checked/>
+              <span class="packages-followup-copy">
+                <span class="packages-followup-name">Delete Cache</span>
+                <span class="packages-followup-hint">once</span>
+              </span>
+            </label>
+          </div>
           <div class="app-dialog-actions">
-            <button type="button" class="btn packages-dialog-cancel" data-packages-close="1">Cancel</button>
+            <button type="button" class="btn packages-dialog-unlink-all" id="packages-dialog-unlink-all" hidden title="Uncheck every linked package and tool that still exists on disk">Unlink all</button>
+            <button type="button" class="btn btn-dismiss" data-packages-close="1">Cancel</button>
             <button type="button" class="btn btn-primary" id="packages-dialog-apply" disabled>Apply</button>
           </div>
         </div>
@@ -224,10 +266,13 @@
       <div id="confirm-dialog" class="app-dialog" hidden role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
         <div class="app-dialog-backdrop" data-confirm="0"></div>
         <div class="app-dialog-panel">
+          <button type="button" class="app-dialog-x" data-confirm="0" aria-label="Close" title="Close dialog without deleting anything">
+            <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.7 3.7l8.6 8.6M12.3 3.7l-8.6 8.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </button>
           <h2 id="confirm-dialog-title" class="app-dialog-title">Delete instance?</h2>
           <p id="confirm-dialog-message" class="app-dialog-message"></p>
           <div class="app-dialog-actions">
-            <button type="button" class="btn btn-secondary" data-confirm="0">Cancel</button>
+            <button type="button" class="btn btn-dismiss" data-confirm="0">Cancel</button>
             <button type="button" class="btn btn-danger" data-confirm="1">Delete</button>
           </div>
         </div>

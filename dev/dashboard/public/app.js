@@ -97,6 +97,15 @@
             manage: "Link or unlink packages, Fred, and ZnunyCodePolicy",
             apply: "Apply link and unlink changes",
             filter: "Filter the package list",
+            unlinkAll:
+                "Uncheck every linked package and tool that still exists on disk",
+            dbinstall:
+                "Module::Database::Install for each newly linked package (zd dbinstall)",
+            codeinstall:
+                "Module::Code::Install for each newly linked package (zd codeinstall)",
+            rebuild: "Rebuild Config — Maint::Config::Rebuild (zd rebuild)",
+            config:
+                "Delete Cache — Maint::Cache::Delete and Maint::Loader::CacheCleanup (zd delete)",
         },
         login: {
             titlePrefix: "Login · ",
@@ -2837,6 +2846,9 @@
     }
 
     function updatePackageApplyButton() {
+        var busy = !!(packageDialogState && packageDialogState.busy);
+        setPackageFollowupDisabled(busy);
+        updateUnlinkAllButton();
         var btn = document.getElementById("packages-dialog-apply");
         if (!btn) {
             return;
@@ -2867,6 +2879,144 @@
             );
         }
         btn.textContent = "Apply (" + parts.join(", ") + ")";
+    }
+
+    function linkedDialogCount() {
+        if (!packageDialogState) {
+            return 0;
+        }
+        return (
+            Object.keys(packageDialogState.linked).length +
+            Object.keys(packageDialogState.linkedTools).length
+        );
+    }
+
+    function updateUnlinkAllButton() {
+        var btn = document.getElementById("packages-dialog-unlink-all");
+        if (!btn) {
+            return;
+        }
+        btn.hidden = linkedDialogCount() === 0;
+        btn.disabled = !!(packageDialogState && packageDialogState.busy);
+        var closeX = document.querySelector("#packages-dialog .app-dialog-x");
+        if (closeX) {
+            closeX.disabled = !!(packageDialogState && packageDialogState.busy);
+        }
+    }
+
+    function setPackageFollowupDisabled(disabled) {
+        var ids = [
+            "packages-opt-dbinstall",
+            "packages-opt-codeinstall",
+            "packages-opt-rebuild",
+            "packages-opt-config",
+        ];
+        var i;
+        for (i = 0; i < ids.length; i++) {
+            var el = document.getElementById(ids[i]);
+            if (el) {
+                el.disabled = disabled;
+            }
+        }
+    }
+
+    function writePackageFollowupOptions(saved) {
+        var pairs = [
+            ["packages-opt-dbinstall", !saved || !!saved.dbinstall],
+            ["packages-opt-codeinstall", !saved || !!saved.codeinstall],
+            ["packages-opt-rebuild", !saved || !!saved.rebuild],
+            ["packages-opt-config", !saved || !!saved.config],
+        ];
+        var i;
+        for (i = 0; i < pairs.length; i++) {
+            var el = document.getElementById(pairs[i][0]);
+            if (el) {
+                el.checked = pairs[i][1];
+                el.disabled = false;
+            }
+        }
+    }
+
+    function packageFollowupSelection() {
+        function checked(id) {
+            var el = document.getElementById(id);
+            return !!(el && el.checked);
+        }
+        return {
+            dbinstall: checked("packages-opt-dbinstall"),
+            codeinstall: checked("packages-opt-codeinstall"),
+            rebuild: checked("packages-opt-rebuild"),
+            config: checked("packages-opt-config"),
+        };
+    }
+
+    function clearPackageDialogLog() {
+        var logEl = document.getElementById("packages-dialog-log");
+        if (!logEl) {
+            return;
+        }
+        logEl.hidden = true;
+        logEl.textContent = "";
+    }
+
+    function showPackageDialogError(message) {
+        var text = message || "Could not update packages.";
+        var lines = String(text).split("\n");
+        var statusLine = lines[0];
+        if (lines.length > 1 && lines[1]) {
+            statusLine = lines[1];
+        }
+        var statusEl = document.getElementById("packages-dialog-status");
+        var logEl = document.getElementById("packages-dialog-log");
+        if (statusEl) {
+            statusEl.textContent = statusLine;
+        }
+        if (logEl) {
+            logEl.hidden = false;
+            logEl.textContent = text;
+        }
+        var banner = document.getElementById("error-banner");
+        if (banner) {
+            banner.hidden = false;
+            banner.textContent = statusLine.slice(0, 240);
+        }
+    }
+
+    function unlinkAllPackageOptions() {
+        if (!packageDialogState || packageDialogState.busy) {
+            return;
+        }
+        var boxes = document.querySelectorAll(
+            "#packages-dialog-list input[data-package-name], #packages-dialog-list input[data-tool-name]"
+        );
+        var skipped = [];
+        var i;
+        for (i = 0; i < boxes.length; i++) {
+            var toolName = boxes[i].getAttribute("data-tool-name") || "";
+            var name =
+                toolName || boxes[i].getAttribute("data-package-name") || "";
+            var wasLinked = toolName
+                ? !!packageDialogState.linkedTools[name]
+                : !!packageDialogState.linked[name];
+            if (!wasLinked) {
+                continue;
+            }
+            if (boxes[i].disabled) {
+                skipped.push(name);
+                continue;
+            }
+            boxes[i].checked = false;
+        }
+        var statusEl = document.getElementById("packages-dialog-status");
+        if (statusEl) {
+            if (skipped.length) {
+                statusEl.textContent =
+                    "Still linked (missing on disk): " + skipped.join(", ");
+            } else {
+                statusEl.textContent = "";
+            }
+        }
+        updatePackageApplyButton();
     }
 
     function renderToolOption(id, label, linkedTools, isMissing) {
@@ -2984,7 +3134,7 @@
         syncAppDialogBodyClass();
     }
 
-    function openPackagesDialog(framework) {
+    function openPackagesDialog(framework, opt) {
         var row = findInstanceRow(framework);
         if (!row || !(row.instance && row.instance.running)) {
             return;
@@ -3062,6 +3212,8 @@
             filter.value = "";
         }
         renderPackageOptions(available, missing, linked, tools, linkedTools);
+        writePackageFollowupOptions(opt && opt.followup);
+        clearPackageDialogLog();
         var statusEl = document.getElementById("packages-dialog-status");
         if (statusEl) {
             statusEl.textContent = "";
@@ -3113,6 +3265,33 @@
         }).then(readZdJsonResponse);
     }
 
+    function postZdFramework(command, framework) {
+        return fetch("/api/zd", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                command: command,
+                framework: framework,
+            }),
+        }).then(readZdJsonResponse);
+    }
+
+    function packageJobStatusLine(job, framework) {
+        var line = "zd " + job.command + " " + framework;
+        if (job.names && job.names.length) {
+            line += " " + job.names.join(" ");
+        }
+        if (
+            job.command === "link" ||
+            job.command === "unlink" ||
+            job.command === "link-tool" ||
+            job.command === "unlink-tool"
+        ) {
+            line += " --only";
+        }
+        return line;
+    }
+
     function applyPackageDialog() {
         if (!packageDialogState || packageDialogState.busy) {
             return;
@@ -3128,11 +3307,14 @@
         }
         var framework = packageDialogState.framework;
         var applyToken = {};
+        var follow = packageFollowupSelection();
         packageDialogState.busy = true;
         packageDialogState.applyToken = applyToken;
+        clearPackageDialogLog();
         updatePackageApplyButton();
         var statusEl = document.getElementById("packages-dialog-status");
         var jobs = [];
+        var p;
         if (diff.toUnlink.length) {
             jobs.push({
                 command: "unlink",
@@ -3161,27 +3343,53 @@
                 names: diff.toLinkTools,
             });
         }
+        if (follow.dbinstall) {
+            for (p = 0; p < diff.toLink.length; p++) {
+                jobs.push({
+                    command: "dbinstall",
+                    field: "packages",
+                    names: [diff.toLink[p]],
+                });
+            }
+        }
+        if (follow.codeinstall) {
+            for (p = 0; p < diff.toLink.length; p++) {
+                jobs.push({
+                    command: "codeinstall",
+                    field: "packages",
+                    names: [diff.toLink[p]],
+                });
+            }
+        }
+        if (follow.rebuild) {
+            jobs.push({ command: "rebuild" });
+        }
+        if (follow.config) {
+            jobs.push({ command: "delete" });
+        }
         var chain = Promise.resolve();
         var i;
         for (i = 0; i < jobs.length; i++) {
             (function (job) {
                 chain = chain.then(function () {
+                    var line = packageJobStatusLine(job, framework);
                     if (statusEl) {
-                        statusEl.textContent =
-                            "zd " +
-                            job.command +
-                            " " +
-                            framework +
-                            " " +
-                            job.names.join(" ") +
-                            " --only";
+                        statusEl.textContent = line;
                     }
-                    return postZdItems(
-                        job.command,
-                        framework,
-                        job.field,
-                        job.names
-                    );
+                    var request = job.names
+                        ? postZdItems(
+                              job.command,
+                              framework,
+                              job.field,
+                              job.names
+                          )
+                        : postZdFramework(job.command, framework);
+                    return request.catch(function (err) {
+                        if (err && typeof err === "object") {
+                            err.zdCommand = line;
+                        }
+                        throw err;
+                    });
                 });
             })(jobs[i]);
         }
@@ -3196,26 +3404,21 @@
                 return loadStatus({ showProgress: false });
             })
             .catch(function (e) {
-                var banner = document.getElementById("error-banner");
-                banner.hidden = false;
-                banner.textContent =
-                    (e && e.message) || "Could not update packages.";
+                var message = (e && e.message) || "Could not update packages.";
+                if (e && e.zdCommand) {
+                    message = e.zdCommand + "\n" + message;
+                }
                 return loadStatus({ showProgress: false }).then(function () {
                     if (
                         !packageDialogState ||
                         packageDialogState.applyToken !== applyToken
                     ) {
+                        showPackageDialogError(message);
                         return;
                     }
                     var fw = packageDialogState.framework;
-                    openPackagesDialog(fw);
-                    var statusAfter = document.getElementById(
-                        "packages-dialog-status"
-                    );
-                    if (statusAfter) {
-                        statusAfter.textContent =
-                            (e && e.message) || "Could not update packages.";
-                    }
+                    openPackagesDialog(fw, { followup: follow });
+                    showPackageDialogError(message);
                 });
             });
     }
@@ -3601,6 +3804,11 @@
     document.getElementById("packages-dialog-apply").addEventListener("click", function () {
         applyPackageDialog();
     });
+    document
+        .getElementById("packages-dialog-unlink-all")
+        .addEventListener("click", function () {
+            unlinkAllPackageOptions();
+        });
     document.getElementById("packages-dialog-filter").addEventListener("input", function () {
         filterPackageOptions();
     });

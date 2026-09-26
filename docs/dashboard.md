@@ -83,7 +83,7 @@ Optional later: OS login autostart (launchd / systemd / Task Scheduler) wrapping
 - Start / stop / restart / build / remove instances
 - Open Znuny agent/customer login links
 - Open host workspace / IDE
-- See linked packages per instance (count and names) and link or unlink them (`zd link` / `zd unlink --only`). Fred and ZnunyCodePolicy are in the same list (`zd link-tool` / `zd unlink-tool --only`).
+- See linked packages per instance (count and names) and link or unlink them (`zd link` / `zd unlink --only`). Fred and ZnunyCodePolicy are in the same list (`zd link-tool` / `zd unlink-tool --only`). Unlink all unchecks every linked item that still exists on disk. After Apply, optional steps (on by default): DBInstall and CodeInstall for newly linked packages, then Rebuild Config (`Maint::Config::Rebuild`) and Delete Cache (cache delete + loader cleanup). A failed step keeps the dialog open and shows the command output.
 - About dialog (version, docs links, support)
 
 ---

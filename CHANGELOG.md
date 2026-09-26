@@ -7,6 +7,8 @@ All notable changes to the Znuny Development Environment will be documented in t
 ### Added
 
 - Dashboard lists linked packages per instance (count and names from framework symlinks) and can link or unlink one or more packages (`zd link` / `zd unlink --only`). Fred and ZnunyCodePolicy are in the same list and use `zd link-tool` / `zd unlink-tool --only`.
+- Dashboard package dialog: Unlink all when the instance already has linked packages or tools. DBInstall, CodeInstall, Rebuild Config, and Delete Cache checkboxes (on by default) run after the file change. A failed step shows the command output in the dialog.
+- Dashboard dialogs have a close icon in the top-right corner.
 - Document host Node.js as optional for the dashboard opener (Folder / IDE). The dashboard UI, status, and instance actions work without it; the HTTP server uses Node.js 22 inside its Docker image.
 - Shared Selenium Chrome (`zd selenium start`) on `znuny-network` (hostname `selenium`, port 4444). Opt-in `ENABLE_SELENIUM=y` makes instance startup write `SeleniumTestsConfig` and `TestHTTPHostname` so browser unit tests can run.
 - Selenium Docker health check: `znuny-selenium` is healthy when `http://localhost:4444/status` reports `ready`.

@@ -2855,8 +2855,43 @@ button.package-count:hover {
   opacity: 0.7;
 }
 
+.package-option-spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+.package-delta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-family: "Open Sans", "Segoe UI", system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.package-delta[hidden] {
+  display: none;
+}
+
+.package-delta-add {
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 18%, transparent);
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
+}
+
+.package-delta-remove {
+  color: var(--bad);
+  background: color-mix(in srgb, var(--bad) 18%, transparent);
+  border-color: color-mix(in srgb, var(--bad) 45%, var(--border));
+}
+
 .package-tool-pill {
-  margin-left: auto;
   flex-shrink: 0;
   font-family: "Open Sans", "Segoe UI", system-ui, sans-serif;
   background: color-mix(in srgb, var(--accent-packages) 18%, transparent);
@@ -2917,6 +2952,16 @@ button.package-count:hover {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--label);
+}
+
+.packages-apply-plan-link,
+.packages-apply-plan-link .packages-apply-plan-label {
+  color: var(--ok);
+}
+
+.packages-apply-plan-unlink,
+.packages-apply-plan-unlink .packages-apply-plan-label {
+  color: var(--bad);
 }
 
 .packages-apply-plan ul {

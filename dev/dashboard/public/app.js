@@ -2913,6 +2913,7 @@
         setFollowupRow("packages-row-codeuninstall", packageUnlinks > 0);
         setFollowupRow("packages-row-rebuild", showFollowup);
         setFollowupRow("packages-row-config", showFollowup);
+        syncPackageDeltaMarks();
         updatePackageApplyPlan(diff, showFollowup);
         if (
             !packageDialogState ||
@@ -2939,7 +2940,7 @@
         }
         var linkNames = diff.toLink.concat(diff.toLinkTools);
         var unlinkNames = diff.toUnlink.concat(diff.toUnlinkTools);
-        function planGroup(label, names) {
+        function planGroup(label, names, kind) {
             if (!names.length) {
                 return "";
             }
@@ -2949,7 +2950,9 @@
                 items += "<li>" + escapeHtml(names[i]) + "</li>";
             }
             return (
-                '<div class="packages-apply-plan-group">' +
+                '<div class="packages-apply-plan-group packages-apply-plan-' +
+                kind +
+                '">' +
                 '<p class="packages-apply-plan-label">' +
                 label +
                 "</p><ul>" +
@@ -2957,9 +2960,46 @@
                 "</ul></div>"
             );
         }
-        var html = planGroup("Link", linkNames) + planGroup("Unlink", unlinkNames);
+        var html =
+            planGroup("Link", linkNames, "link") +
+            planGroup("Unlink", unlinkNames, "unlink");
         el.innerHTML = html;
         el.hidden = !html;
+    }
+
+    function syncPackageDeltaMarks() {
+        if (!packageDialogState) {
+            return;
+        }
+        var boxes = document.querySelectorAll(
+            "#packages-dialog-list input[data-package-name], #packages-dialog-list input[data-tool-name]"
+        );
+        var i;
+        for (i = 0; i < boxes.length; i++) {
+            var toolName = boxes[i].getAttribute("data-tool-name") || "";
+            var name =
+                toolName || boxes[i].getAttribute("data-package-name") || "";
+            var wasLinked = toolName
+                ? !!packageDialogState.linkedTools[name]
+                : !!packageDialogState.linked[name];
+            var mark = boxes[i].parentElement
+                ? boxes[i].parentElement.querySelector(".package-delta")
+                : null;
+            if (!mark) {
+                continue;
+            }
+            var add = boxes[i].checked && !wasLinked;
+            var remove = !boxes[i].checked && wasLinked;
+            mark.hidden = !add && !remove;
+            mark.textContent = add ? "+" : "-";
+            if (add) {
+                mark.className = "package-delta package-delta-add";
+            } else if (remove) {
+                mark.className = "package-delta package-delta-remove";
+            } else {
+                mark.className = "package-delta";
+            }
+        }
     }
 
     function setFollowupRow(id, show) {
@@ -3133,7 +3173,9 @@
         if (isMissing) {
             html += '<span class="cell-muted">not in tools/</span>';
         }
+        html += '<span class="package-option-spacer"></span>';
         html += '<span class="pill package-tool-pill">tool</span>';
+        html += '<span class="package-delta" hidden></span>';
         html += "</label>";
         return html;
     }
@@ -3196,6 +3238,8 @@
             if (isMissing) {
                 html += '<span class="cell-muted">not in packages/</span>';
             }
+            html += '<span class="package-option-spacer"></span>';
+            html += '<span class="package-delta" hidden></span>';
             html += "</label>";
         }
         list.innerHTML = html;

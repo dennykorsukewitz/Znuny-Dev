@@ -2893,32 +2893,56 @@
         }
         var diff = packageSelectionDiff();
         var newLinks = diff.toLink.length + diff.toLinkTools.length;
+        var unlinks = diff.toUnlink.length + diff.toUnlinkTools.length;
         var followup = document.querySelector(
             "#packages-dialog .packages-dialog-followup"
         );
         if (followup) {
             followup.hidden = newLinks === 0;
         }
+        updatePackageApplyPlan(diff, newLinks > 0 || unlinks > 0);
         if (!packageDialogState || packageDialogState.busy || newLinks === 0) {
             btn.disabled = true;
             btn.textContent = "Apply";
             return;
         }
         btn.disabled = false;
-        var parts = [];
-        if (diff.toLink.length || diff.toLinkTools.length) {
-            parts.push(
-                "link " +
-                    String(diff.toLink.length + diff.toLinkTools.length)
+        btn.textContent = "Apply";
+    }
+
+    function updatePackageApplyPlan(diff, visible) {
+        var el = document.getElementById("packages-apply-plan");
+        if (!el) {
+            return;
+        }
+        if (!visible) {
+            el.hidden = true;
+            el.textContent = "";
+            return;
+        }
+        var linkNames = diff.toLink.concat(diff.toLinkTools);
+        var unlinkNames = diff.toUnlink.concat(diff.toUnlinkTools);
+        function planGroup(label, names) {
+            if (!names.length) {
+                return "";
+            }
+            var items = "";
+            var i;
+            for (i = 0; i < names.length; i++) {
+                items += "<li>" + escapeHtml(names[i]) + "</li>";
+            }
+            return (
+                '<div class="packages-apply-plan-group">' +
+                '<p class="packages-apply-plan-label">' +
+                label +
+                "</p><ul>" +
+                items +
+                "</ul></div>"
             );
         }
-        if (diff.toUnlink.length || diff.toUnlinkTools.length) {
-            parts.push(
-                "unlink " +
-                    String(diff.toUnlink.length + diff.toUnlinkTools.length)
-            );
-        }
-        btn.textContent = "Apply (" + parts.join(", ") + ")";
+        var html = planGroup("Link", linkNames) + planGroup("Unlink", unlinkNames);
+        el.innerHTML = html;
+        el.hidden = !html;
     }
 
     function linkedDialogCount() {

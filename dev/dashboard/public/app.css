@@ -2894,6 +2894,40 @@ button.package-count:hover {
   margin: 10px 0 12px;
 }
 
+.packages-dialog-followup[hidden],
+.packages-apply-plan[hidden] {
+  display: none !important;
+}
+
+.packages-apply-plan {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.packages-apply-plan-group + .packages-apply-plan-group {
+  margin-top: 8px;
+}
+
+.packages-apply-plan-label {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--label);
+}
+
+.packages-apply-plan ul {
+  margin: 2px 0 0;
+  padding: 0 0 0 1.15rem;
+  list-style: none;
+}
+
+.packages-apply-plan li::before {
+  content: "- ";
+}
+
 .packages-followup-label {
   grid-column: 1 / -1;
   margin: 0;

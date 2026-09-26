@@ -515,6 +515,19 @@
         }
     }
 
+    function setOperationLabel(id, label) {
+        var panel = document.getElementById("global-message-panel");
+        if (!panel) {
+            return;
+        }
+        var item = panel.querySelector(
+            '[data-op-id="' + String(id) + '"] .zd-message-label'
+        );
+        if (item) {
+            item.textContent = label;
+        }
+    }
+
     function getStoredTheme() {
         try {
             return localStorage.getItem(themeKey);
@@ -3100,11 +3113,8 @@
         if (lines.length > 1 && lines[1]) {
             statusLine = lines[1];
         }
-        var statusEl = document.getElementById("packages-dialog-status");
         var logEl = document.getElementById("packages-dialog-log");
-        if (statusEl) {
-            statusEl.textContent = statusLine;
-        }
+        showBriefMessage(statusLine, { tone: "error", durationMs: 6000 });
         if (logEl) {
             logEl.hidden = false;
             logEl.textContent = text;
@@ -3141,14 +3151,11 @@
             }
             boxes[i].checked = false;
         }
-        var statusEl = document.getElementById("packages-dialog-status");
-        if (statusEl) {
-            if (skipped.length) {
-                statusEl.textContent =
-                    "Still linked (missing on disk): " + skipped.join(", ");
-            } else {
-                statusEl.textContent = "";
-            }
+        if (skipped.length) {
+            showBriefMessage(
+                "Still linked (missing on disk): " + skipped.join(", "),
+                { durationMs: 6000 }
+            );
         }
         updatePackageApplyButton();
     }
@@ -3352,10 +3359,6 @@
         renderPackageOptions(available, missing, linked, tools, linkedTools);
         writePackageFollowupOptions(opt && opt.followup);
         clearPackageDialogLog();
-        var statusEl = document.getElementById("packages-dialog-status");
-        if (statusEl) {
-            statusEl.textContent = "";
-        }
         updatePackageApplyButton();
         var dlg = document.getElementById("packages-dialog");
         dlg.hidden = false;
@@ -3450,7 +3453,6 @@
         packageDialogState.applyToken = applyToken;
         clearPackageDialogLog();
         updatePackageApplyButton();
-        var statusEl = document.getElementById("packages-dialog-status");
         var jobs = [];
         var p;
         if (follow.dbuninstall) {
@@ -3525,13 +3527,16 @@
         }
         var chain = Promise.resolve();
         var i;
+        var opId = beginOperation(
+            jobs.length
+                ? packageJobStatusLine(jobs[0], framework)
+                : "Packages · " + framework
+        );
         for (i = 0; i < jobs.length; i++) {
             (function (job) {
                 chain = chain.then(function () {
                     var line = packageJobStatusLine(job, framework);
-                    if (statusEl) {
-                        statusEl.textContent = line;
-                    }
+                    setOperationLabel(opId, line);
                     var request = job.names
                         ? postZdItems(
                               job.command,
@@ -3556,10 +3561,12 @@
                 });
             })
             .then(function () {
+                endOperation(opId);
                 closePackagesDialog();
                 return loadStatus({ showProgress: false });
             })
             .catch(function (e) {
+                endOperation(opId);
                 var message = (e && e.message) || "Could not update packages.";
                 if (e && e.zdCommand) {
                     message = e.zdCommand + "\n" + message;

@@ -2899,13 +2899,6 @@ button.package-count:hover {
   border-color: color-mix(in srgb, var(--accent-packages) 42%, var(--border));
 }
 
-.packages-dialog-status {
-  min-height: 1.2em;
-  margin: 8px 0 0;
-  font-size: 0.8rem;
-  color: var(--label);
-}
-
 .packages-dialog-log {
   margin: 8px 0 0;
   max-height: 9rem;

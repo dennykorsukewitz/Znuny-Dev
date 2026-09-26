@@ -324,18 +324,17 @@ execute_module_tools_command() {
     # Run as www-data (same ApplicationUser / file owner as console) so ModuleTools can write under /opt/znuny
     if docker exec "${docker_tty[@]}" "$container_name" su -s /bin/bash -c "cd /opt/znuny && perl /opt/tools/module-tools/bin/znuny.ModuleTools.pl $command $*" www-data; then
         return 0
-    else
-        print_error "Module-tools command failed: $command"
-
-        # if command is  one of them, show sopm files in /opt/znuny
-        if [[ "$command" =~ (Module::Database::Install|Module::Code::Install|Module::Database::Uninstall|Module::Code::Uninstall|Module::Database::Install|Module::Database::Upgrade|Module::Database::Uninstall|Module::Code::Install|Module::Code::Reinstall|Module::Code::Uninstall|Module::Code::Upgrade) ]]; then
-            echo ""
-            echo "SOPM files in /opt/znuny:"
-            execute_shell_command "$framework" "ls -1 *.sopm"
-        fi
-
-        return 1
     fi
+    print_error "Module-tools command failed: $command"
+
+    # if command is  one of them, show sopm files in /opt/znuny
+    if [[ "$command" =~ (Module::Database::Install|Module::Code::Install|Module::Database::Uninstall|Module::Code::Uninstall|Module::Database::Install|Module::Database::Upgrade|Module::Database::Uninstall|Module::Code::Install|Module::Code::Reinstall|Module::Code::Uninstall|Module::Code::Upgrade) ]]; then
+        echo ""
+        echo "SOPM files in /opt/znuny:"
+        execute_shell_command "$framework" "ls -1 *.sopm"
+    fi
+
+    return 1
 }
 
 # Function to install CPAN modules via cpanm inside the framework container (runs as root)

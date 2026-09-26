@@ -2751,6 +2751,13 @@ body.theme-dark .about-pacman-icon {
   transform: scale(1.15);
 }
 
+#packages-dialog.is-readonly .packages-dialog-filter,
+#packages-dialog.is-readonly .packages-dialog-followup,
+#packages-dialog.is-readonly .packages-apply-plan,
+#packages-dialog.is-readonly .app-dialog-actions {
+  display: none !important;
+}
+
 .package-summary {
   display: inline-flex;
   flex-wrap: nowrap;

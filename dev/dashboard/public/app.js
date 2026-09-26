@@ -95,7 +95,7 @@
             frameworkWeb: "Open Znuny web interface: {url}",
         },
         packages: {
-            count: "Number of packages and tools linked into this framework (symlinks under /opt/packages/ and /opt/tools/)",
+            view: "Linked packages and tools. Instance is stopped, so this list is read-only",
             manage: "Link or unlink packages, Fred, and ZnunyCodePolicy",
             apply:
                 "Apply link and unlink changes",
@@ -2819,23 +2819,16 @@
         var fw = row.framework || "";
         var running = !!(row.instance && row.instance.running);
         var html = '<div class="package-summary">';
-        if (running) {
-            html +=
-                '<button type="button" class="package-count" data-framework="' +
-                escapeHtml(fw) +
-                '" title="' +
-                escapeHtml(TOOLTIPS.packages.manage) +
-                '">' +
-                String(count) +
-                "</button>";
-        } else {
-            html +=
-                '<span class="package-count" title="' +
-                escapeHtml(TOOLTIPS.packages.count) +
-                '">' +
-                String(count) +
-                "</span>";
-        }
+        html +=
+            '<button type="button" class="package-count" data-framework="' +
+            escapeHtml(fw) +
+            '" title="' +
+            escapeHtml(
+                running ? TOOLTIPS.packages.manage : TOOLTIPS.packages.view
+            ) +
+            '">' +
+            String(count) +
+            "</button>";
         if (running) {
             html +=
                 '<button type="button" class="btn packages-manage-btn" data-framework="' +
@@ -3127,7 +3120,11 @@
     }
 
     function unlinkAllPackageOptions() {
-        if (!packageDialogState || packageDialogState.busy) {
+        if (
+            !packageDialogState ||
+            packageDialogState.busy ||
+            packageDialogState.readonly
+        ) {
             return;
         }
         var boxes = document.querySelectorAll(
@@ -3204,7 +3201,11 @@
         });
         if (combined.length === 0 && (!tools || tools.length === 0)) {
             list.innerHTML =
-                '<p class="cell-muted">No packages in packages/.</p>';
+                '<p class="cell-muted">' +
+                (packageDialogState && packageDialogState.readonly
+                    ? "No linked packages."
+                    : "No packages in packages/.") +
+                "</p>";
             return;
         }
         var html = "";
@@ -3281,9 +3282,10 @@
 
     function openPackagesDialog(framework, opt) {
         var row = findInstanceRow(framework);
-        if (!row || !(row.instance && row.instance.running)) {
+        if (!row) {
             return;
         }
+        var running = !!(row.instance && row.instance.running);
         var names = linkedPackageList(row);
         var linked = {};
         var i;
@@ -3345,6 +3347,7 @@
             framework: framework,
             linked: linked,
             linkedTools: linkedTools,
+            readonly: !running,
             busy: false,
             applyToken: null,
         };
@@ -3352,18 +3355,55 @@
         if (title) {
             title.textContent = "Packages — " + framework;
         }
+        var note = document.querySelector("#packages-dialog .packages-dialog-note");
+        if (note) {
+            if (running) {
+                note.innerHTML =
+                    "File link and unlink stay <code>--only</code>.";
+            } else {
+                note.textContent =
+                    "Instance is stopped. Linked packages only.";
+            }
+        }
         var filter = document.getElementById("packages-dialog-filter");
         if (filter) {
             filter.value = "";
+            filter.hidden = !running;
         }
-        renderPackageOptions(available, missing, linked, tools, linkedTools);
+        if (running) {
+            renderPackageOptions(available, missing, linked, tools, linkedTools);
+        } else {
+            var readonlyTools = [];
+            for (i = 0; i < toolNames.length; i++) {
+                readonlyTools.push({
+                    id: toolNames[i],
+                    label: devToolLabel(toolNames[i]),
+                    missing: false,
+                });
+            }
+            renderPackageOptions(
+                names.slice(),
+                [],
+                linked,
+                readonlyTools,
+                linkedTools
+            );
+            var locked = document.querySelectorAll(
+                "#packages-dialog-list input"
+            );
+            for (i = 0; i < locked.length; i++) {
+                locked[i].disabled = true;
+                locked[i].checked = true;
+            }
+        }
         writePackageFollowupOptions(opt && opt.followup);
         clearPackageDialogLog();
         updatePackageApplyButton();
         var dlg = document.getElementById("packages-dialog");
+        dlg.classList.toggle("is-readonly", !running);
         dlg.hidden = false;
         document.body.classList.add("app-dialog-open");
-        if (filter) {
+        if (filter && running) {
             filter.focus();
         }
     }
@@ -3434,7 +3474,11 @@
     }
 
     function applyPackageDialog() {
-        if (!packageDialogState || packageDialogState.busy) {
+        if (
+            !packageDialogState ||
+            packageDialogState.busy ||
+            packageDialogState.readonly
+        ) {
             return;
         }
         var diff = packageSelectionDiff();

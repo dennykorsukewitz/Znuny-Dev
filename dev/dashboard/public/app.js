@@ -11,6 +11,7 @@
         default_ide_cmd: null,
         default_ide_label: null,
         available_ides: [],
+        opener_available: true,
     };
 
     /**
@@ -87,6 +88,7 @@
         link: {
             openNewTab: "Open in new tab: {url}",
             openFinder: "Open in Finder / Explorer: {path}",
+            openerDown: "Run zd dashboard restart",
             openIde: "Open in {ide}: {path}",
             moreIdes: "Open in another editor",
             moreIdesMenu: "Other editors on this system",
@@ -1146,6 +1148,12 @@
     }
 
     function toggleActionsDropdown(toggleBtn) {
+        if (
+            toggleBtn.disabled ||
+            toggleBtn.getAttribute("aria-disabled") === "true"
+        ) {
+            return;
+        }
         var menu = toggleBtn.closest(".actions-menu");
         if (!menu) {
             return;
@@ -2379,26 +2387,32 @@
         });
     }
 
-    function renderIdeMoreDropdownHtml(fw, wsTrim, others) {
+    function renderIdeMoreDropdownHtml(fw, wsTrim, others, openerDown) {
         if (!others.length) {
             return "";
         }
         var safeFw = escapeHtml(fw);
         var body = "";
         var i;
+        var itemTitle;
         for (i = 0; i < others.length; i++) {
+            itemTitle = openerDown
+                ? TOOLTIPS.link.openerDown
+                : tooltipFormat(TOOLTIPS.link.openIde, {
+                      ide: others[i].label,
+                      path: wsTrim,
+                  });
             body +=
-                '<button type="button" class="actions-menu-item open-ide-link" role="menuitem" data-framework="' +
+                '<button type="button" class="actions-menu-item open-ide-link' +
+                (openerDown ? " is-opener-down" : "") +
+                '" role="menuitem" data-framework="' +
                 safeFw +
                 '" data-ide="' +
                 escapeHtml(others[i].id) +
-                '" title="' +
-                escapeHtml(
-                    tooltipFormat(TOOLTIPS.link.openIde, {
-                        ide: others[i].label,
-                        path: wsTrim,
-                    })
-                ) +
+                '"' +
+                (openerDown ? ' aria-disabled="true"' : "") +
+                ' title="' +
+                escapeHtml(itemTitle) +
                 '">' +
                 escapeHtml(others[i].label) +
                 "</button>";
@@ -2407,8 +2421,14 @@
             '<div class="actions-menu actions-menu-ide-more" role="group" aria-label="' +
             escapeHtml(TOOLTIPS.link.moreIdesMenu) +
             '">' +
-            '<button type="button" class="btn btn-accent-secondary btn-compact actions-menu-toggle ide-more-toggle" aria-expanded="false" aria-haspopup="menu" title="' +
-            escapeHtml(TOOLTIPS.link.moreIdes) +
+            '<button type="button" class="btn btn-accent-secondary btn-compact actions-menu-toggle ide-more-toggle' +
+            (openerDown ? " is-opener-down" : "") +
+            '" aria-expanded="false" aria-haspopup="menu"' +
+            (openerDown ? ' aria-disabled="true"' : "") +
+            ' title="' +
+            escapeHtml(
+                openerDown ? TOOLTIPS.link.openerDown : TOOLTIPS.link.moreIdes
+            ) +
             '">+</button>' +
             '<div class="actions-menu-dropdown" role="menu" hidden>' +
             body +
@@ -2421,25 +2441,31 @@
         if (!primary) {
             return "";
         }
+        var openerDown = dashboardConfig.opener_available === false;
         var others = getOtherIdes(primary);
         var safeFw = escapeHtml(fw);
+        var ideTitle = openerDown
+            ? TOOLTIPS.link.openerDown
+            : tooltipFormat(TOOLTIPS.link.openIde, {
+                  ide: primary.label,
+                  path: wsTrim,
+              });
         var html =
             '<span class="ide-actions-group">' +
-            '<button type="button" class="btn btn-accent-secondary btn-compact open-ide-link" data-framework="' +
+            '<button type="button" class="btn btn-accent-secondary btn-compact open-ide-link' +
+            (openerDown ? " is-opener-down" : "") +
+            '" data-framework="' +
             safeFw +
             '" data-ide="' +
             escapeHtml(primary.id) +
-            '" title="' +
-            escapeHtml(
-                tooltipFormat(TOOLTIPS.link.openIde, {
-                    ide: primary.label,
-                    path: wsTrim,
-                })
-            ) +
+            '"' +
+            (openerDown ? ' aria-disabled="true"' : "") +
+            ' title="' +
+            escapeHtml(ideTitle) +
             '">' +
             escapeHtml(primary.label) +
             "</button>";
-        html += renderIdeMoreDropdownHtml(fw, wsTrim, others);
+        html += renderIdeMoreDropdownHtml(fw, wsTrim, others, openerDown);
         html += "</span>";
         return html;
     }
@@ -2452,12 +2478,20 @@
             return '<span class="cell-muted">—</span>';
         }
         var wsTrim = String(ws).trim();
+        var openerDown = dashboardConfig.opener_available === false;
+        var folderTitle = openerDown
+            ? TOOLTIPS.link.openerDown
+            : tooltipFormat(TOOLTIPS.link.openFinder, { path: wsTrim });
         var html =
             '<span class="host-workspace-actions">' +
-            '<button type="button" class="btn btn-accent-folder btn-compact open-workspace-link" data-framework="' +
+            '<button type="button" class="btn btn-accent-folder btn-compact open-workspace-link' +
+            (openerDown ? " is-opener-down" : "") +
+            '" data-framework="' +
             escapeHtml(fw) +
-            '" title="' +
-            escapeHtml(tooltipFormat(TOOLTIPS.link.openFinder, { path: wsTrim })) +
+            '"' +
+            (openerDown ? ' aria-disabled="true"' : "") +
+            ' title="' +
+            escapeHtml(folderTitle) +
             '">Folder</button>';
         html += renderHostIdeButtonsHtml(fw, wsTrim);
         html += "</span>";
@@ -2642,6 +2676,9 @@
                         : dashboardConfig.default_ide_label;
                 if (Array.isArray(cfg.available_ides)) {
                     dashboardConfig.available_ides = cfg.available_ides;
+                }
+                if (typeof cfg.opener_available === "boolean") {
+                    dashboardConfig.opener_available = cfg.opener_available;
                 }
             })
             .catch(function () {});
@@ -3891,6 +3928,9 @@
         if (wsLink) {
             e.preventDefault();
             e.stopPropagation();
+            if (wsLink.getAttribute("aria-disabled") === "true") {
+                return;
+            }
             openHostWorkspace(wsLink.getAttribute("data-framework") || "");
             return;
         }
@@ -3899,6 +3939,9 @@
         if (ideBtn) {
             e.preventDefault();
             e.stopPropagation();
+            if (ideBtn.getAttribute("aria-disabled") === "true") {
+                return;
+            }
             openHostIde(
                 ideBtn.getAttribute("data-framework") || "",
                 ideBtn.getAttribute("data-ide") || ""

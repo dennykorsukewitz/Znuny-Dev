@@ -64,6 +64,8 @@ Compose stack: `dev/docker/compose-dashboard.yml`.
 
 Folder and IDE buttons use an optional host process (`opener.mjs` on `127.0.0.1:9998`) and **Node.js on the host**. The Docker container cannot start host processes when that listener is dead. The rest of the dashboard works without it. See [Optional: host opener](#optional-host-opener).
 
+When the opener is down, Folder and IDE buttons are gray and struck through. Hover shows `Run zd dashboard restart`. `/api/config` reports `opener_available`.
+
 **Cross-platform approach:** `zd dashboard start` launches `supervisor.mjs` on the host. It:
 
 - keeps `opener.mjs` alive (respawn on crash / exit)

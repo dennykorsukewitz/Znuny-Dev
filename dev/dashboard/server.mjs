@@ -490,16 +490,56 @@ function openIdeNative(hostPath, ide) {
     }).unref();
 }
 
-async function handleDashboardConfig(res) {
-    if (fs.existsSync("/.dockerenv")) {
-        await proxyOpener("/config", res);
-        return;
+async function openerIsReachable() {
+    try {
+        const health = await fetch(openerBaseUrl() + "/health", {
+            method: "GET",
+            signal: AbortSignal.timeout(800),
+        });
+        return health.ok;
+    } catch {
+        return false;
     }
+}
+
+async function readOpenerConfig() {
+    const upstream = await fetch(openerBaseUrl() + "/config", {
+        method: "GET",
+        signal: AbortSignal.timeout(3000),
+    });
+    if (!upstream.ok) {
+        return null;
+    }
+    const data = await upstream.json();
+    if (!data || typeof data !== "object") {
+        return null;
+    }
+    return data;
+}
+
+async function handleDashboardConfig(res) {
+    const inDocker = fs.existsSync("/.dockerenv");
+    let openerAvailable = !inDocker;
+    let body = null;
+    if (inDocker) {
+        openerAvailable = await openerIsReachable();
+        if (openerAvailable) {
+            try {
+                body = await readOpenerConfig();
+            } catch {
+                body = null;
+            }
+        }
+    }
+    if (!body) {
+        body = buildDashboardIdeConfig(getZnunyDevDir());
+    }
+    body.opener_available = openerAvailable;
     res.writeHead(200, {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "no-store",
     });
-    res.end(JSON.stringify(buildDashboardIdeConfig(getZnunyDevDir())));
+    res.end(JSON.stringify(body));
 }
 
 /** RELEASE (repo root) holds VERSION / BUILD_DATE / BUILD_COMMIT / BUILD_BRANCH for the about dialog. */

@@ -195,9 +195,9 @@ EOF
             return 0
         fi
     fi
-    ZNUNY_DEV_DIR="$ZNUNY_DEV_DIR" PATH="$path_env" nohup "$node_bin" \
-        "$ZNUNY_DEV_DIR/dev/dashboard/host-restart-agent.mjs" \
-        >>"$ZNUNY_DEV_DIR/.dashboard-host-restart.log" 2>&1 &
+    local agent_script="${ZNUNY_DEV_DIR}/dev/dashboard/host-restart-agent.mjs"
+    local log_file="${ZNUNY_DEV_DIR}/.dashboard-host-restart.log"
+    PATH="$path_env" ZNUNY_DEV_DIR="$ZNUNY_DEV_DIR" nohup "$node_bin" "$agent_script" >>"$log_file" 2>&1 &
     echo $! >"$pidfile"
 }
 

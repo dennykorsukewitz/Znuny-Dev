@@ -210,8 +210,9 @@ See also `zd dev`.
 | `zd test` | Run all test suites |
 | `zd test --verbose` | Verbose tests |
 | `zd test --test <name>` | Specific suite |
-| `zd release` | Auto-increment patch in `RELEASE` |
-| `zd release <version>` | Set version (e.g. `1.0.0`) |
+| `zd release` | Ask, then write `RELEASE`, stamp `CHANGELOG.md`, rebuild `RELEASE.md`, commit those three files, and tag the version without a `v` prefix. Asks again before the push. Stops when other files are uncommitted or UNRELEASED has no list items. The tag workflow creates the GitHub release (suggests next patch) |
+| `zd release <version>` | Same, with that version as the suggestion |
+| `zd release --help` | Help, including the current version |
 
 ```bash
 zd test

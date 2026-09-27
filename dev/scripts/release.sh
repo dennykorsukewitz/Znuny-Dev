@@ -340,6 +340,7 @@ Release ${BUILD_VERSION}
 EOF
 )"
 git tag -a "$BUILD_VERSION" -m "Release ${BUILD_VERSION}"
+echo ""
 print_success "Committed and tagged ${BUILD_VERSION}."
 
 if ! confirm "Push branch and tag ${BUILD_VERSION} now?" "n"; then
@@ -360,11 +361,10 @@ if ! confirm "Push branch and tag ${BUILD_VERSION} now?" "n"; then
 fi
 
 if git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' >/dev/null 2>&1; then
-    git push
+    git push origin HEAD "refs/tags/${BUILD_VERSION}"
 else
-    git push -u origin HEAD
+    git push -u origin HEAD "refs/tags/${BUILD_VERSION}"
 fi
-git push origin "refs/tags/${BUILD_VERSION}"
 print_success "Pushed branch and tag ${BUILD_VERSION}. The tag workflow creates the GitHub release."
 
 # Go back to previous directory

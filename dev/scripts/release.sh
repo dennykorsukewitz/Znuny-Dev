@@ -334,7 +334,7 @@ if ! confirm "Push branch and tag ${BUILD_VERSION} now?" "n"; then
     print_status "Not pushed. Tag ${BUILD_VERSION} stays local."
     print_status "The GitHub release is created when that tag is pushed."
     if confirm "Undo the last commit?" "n"; then
-        if [ "$(git rev-parse HEAD)" != "$(git rev-parse "refs/tags/${BUILD_VERSION}")" ]; then
+        if [ "$(git rev-parse HEAD)" != "$(git rev-parse "${BUILD_VERSION}^{commit}")" ]; then
             print_error "Tag ${BUILD_VERSION} does not point at HEAD. Commit was left in place."
             cd - > /dev/null 2>&1
             exit 1

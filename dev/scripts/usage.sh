@@ -273,7 +273,7 @@ show_usage_dev() {
     print_command "$ZD_CMD test --help"             "Show test runner help"
     echo ""
     print_subheader "Release Management Options:"
-    print_command "$ZD_CMD release"                 "Ask, then write RELEASE, CHANGELOG.md, RELEASE.md, show the diff, commit, tag, and ask before push and undo"
+    print_command "$ZD_CMD release"                 "Ask, then write RELEASE, CHANGELOG.md, RELEASE.md, README badge, show the diff, commit, tag, and ask before push and undo"
     print_command "$ZD_CMD release <version>"       "Same, suggesting that version"
     print_command "$ZD_CMD release --help"          "Show help and the current RELEASE version"
     echo ""

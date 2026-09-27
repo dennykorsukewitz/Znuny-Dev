@@ -210,7 +210,7 @@ See also `zd dev`.
 | `zd test` | Run all test suites |
 | `zd test --verbose` | Verbose tests |
 | `zd test --test <name>` | Specific suite |
-| `zd release` | Ask, then write `RELEASE`, stamp `CHANGELOG.md` from `CHANGELOG.template.md`, rebuild `RELEASE.md`, show those changes, commit those three files, and tag the version without a `v` prefix. Asks again before the push. If the push is declined, asks whether to undo that commit and its local tag. Stops when other files are uncommitted or UNRELEASED has no list items. The tag workflow creates the GitHub release (suggests next patch) |
+| `zd release` | Ask, then write `RELEASE`, stamp `CHANGELOG.md` from `CHANGELOG.template.md`, rebuild `RELEASE.md`, set the README badge version, show those changes, commit those files, and tag the version without a `v` prefix. Asks again before the push. If the push is declined, asks whether to undo that commit and its local tag. Stops when other files are uncommitted or UNRELEASED has no list items. The tag workflow creates the GitHub release (suggests next patch) |
 | `zd release <version>` | Same, with that version as the suggestion |
 | `zd release --help` | Help, including the current version |
 

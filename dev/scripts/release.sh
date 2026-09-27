@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Write a release: RELEASE, CHANGELOG.md, and RELEASE.md.
-# Then commit those three files and tag the version.
+# Write a release: RELEASE, CHANGELOG.md, RELEASE.md, and the README badge version.
+# Then commit those files and tag the version.
 # Asks again before pushing. The tag push starts .github/workflows/release.yml.
 
 set -e
@@ -45,10 +45,10 @@ show_help() {
     print_header "==================================================="
     echo ""
     print "Asks whether to release and which version to write."
-    print "Updates RELEASE, stamps CHANGELOG.md, and rewrites RELEASE.md from that section."
+    print "Updates RELEASE, stamps CHANGELOG.md, rewrites RELEASE.md, and sets the README badge version."
     print "The next UNRELEASED section is taken from CHANGELOG.template.md."
     print "Before the commit, shows the RELEASE diff, the CHANGELOG.md stamp, and the new RELEASE.md."
-    print "Commits those three files and tags the version, then asks before pushing."
+    print "Commits those files and tags the version, then asks before pushing."
     print "Stops when other files are uncommitted, or when UNRELEASED has no list items."
     print "If the push is declined, asks whether to undo that commit and its local tag. File changes stay staged."
     print "The tag workflow creates the GitHub release after the tag is pushed."
@@ -84,6 +84,7 @@ RELEASE_FILE="$ZNUNY_DEV_DIR/RELEASE"
 CHANGELOG_FILE="$ZNUNY_DEV_DIR/CHANGELOG.md"
 CHANGELOG_TEMPLATE="$ZNUNY_DEV_DIR/CHANGELOG.template.md"
 NOTES_FILE="$ZNUNY_DEV_DIR/RELEASE.md"
+README_FILE="$ZNUNY_DEV_DIR/README.md"
 
 # Check for help flag
 if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
@@ -235,6 +236,22 @@ else
     exit 1
 fi
 
+if [ ! -f "$README_FILE" ]; then
+    print_error "README.md not found: $README_FILE"
+    exit 1
+fi
+print_status "Setting README badge version to ${BUILD_VERSION}..."
+sed -i.tmp -E \
+    -e "s#(Znuny-Dev/)[0-9]+\\.[0-9]+\\.[0-9]+(/dev)#\\1${BUILD_VERSION}\\2#" \
+    -e "s#(compare/)[0-9]+\\.[0-9]+\\.[0-9]+(\\.\\.\\.dev)#\\1${BUILD_VERSION}\\2#" \
+    "$README_FILE"
+rm -f "$README_FILE.tmp"
+if ! grep -q "Znuny-Dev/${BUILD_VERSION}/dev" "$README_FILE" || ! grep -q "compare/${BUILD_VERSION}...dev" "$README_FILE"; then
+    print_error "README.md version links were not updated"
+    exit 1
+fi
+print_success "README.md updated."
+
 # Date in CHANGELOG / RELEASE.md is the day only (YYYY-MM-DD).
 RELEASE_DAY=$(date '+%Y-%m-%d')
 
@@ -315,13 +332,19 @@ print_header "RELEASE.md"
 print_header "--------------------"
 
 cat "$NOTES_FILE"
+echo ""
+
+print_header "README.md"
+print_header "--------------------"
+
+git --no-pager diff -U0 -- "$README_FILE" || true
 
 echo ""
 print_header "Committing ${BUILD_VERSION}"
 print_header "===================="
 echo ""
 
-git add -- "$RELEASE_FILE" "$CHANGELOG_FILE" "$NOTES_FILE"
+git add -- "$RELEASE_FILE" "$CHANGELOG_FILE" "$NOTES_FILE" "$README_FILE"
 git commit -m "$(cat <<EOF
 Release ${BUILD_VERSION}
 

@@ -289,7 +289,23 @@ awk -v version="$BUILD_VERSION" -v day="$RELEASE_DAY" '
         if ($0 ~ /^### /) {
             sub(/^### /, "## ")
         }
-        print
+        if ($0 ~ /^[[:space:]]*$/) {
+            if (prev_blank) {
+                next
+            }
+            prev_blank = 1
+        } else {
+            prev_blank = 0
+        }
+        lines[++n] = $0
+    }
+    END {
+        while (n > 0 && lines[n] ~ /^[[:space:]]*$/) {
+            n--
+        }
+        for (i = 1; i <= n; i++) {
+            print lines[i]
+        }
     }
 ' "$CHANGELOG_FILE" >"$notes_tmp"
 if [ ! -s "$notes_tmp" ]; then

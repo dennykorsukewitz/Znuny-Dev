@@ -26,4 +26,3 @@
 
 - Create the container user `znuny` with `useradd --non-unique` so it really shares UID/GID with `www-data`. Previously `useradd` aborted with `UID 33 is not unique` and the `adduser --system` fallback assigned UID 100, which chowned the bind-mounted framework to an unrelated host account (e.g. `syslog` on WSL) until `SetPermissions.pl` switched it to `www-data`. Existing containers are realigned on start.
 - Map instance `www-data` to the host developer UID (`HOST_UID`/`HOST_GID` from `zd start`) so Linux/WSL bind mounts stay writable for Git. Existing compose files pick this up via the instance env file; new templates pass the variables explicitly.
-

@@ -46,8 +46,11 @@ show_help() {
     echo ""
     print "Asks whether to release and which version to write."
     print "Updates RELEASE, stamps CHANGELOG.md, and rewrites RELEASE.md from that section."
+    print "The next UNRELEASED section is taken from CHANGELOG.template.md."
+    print "Before the commit, shows the RELEASE diff, the CHANGELOG.md stamp, and the new RELEASE.md."
     print "Commits those three files and tags the version, then asks before pushing."
     print "Stops when other files are uncommitted, or when UNRELEASED has no list items."
+    print "If the push is declined, asks whether to undo that commit and its local tag. File changes stay staged."
     print "The tag workflow creates the GitHub release after the tag is pushed."
     echo ""
     print_subheader "Current release:"
@@ -79,6 +82,7 @@ load_environment
 # load_environment may retarget ZNUNY_DEV_DIR
 RELEASE_FILE="$ZNUNY_DEV_DIR/RELEASE"
 CHANGELOG_FILE="$ZNUNY_DEV_DIR/CHANGELOG.md"
+CHANGELOG_TEMPLATE="$ZNUNY_DEV_DIR/CHANGELOG.template.md"
 NOTES_FILE="$ZNUNY_DEV_DIR/RELEASE.md"
 
 # Check for help flag
@@ -137,14 +141,26 @@ if [ ! -f "$CHANGELOG_FILE" ]; then
     print_error "CHANGELOG.md not found: $CHANGELOG_FILE"
     exit 1
 fi
+if [ ! -s "$CHANGELOG_TEMPLATE" ]; then
+    print_error "CHANGELOG template not found: $CHANGELOG_TEMPLATE"
+    exit 1
+fi
 if ! grep -q '^## \[UNRELEASED\]' "$CHANGELOG_FILE"; then
     print_error "CHANGELOG.md has no ## [UNRELEASED] heading"
     exit 1
 fi
-if ! awk '
+if ! awk -v template="$CHANGELOG_TEMPLATE" '
+    BEGIN {
+        while ((getline line < template) > 0) {
+            if (line ~ /^- /) {
+                placeholders[line] = 1
+            }
+        }
+        close(template)
+    }
     /^## \[UNRELEASED\]/ { in_section = 1; next }
     in_section && /^## \[/ { exit }
-    in_section && /^- .+/ { found = 1; exit }
+    in_section && /^- .+/ && !($0 in placeholders) { found = 1; exit }
     END { exit found ? 0 : 1 }
 ' "$CHANGELOG_FILE"; then
     print_error "CHANGELOG.md UNRELEASED section has no list items"
@@ -224,16 +240,20 @@ RELEASE_DAY=$(date '+%Y-%m-%d')
 
 print_status "Stamping CHANGELOG.md as ${BUILD_VERSION} (${RELEASE_DAY})..."
 changelog_tmp=$(mktemp)
-awk -v version="$BUILD_VERSION" -v day="$RELEASE_DAY" '
-    BEGIN { done = 0 }
+awk -v version="$BUILD_VERSION" -v day="$RELEASE_DAY" -v template="$CHANGELOG_TEMPLATE" '
+    BEGIN {
+        first = 1
+        while ((getline line < template) > 0) {
+            if (first && line ~ /^## /) {
+                line = "## [UNRELEASED] - YYYY-MM-DD"
+            }
+            first = 0
+            block = block line "\n"
+        }
+        close(template)
+    }
     !done && /^## \[UNRELEASED\]/ {
-        print "## [UNRELEASED] - YYYY-MM-DD"
-        print ""
-        print "### Added"
-        print ""
-        print "### Changed"
-        print ""
-        print "### Fixed"
+        printf "%s", block
         print ""
         print "## [" version "] - " day
         done = 1
@@ -274,6 +294,23 @@ fi
 mv "$notes_tmp" "$NOTES_FILE"
 print_success "RELEASE.md updated."
 
+echo ""
+print_header "Review ${BUILD_VERSION}"
+print_header "===================="
+echo ""
+
+print_subheader "RELEASE"
+git --no-pager diff -- "$RELEASE_FILE" || true
+echo ""
+
+print_subheader "CHANGELOG.md"
+git --no-pager diff -U2 -- "$CHANGELOG_FILE" || true
+echo ""
+
+print_subheader "RELEASE.md"
+cat "$NOTES_FILE"
+
+echo ""
 print_header "Committing ${BUILD_VERSION}"
 print_header "===================="
 echo ""
@@ -290,6 +327,16 @@ print_success "Committed and tagged ${BUILD_VERSION}."
 if ! confirm "Push branch and tag ${BUILD_VERSION} now?" "n"; then
     print_status "Not pushed. Tag ${BUILD_VERSION} stays local."
     print_status "The GitHub release is created when that tag is pushed."
+    if confirm "Undo the last commit?" "n"; then
+        if [ "$(git rev-parse HEAD)" != "$(git rev-parse "refs/tags/${BUILD_VERSION}")" ]; then
+            print_error "Tag ${BUILD_VERSION} does not point at HEAD. Commit was left in place."
+            cd - > /dev/null 2>&1
+            exit 1
+        fi
+        git tag -d "$BUILD_VERSION"
+        git reset --soft HEAD~1
+        print_success "Removed commit and tag ${BUILD_VERSION}. File changes stay staged."
+    fi
     cd - > /dev/null 2>&1
     exit 0
 fi

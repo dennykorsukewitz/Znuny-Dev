@@ -299,15 +299,21 @@ print_header "Review ${BUILD_VERSION}"
 print_header "===================="
 echo ""
 
-print_subheader "RELEASE"
+print_header "RELEASE"
+print_header "--------------------"
+
 git --no-pager diff -- "$RELEASE_FILE" || true
 echo ""
 
-print_subheader "CHANGELOG.md"
+print_header "CHANGELOG.md"
+print_header "--------------------"
+
 git --no-pager diff -U2 -- "$CHANGELOG_FILE" || true
 echo ""
 
-print_subheader "RELEASE.md"
+print_header "RELEASE.md"
+print_header "--------------------"
+
 cat "$NOTES_FILE"
 
 echo ""

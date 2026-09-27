@@ -203,17 +203,6 @@ BUILD_DATE=$(date '+%Y-%m-%d %H:%M:%S')
 BUILD_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 BUILD_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
 
-print_header "Updating RELEASE file"
-print_header "===================="
-echo ""
-
-print_table "Version" "$BUILD_VERSION"
-print_table "Build Date" "$BUILD_DATE"
-print_table "Build Commit" "$BUILD_COMMIT"
-print_table "Build Branch" "$BUILD_BRANCH"
-echo ""
-print_status "RELEASE file location: $RELEASE_FILE"
-
 # Update RELEASE file
 if [ -f "$RELEASE_FILE" ]; then
     print_status "Updating existing RELEASE file..."

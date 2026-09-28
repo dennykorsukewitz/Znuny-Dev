@@ -1,0 +1,87 @@
+name: Screenshots
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - dev
+
+permissions:
+  contents: write
+
+jobs:
+  Screenshots:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Make scripts executable
+        run: |
+          chmod +x znuny-dev.sh
+          chmod +x dev/scripts/*.sh
+
+      - name: Setup environment
+        run: |
+          mkdir -p frameworks instances compose packages tools
+          mkdir -p "${GITHUB_WORKSPACE}/../../frameworks" "${GITHUB_WORKSPACE}/../../packages" "${GITHUB_WORKSPACE}/../../tools"
+          bash dev/scripts/env.sh setup-env
+          echo "CI_MODE=true" >> .env
+
+      - name: Start dashboard
+        run: bash znuny-dev.sh dashboard start
+
+      - name: Wait for dashboard
+        run: |
+          for _ in $(seq 1 60); do
+            if curl -sf "http://127.0.0.1:${DASHBOARD_PORT:-9999}/" >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Dashboard did not answer on port ${DASHBOARD_PORT:-9999}"
+          exit 1
+
+      - name: Install zsh
+        run: sudo apt-get update && sudo apt-get install -y zsh
+
+      - name: Install Playwright
+        run: |
+          npm install --prefix /tmp/shots playwright
+          cd /tmp/shots && npx playwright install --with-deps chromium
+
+      - name: Capture screenshots
+        run: NODE_PATH=/tmp/shots/node_modules node .github/scripts/screenshots.mjs
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-images
+          path: |
+            docs/images/dashboard-cards-dark.png
+            docs/images/dashboard-cards-light.png
+            docs/images/dashboard-table-dark.png
+            docs/images/dashboard-table-light.png
+            docs/images/cli-help.png
+            docs/images/cli-release.png
+            docs/images/cli-status.png
+          if-no-files-found: error
+
+      - name: Commit screenshots
+        run: |
+          git add \
+            docs/images/dashboard-cards-dark.png \
+            docs/images/dashboard-cards-light.png \
+            docs/images/dashboard-table-dark.png \
+            docs/images/dashboard-table-light.png \
+            docs/images/cli-help.png \
+            docs/images/cli-release.png \
+            docs/images/cli-status.png
+          if git diff --cached --quiet; then
+            echo "No screenshot changes."
+            exit 0
+          fi
+          git config user.name "Denny Korsukéwitz"
+          git config user.email "dennykorsukewitz@gmail.com"
+          git commit -m "Update docs screenshots"
+          git push

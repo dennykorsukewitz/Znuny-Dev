@@ -32,7 +32,9 @@ A comprehensive Docker-based development environment for Znuny that enables work
 - **Bash Scripts**: Cross-platform compatibility
 - **Optional local dashboard**: instance overview at `http://127.0.0.1:9999/` — see [docs/dashboard.md](docs/dashboard.md)
 
-![Local dashboard — cards, table, instance actions](docs/images/dashboard.gif)
+![Local dashboard — cards, dark](docs/images/dashboard-cards-dark.png)
+
+More dashboard shots in `docs/images/`: [cards, light](docs/images/dashboard-cards-light.png), [table, dark](docs/images/dashboard-table-dark.png), [table, light](docs/images/dashboard-table-light.png). The animated preview is [dashboard.gif](docs/images/dashboard.gif).
 
 ## 📋 Prerequisites
 
@@ -97,6 +99,10 @@ zd dashboard start   # optional — http://127.0.0.1:9999/
 More commands (setup, Module-Tools install/uninstall, CodePolicy, tests, release): [docs/usage.md](docs/usage.md).
 Dashboard details: [docs/dashboard.md](docs/dashboard.md).
 
+![zd help](docs/images/cli-help.png)
+
+Also in `docs/images/`: [zd status](docs/images/cli-status.png), [zd release --help](docs/images/cli-release.png).
+
 ### Local dashboard
 
 Start with `zd dashboard start`, then open [http://127.0.0.1:9999/](http://127.0.0.1:9999/). Card and table views, Docker health, start/stop/restart, workspace and IDE links — see the preview under [Features](#-features).
@@ -133,7 +139,7 @@ Znuny-Dev/
 ├── .env                                  # Global config (from dev/templates/env/)
 ├── RELEASE                               # Version and build information
 ├── docs/                                 # Extra documentation
-│   ├── images/                           # README previews (create.gif, dashboard.gif)
+│   ├── images/                           # README previews and extra CLI / dashboard shots
 │   ├── setup.md                          # Installation & setup (step-by-step)
 │   ├── usage.md                          # Full zd command reference
 │   └── dashboard.md                      # Local dashboard

@@ -8,6 +8,8 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Changed
 
+- README shows the dark dashboard cards and `zd help`, and links the other screenshots in `docs/images/`.
+
 ### Removed
 
 ### Fixed

@@ -708,10 +708,15 @@ dbinstall() {
 dbupgrade() {
     local framework="$1"
     local module="$2"
+    local version="$3"
     local sopm_path
 
+    if [ "$version" ]; then
+        version="--version $version"
+    fi
+
     sopm_path=$(module_sopm_path "$framework" "$module") || return 1
-    execute_module_tools_command "$framework" Module::Database::Upgrade "$sopm_path"
+    execute_module_tools_command "$framework" Module::Database::Upgrade "$sopm_path" "$version"
 }
 
 dbuninstall() {
@@ -753,10 +758,15 @@ codeuninstall() {
 codeupgrade() {
     local framework="$1"
     local module="$2"
+    local version="$3"
     local sopm_path
 
+    if [ "$version" ]; then
+        version="--version $version"
+    fi
+
     sopm_path=$(module_sopm_path "$framework" "$module") || return 1
-    execute_module_tools_command "$framework" Module::Code::Upgrade "$sopm_path"
+    execute_module_tools_command "$framework" Module::Code::Upgrade "$sopm_path" "$version"
 }
 
 module_tools() {
@@ -2614,7 +2624,7 @@ main() {
             dbinstall "$framework" "${1:-}"
             ;;
         dbupgrade)
-            dbupgrade "$framework" "${1:-}"
+            dbupgrade "$framework" "$@"
             ;;
         dbuninstall)
             dbuninstall "$framework" "${1:-}"
@@ -2629,7 +2639,7 @@ main() {
             codeuninstall "$framework" "${1:-}"
             ;;
         codeupgrade)
-            codeupgrade "$framework" "${1:-}"
+            codeupgrade "$framework" "$@"
             ;;
         module-tools|mt)
             module_tools "$framework" "$@"

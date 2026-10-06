@@ -9,7 +9,7 @@ All notable changes to the Znuny Development Environment will be documented in t
 ### Changed
 
 - `zd dbupgrade` and `zd codeupgrade` accept `--version X.Y.Z` and optional `pre`/`post` (same options as module-tools). Code upgrade also accepts the version as a positional argument; `codeupgrade` maps `--version` to module-tools’ positional version. Module-tools arguments are passed with safe shell quoting in the container.
-- Thanks to Erwin Liem for contributing version support for `zd dbupgrade` and `zd codeupgrade`.
+- Thanks to Erwin Liem (@el) for contributing version support for `zd dbupgrade` and `zd codeupgrade`.
 - README shows the dark dashboard cards and `zd help`, and links the other screenshots in `docs/images/`.
 
 ### Removed

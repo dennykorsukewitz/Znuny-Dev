@@ -164,13 +164,13 @@ zd install <framework> <package>        # DB + code install
 zd uninstall <framework> <package>      # DB + code uninstall
 
 zd dbinstall <framework> <package>
-zd dbupgrade <framework> <package> <version>
+zd dbupgrade <framework> <package> [--version X.Y.Z] [pre|post]
 zd dbuninstall <framework> <package>
 
 zd codeinstall <framework> <package>
 zd codereinstall <framework> <package>
 zd codeuninstall <framework> <package>
-zd codeupgrade <framework> <package> <version>
+zd codeupgrade <framework> <package> [--version X.Y.Z | X.Y.Z] [pre|post]
 ```
 
 ### Direct module-tools

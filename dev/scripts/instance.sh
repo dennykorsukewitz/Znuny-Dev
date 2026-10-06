@@ -707,16 +707,12 @@ dbinstall() {
 
 dbupgrade() {
     local framework="$1"
-    local module="$2"
-    local version="$3"
+    shift
     local sopm_path
 
-    if [ "$version" ]; then
-        version="--version $version"
-    fi
-
-    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
-    execute_module_tools_command "$framework" Module::Database::Upgrade "$sopm_path" "$version"
+    parse_module_tools_package_argv "$@" || return 1
+    sopm_path=$(module_sopm_path "$framework" "$MODULE_TOOLS_PACKAGE") || return 1
+    execute_module_tools_command "$framework" Module::Database::Upgrade "$sopm_path" "${MODULE_TOOLS_EXTRA[@]}"
 }
 
 dbuninstall() {
@@ -757,16 +753,28 @@ codeuninstall() {
 
 codeupgrade() {
     local framework="$1"
-    local module="$2"
-    local version="$3"
+    shift
     local sopm_path
+    local mt_args=()
+    local i=0
+    local extra=()
 
-    if [ "$version" ]; then
-        version="--version $version"
-    fi
-
-    sopm_path=$(module_sopm_path "$framework" "$module") || return 1
-    execute_module_tools_command "$framework" Module::Code::Upgrade "$sopm_path" "$version"
+    parse_module_tools_package_argv "$@" || return 1
+    sopm_path=$(module_sopm_path "$framework" "$MODULE_TOOLS_PACKAGE") || return 1
+    mt_args=("$sopm_path")
+    while [ $i -lt ${#MODULE_TOOLS_EXTRA[@]} ]; do
+        if [ "${MODULE_TOOLS_EXTRA[$i]}" = "--version" ]; then
+            i=$((i + 1))
+            if [ $i -lt ${#MODULE_TOOLS_EXTRA[@]} ]; then
+                mt_args+=("${MODULE_TOOLS_EXTRA[$i]}")
+            fi
+        else
+            extra+=("${MODULE_TOOLS_EXTRA[$i]}")
+        fi
+        i=$((i + 1))
+    done
+    mt_args+=("${extra[@]}")
+    execute_module_tools_command "$framework" Module::Code::Upgrade "${mt_args[@]}"
 }
 
 module_tools() {

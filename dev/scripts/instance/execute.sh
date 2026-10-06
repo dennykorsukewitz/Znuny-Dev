@@ -44,6 +44,46 @@ _sopm_module_candidates() {
     fi
 }
 
+# Parse argv for zd dbupgrade/codeupgrade: first non-option token is package; rest forwarded to ModuleTools.
+# Sets MODULE_TOOLS_PACKAGE and MODULE_TOOLS_EXTRA (array).
+parse_module_tools_package_argv() {
+    MODULE_TOOLS_PACKAGE=""
+    MODULE_TOOLS_EXTRA=()
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --version)
+                if [ -z "${2:-}" ]; then
+                    print_error "Option --version requires a value (e.g. 1.2.3)"
+                    return 1
+                fi
+                MODULE_TOOLS_EXTRA+=("--version" "$2")
+                shift 2
+                ;;
+            --*)
+                MODULE_TOOLS_EXTRA+=("$1")
+                shift
+                ;;
+            pre|post)
+                MODULE_TOOLS_EXTRA+=("$1")
+                shift
+                ;;
+            *)
+                if [ -z "$MODULE_TOOLS_PACKAGE" ]; then
+                    MODULE_TOOLS_PACKAGE="$1"
+                else
+                    MODULE_TOOLS_EXTRA+=("$1")
+                fi
+                shift
+                ;;
+        esac
+    done
+    if [ -z "$MODULE_TOOLS_PACKAGE" ]; then
+        print_error "Package/module name is required"
+        return 1
+    fi
+    return 0
+}
+
 # Resolve module argument to an existing /opt/znuny/<name>.sopm basename inside the container.
 resolve_module_sopm_name() {
     local framework="$1"
@@ -301,13 +341,13 @@ execute_module_tools_command() {
         print_command "${ZD_CMD:-./znuny-dev.sh} uninstall <framework> <package>"        "Package Uninstall (dbuninstall, codeuninstall)"
         echo ""
         print_command "${ZD_CMD:-./znuny-dev.sh} dbinstall <framework> <package>"        "Module::Database::Install"
-        print_command "${ZD_CMD:-./znuny-dev.sh} dbupgrade <framework> <package> <version>"        "Module::Database::Upgrade"
+        print_command "${ZD_CMD:-./znuny-dev.sh} dbupgrade <framework> <package> [--version X.Y.Z] [pre|post]" "Module::Database::Upgrade"
         print_command "${ZD_CMD:-./znuny-dev.sh} dbuninstall <framework> <package>"       "Module::Database::Uninstall"
         echo ""
         print_command "${ZD_CMD:-./znuny-dev.sh} codeinstall <framework> <package>"      "Module::Code::Install"
         print_command "${ZD_CMD:-./znuny-dev.sh} codereinstall <framework> <package>"     "Module::Code::Reinstall"
         print_command "${ZD_CMD:-./znuny-dev.sh} codeuninstall <framework> <package>"     "Module::Code::Uninstall"
-        print_command "${ZD_CMD:-./znuny-dev.sh} codeupgrade <framework> <package> <version>"      "Module::Code::Upgrade"
+        print_command "${ZD_CMD:-./znuny-dev.sh} codeupgrade <framework> <package> [--version X.Y.Z | X.Y.Z] [pre|post]" "Module::Code::Upgrade"
         echo ""
         print_command "${ZD_CMD:-./znuny-dev.sh} module-tools <framework> <command> [args...]" "Beliebiger znuny.ModuleTools.pl-Befehl"
         echo ""
@@ -322,7 +362,12 @@ execute_module_tools_command() {
         docker_tty=(-t)
     fi
     # Run as www-data (same ApplicationUser / file owner as console) so ModuleTools can write under /opt/znuny
-    if docker exec "${docker_tty[@]}" "$container_name" su -s /bin/bash -c "cd /opt/znuny && perl /opt/tools/module-tools/bin/znuny.ModuleTools.pl $command $*" www-data; then
+    local quoted_cmd=""
+    local arg
+    for arg in "$command" "$@"; do
+        quoted_cmd+=" $(printf '%q' "$arg")"
+    done
+    if docker exec "${docker_tty[@]}" "$container_name" su -s /bin/bash -c "cd /opt/znuny && perl /opt/tools/module-tools/bin/znuny.ModuleTools.pl${quoted_cmd}" www-data; then
         return 0
     fi
     print_error "Module-tools command failed: $command"

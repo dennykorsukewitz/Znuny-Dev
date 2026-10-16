@@ -231,14 +231,9 @@ clone_repository() {
     # Create target directory
     ensure_directory "$(dirname "$target_dir")"
 
-    # Clone repository. With --depth 1 only the chosen branch exists locally; use CLONE_DEPTH=0 for full clone (all branches).
-    local depth_args=()
-    if [ -n "${CLONE_DEPTH:-}" ] && [ "${CLONE_DEPTH}" = "0" ]; then
-        print_status "Full clone (all branches) – CLONE_DEPTH=0"
-    else
-        depth_args=(--depth 1)
-    fi
-    if git clone --branch "$branch" "${depth_args[@]}" "$repo_source" "$target_dir"; then
+    # Clone the full history of the chosen branch only (no --depth). Other branches stay unfetched.
+    print_status "Full history of branch $branch (--single-branch)"
+    if git clone --branch "$branch" --single-branch "$repo_source" "$target_dir"; then
         # Allow fetching all branches (clone only sets fetch for the checked-out branch)
         git -C "$target_dir" config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
         print_success "Repository cloned successfully"

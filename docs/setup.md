@@ -238,7 +238,7 @@ Creates nothing yet — only configures where Step 4 will clone repositories.
 **What it does:**
 
 1. **Repository sources** — confirm or edit Git URLs (`REPO_SOURCE_ZNUNY`, `REPO_SOURCE_FRED`, `REPO_SOURCE_MODULE_TOOLS`, `REPO_SOURCE_CODE_POLICY`). Values from `configs/instance/my.env` are used as defaults if present.
-2. **Framework** — interactive branch selection, then clone into `$FRAMEWORKS_DIR/<branch>/` (e.g. `frameworks/dev/`).
+2. **Framework** — interactive branch selection, then clone the full history of that branch into `$FRAMEWORKS_DIR/<branch>/` (e.g. `frameworks/dev/`). Other remote branches are not fetched at clone time.
 3. **Tools** — clone into `$TOOLS_DIR/`:
    - `module-tools`
    - `Fred`

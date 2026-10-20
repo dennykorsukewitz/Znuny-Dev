@@ -269,6 +269,8 @@ Skipped if no framework was cloned in Step 4.
 - Runs `docker compose up -d` for the new instance
 - Starts app and database containers (depending on instance mode)
 
+Agent and customer session cookies are named after the instance (`SessionName` / `CustomerPanelSessionName`). That keeps logins isolated when several instances share `localhost` on different ports (browsers do not isolate cookies by port). Restart an instance after upgrading znuny-dev so `Kernel/Config.pm` picks this up.
+
 Only offered if Step 5 completed.
 
 ---

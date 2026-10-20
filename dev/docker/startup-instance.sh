@@ -21,7 +21,9 @@ detect_framework() {
         log "No framework detected, using defaults"
     fi
 
-    FRAMEWORK='znuny'
+    # Instance name from compose/env. Must be unique: SessionName is this value,
+    # so two instances on localhost (different ports) do not share one cookie.
+    FRAMEWORK="${FRAMEWORK_NAME:-znuny}"
     FRAMEWORK_DIR='/opt/znuny'
     FRAMEWORK_USER='www-data'
     FRAMEWORK_DATABASE="${DB_NAME:-znuny}"
@@ -850,6 +852,7 @@ main() {
 
     log "Znuny configuration:"
     log "  Version: $FRAMEWORK_VERSION"
+    log "  Instance: $FRAMEWORK"
     log "  Directory: $FRAMEWORK_DIR"
     log "  User: $FRAMEWORK_USER"
     log "  Database: $FRAMEWORK_DATABASE"

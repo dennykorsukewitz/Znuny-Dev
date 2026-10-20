@@ -252,6 +252,64 @@ EOF
     print_test_result "snippet_in_middle" "PASS" "Snippet in middle" ""
 }
 
+# Same placeholder sed as update_config_custom in startup-instance.sh.
+test_framework_placeholders() {
+    echo ""
+    echo "Test: {{FRAMEWORK}} placeholders become instance name..."
+
+    local tmp_dir
+    tmp_dir=$(mktemp -d)
+    trap 'rm -rf -- "$tmp_dir"' RETURN
+
+    cat > "$tmp_dir/snippet.pm" << 'SNIPPETEOF'
+    $Self->{'SessionName'}              = '{{FRAMEWORK}}';
+    $Self->{'CustomerPanelSessionName'} = '{{FRAMEWORK}}Customer';
+    $Self->{'ProductName'}              = '{{FRAMEWORK}}';
+    $Self->{'ScriptAlias'}              = 'znuny/';
+    $Self->{'Frontend::WebPath'}        = '/znuny-web/';
+    $Self->{'LogModule::LogFile'}       = '{{FRAMEWORK_DIR}}{{FRAMEWORK}}/var/log/znuny.log';
+SNIPPETEOF
+
+    local FRAMEWORK_DIR='/opt/znuny'
+    local FRAMEWORK='rel-7_3-dev'
+    local instance_port='10002'
+    sed 's|{{FRAMEWORK_DIR}}{{FRAMEWORK}}|'"$FRAMEWORK_DIR"'|g; s|{{FRAMEWORK}}|'"$FRAMEWORK"'|g; s|{{PORT}}|'"$instance_port"'|g' \
+        "$tmp_dir/snippet.pm" > "$tmp_dir/out.pm"
+
+    local result
+    result=$(cat "$tmp_dir/out.pm")
+
+    if ! echo "$result" | grep -Fq "\$Self->{'SessionName'}              = 'rel-7_3-dev';"; then
+        print_test_result "session_name_instance" "FAIL" "SessionName must be instance name" "$result"
+        return 1
+    fi
+    print_test_result "session_name_instance" "PASS" "SessionName is instance name" ""
+
+    if ! echo "$result" | grep -Fq "\$Self->{'CustomerPanelSessionName'} = 'rel-7_3-devCustomer';"; then
+        print_test_result "customer_session_name_instance" "FAIL" "CustomerPanelSessionName must be instance name + Customer" "$result"
+        return 1
+    fi
+    print_test_result "customer_session_name_instance" "PASS" "CustomerPanelSessionName is unique" ""
+
+    if echo "$result" | grep -q '{{FRAMEWORK}}'; then
+        print_test_result "framework_placeholder_gone" "FAIL" "No leftover {{FRAMEWORK}}" "$result"
+        return 1
+    fi
+    print_test_result "framework_placeholder_gone" "PASS" "Placeholders replaced" ""
+
+    if ! echo "$result" | grep -Fq "\$Self->{'ScriptAlias'}              = 'znuny/';"; then
+        print_test_result "script_alias_znuny" "FAIL" "ScriptAlias must stay znuny/ (Apache)" "$result"
+        return 1
+    fi
+    print_test_result "script_alias_znuny" "PASS" "ScriptAlias stays znuny/" ""
+
+    if ! echo "$result" | grep -Fq "/opt/znuny/var/log/znuny.log"; then
+        print_test_result "logfile_path" "FAIL" "Log path must use FRAMEWORK_DIR only" "$result"
+        return 1
+    fi
+    print_test_result "logfile_path" "PASS" "Log path uses FRAMEWORK_DIR" ""
+}
+
 # Main
 run_all_tests() {
     echo "=========================================="
@@ -260,6 +318,7 @@ run_all_tests() {
     test_block_replaced_with_snippet
     test_no_markers_unchanged
     test_header_and_footer_preserved
+    test_framework_placeholders
     print_test_summary
 }
 

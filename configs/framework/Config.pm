@@ -4,10 +4,14 @@
 
     $Self->{'SecureMode'}                        = 1;
     $Self->{'SystemID'}                          = '42';
+    # Cookie names must be unique per instance. Browsers ignore port on localhost,
+    # so a shared SessionName logs you out of the other instance.
     $Self->{'SessionName'}                       = '{{FRAMEWORK}}';
+    $Self->{'CustomerPanelSessionName'}          = '{{FRAMEWORK}}Customer';
     $Self->{'ProductName'}                       = '{{FRAMEWORK}}';
-    $Self->{'ScriptAlias'}                       = '{{FRAMEWORK}}/';
-    $Self->{'Frontend::WebPath'}                 = '/{{FRAMEWORK}}-web/';
+    # Keep in sync with Apache ScriptAlias / Alias in startup-instance.sh.
+    $Self->{'ScriptAlias'}                       = 'znuny/';
+    $Self->{'Frontend::WebPath'}                 = '/znuny-web/';
     $Self->{'CheckEmailAddresses'}               = 0;
     $Self->{'CheckMXRecord'}                     = 0;
     $Self->{'Organization'}                      = '';

@@ -17,6 +17,8 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Fixed
 
+- Parallel instances on `localhost` keep separate agent and customer sessions. Cookie names now use the instance name (`SessionName`, `CustomerPanelSessionName`) instead of the shared value `znuny`. Browsers ignore port, so one cookie name logged you out of the other instance. Restart each instance so `Kernel/Config.pm` is rewritten.
+
 ### Security
 
 ## [1.1.0] - 2026-09-27

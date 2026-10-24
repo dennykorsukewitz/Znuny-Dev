@@ -102,6 +102,15 @@ print_command() {
     printf "  ${GREEN}%-42s${NC} %s\n" "$command" "$description"
 }
 
+# Command on its own line. Description starts in the same column as print_command
+# (2 spaces + 42-character command field + 1 space).
+print_service_command() {
+    local command="$1"
+    local description="$2"
+    printf "  ${GREEN}%s${NC}\n" "$command"
+    printf "%45s%s\n" "" "$description"
+}
+
 # ========================================
 # Input Functions
 # ========================================

@@ -67,7 +67,18 @@ get_selenium_compose_file() {
     echo "${ZNUNY_DEV_DIR:?}/dev/docker/compose-selenium.yml"
 }
 
+# Ensure the shared network exists. It is external: instances may have created it
+# under another Compose project, and this file must not try to own it.
+selenium_ensure_network() {
+    if docker network inspect znuny-network >/dev/null 2>&1; then
+        return 0
+    fi
+    print_status "Creating network znuny-network"
+    docker network create znuny-network
+}
+
 # Run docker compose for Selenium from the compose file directory (relative paths).
+# SELENIUM_PLATFORM=linux/amd64 adds the override for the amd64-only Selenium 3 image.
 compose_selenium() {
     local compose_file
     compose_file=$(get_selenium_compose_file)
@@ -75,8 +86,13 @@ compose_selenium() {
     compose_dir=$(dirname "$compose_file")
     local dc
     dc=$(get_compose_cmd 2>/dev/null) || dc="docker compose"
+    local -a compose_args
+    compose_args=(-f "$(basename "$compose_file")")
+    if [ "${SELENIUM_PLATFORM:-}" = "linux/amd64" ]; then
+        compose_args+=(-f compose-selenium-amd64.yml)
+    fi
     (
-        cd "$compose_dir" && $dc -f "$(basename "$compose_file")" -p znuny "$@"
+        cd "$compose_dir" && $dc "${compose_args[@]}" -p znuny "$@"
     )
 }
 
@@ -105,6 +121,12 @@ selenium_ensure_started() {
     current=$(selenium_running_image)
     selenium_save_major "$major"
     export SELENIUM_IMAGE="$image"
+    if [ "$major" = "3" ]; then
+        export SELENIUM_PLATFORM="linux/amd64"
+    else
+        unset SELENIUM_PLATFORM
+    fi
+    selenium_ensure_network
     if [ -n "$current" ] && [ "$current" != "$image" ]; then
         print_status "Switching Selenium image from $current to $image"
         compose_selenium up -d --force-recreate --no-deps selenium

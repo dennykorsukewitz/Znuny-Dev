@@ -331,6 +331,7 @@ CAPS
     snippet_file="$(mktemp)"
     cat > "$snippet_file" << EOF
     # --- znuny-dev selenium start ---
+    # Selenium ${selenium_major}
     \$Self->{TestHTTPHostname} = '${container_name}';
     \$Self->{SeleniumTestsConfig} = {
         remote_server_addr => 'selenium',

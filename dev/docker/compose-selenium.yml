@@ -34,5 +34,5 @@ services:
 
 networks:
   znuny-network:
+    external: true
     name: znuny-network
-    driver: bridge

@@ -1,0 +1,5 @@
+# Selenium 3.141.59-oxygen is published only as linux/amd64.
+# Applied by selenium.sh for major 3 so Compose does not warn about the host platform.
+services:
+  selenium:
+    platform: linux/amd64

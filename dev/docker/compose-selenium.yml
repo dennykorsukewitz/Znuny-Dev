@@ -2,17 +2,19 @@
 # Same Compose project as instances: docker compose -p znuny (see dev/scripts/selenium.sh).
 # Never use `compose down --remove-orphans`: other project containers would count as orphans.
 # Hostname `selenium` on znuny-network is what scripts/test/Selenium expect (port 4444).
+# Default image is Selenium 3. `zd selenium start 4` exports SELENIUM_IMAGE for Selenium 4.
 # Run: zd selenium start
-# noVNC (watch the browser): http://127.0.0.1:7900/
+# Selenium 3 VNC: vnc://127.0.0.1:5900/ (password secret). Selenium 4 noVNC: http://127.0.0.1:7900/
 services:
   selenium:
-    image: selenium/standalone-chrome:4.49.0
+    image: ${SELENIUM_IMAGE:-selenium/standalone-chrome:3.141.59-oxygen}
     container_name: znuny-selenium
     shm_size: "2gb"
     environment:
       SE_VNC_NO_PASSWORD: "1"
     ports:
       - "127.0.0.1:4444:4444"
+      - "127.0.0.1:5900:5900"
       - "127.0.0.1:7900:7900"
     networks:
       znuny-network:
@@ -23,7 +25,7 @@ services:
       test:
         [
           "CMD-SHELL",
-          "curl -fsS http://localhost:4444/status | jq -e '.value.ready == true' >/dev/null",
+          "body=$$(curl -fsS --max-time 3 http://127.0.0.1:4444/wd/hub/status || curl -fsS --max-time 3 http://127.0.0.1:4444/status || wget -qO- --timeout=3 http://127.0.0.1:4444/wd/hub/status || wget -qO- --timeout=3 http://127.0.0.1:4444/status) && printf '%s' \"$$body\" | grep -Eq '\"ready\"[[:space:]]*:[[:space:]]*true'",
         ]
       interval: 10s
       timeout: 5s

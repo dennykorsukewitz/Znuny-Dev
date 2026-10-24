@@ -2059,7 +2059,10 @@
         if (!service || service.kind !== "selenium") {
             return '<span class="cell-muted">—</span>';
         }
-        var url = service.url || "http://127.0.0.1:7900/";
+        var url = service.url || "";
+        if (!url) {
+            return '<span class="cell-muted">—</span>';
+        }
         var password = service.password || "";
         var title = "Open noVNC";
         if (password) {
@@ -2101,6 +2104,10 @@
                 "</code>"
         );
         lines += detailRow("Scope", escapeHtml(scope));
+        lines += detailRow(
+            "Image",
+            "<code>" + escapeHtml(service.image || "—") + "</code>"
+        );
         if (service.ports) {
             lines += detailRow("Ports", "<code>" + escapeHtml(service.ports) + "</code>");
         }
@@ -2170,6 +2177,7 @@
             tableStaticHeaderHtml("Name") +
             tableStaticHeaderHtml("Kind") +
             tableStaticHeaderHtml("Container") +
+            tableStaticHeaderHtml("Image") +
             tableStaticHeaderHtml("Scope") +
             tableStaticHeaderHtml("Ports") +
             tableStaticHeaderHtml("Login") +
@@ -2207,6 +2215,9 @@
             healthPill(service.health, service.running, pillKind) +
             ' <code class="cell-muted">' +
             escapeHtml(service.name || "") +
+            "</code></td>" +
+            "<td><code>" +
+            escapeHtml(service.image || "—") +
             "</code></td>" +
             "<td>" +
             escapeHtml(scope) +

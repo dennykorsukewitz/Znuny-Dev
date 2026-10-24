@@ -245,9 +245,26 @@ strip_selenium_config_block() {
     mv "$tmp_file" "$config_pm"
 }
 
+# Selenium 4 answers http://selenium:4444/status. Selenium 3 only answers /wd/hub/status.
+# A missing hub stays on 3, which is the znuny-dev default.
+selenium_hub_major() {
+    local body=""
+    if ! command -v curl >/dev/null 2>&1; then
+        printf '3'
+        return 0
+    fi
+    body=$(curl -fsS --max-time 2 http://selenium:4444/status 2>/dev/null || true)
+    if printf '%s' "$body" | grep -Eq '"ready"[[:space:]]*:[[:space:]]*true'; then
+        printf '4'
+        return 0
+    fi
+    printf '3'
+}
+
 # When ENABLE_SELENIUM=y, write SeleniumTestsConfig into the custom block of Config.pm.
 # TestHTTPHostname is the app container name so Chrome on znuny-network opens port 80,
-# not the host-published port. is_wd3 => 1 matches Selenium 4 (Znuny defaults Chrome to legacy).
+# not the host-published port. Capabilities follow the running hub.
+# is_wd3 is not written: Selenium::Remote::Driver rejects that key in new().
 update_config_selenium() {
     local config_pm="$FRAMEWORK_DIR/Kernel/Config.pm"
     local enabled
@@ -287,6 +304,29 @@ update_config_selenium() {
         return 0
     fi
 
+    local selenium_major
+    selenium_major=$(selenium_hub_major)
+    local extra_capabilities
+    if [ "$selenium_major" = "4" ]; then
+        extra_capabilities=$(cat << 'CAPS'
+        extra_capabilities => {
+            'goog:chromeOptions' => {
+                args => [ 'disable-dev-shm-usage', 'disable-gpu', 'no-sandbox', 'disable-infobars' ],
+            },
+        },
+CAPS
+        )
+    else
+        extra_capabilities=$(cat << 'CAPS'
+        extra_capabilities => {
+            chromeOptions => {
+                args => [ 'disable-dev-shm-usage', 'disable-gpu', 'no-sandbox', 'disable-infobars' ],
+            },
+        },
+CAPS
+        )
+    fi
+
     local snippet_file
     snippet_file="$(mktemp)"
     cat > "$snippet_file" << EOF
@@ -297,12 +337,7 @@ update_config_selenium() {
         port               => '4444',
         platform           => 'ANY',
         browser_name       => 'chrome',
-        is_wd3             => 1,
-        extra_capabilities => {
-            'goog:chromeOptions' => {
-                args => [ 'disable-dev-shm-usage', 'disable-gpu', 'no-sandbox' ],
-            },
-        },
+${extra_capabilities}
     };
     # --- znuny-dev selenium end ---
 EOF
@@ -338,7 +373,7 @@ EOF
         log "WARNING: SeleniumTestsConfig was not inserted into Config.pm."
         return 1
     fi
-    log "Config.pm: SeleniumTestsConfig written for ${container_name}"
+    log "Config.pm: SeleniumTestsConfig written for ${container_name} (Selenium ${selenium_major})"
 }
 
 # Bind mounts on Linux/WSL keep container UIDs on the host. Map www-data to HOST_UID

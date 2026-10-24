@@ -79,7 +79,7 @@ GUI **Dashboard restart** asks the host helper to run `zd dashboard restart` (co
 
 - List instances (cards or table), sort and filter layout
 - See Docker health (instance + database)
-- Services block under the instances: database containers and Selenium (start / stop / restart, noVNC login)
+- Services block under the instances: database containers and Selenium (image, start / stop / restart, noVNC when the hub is Selenium 4)
 - Start / stop / restart / build / remove instances
 - Open Znuny agent/customer login links
 - Open host workspace / IDE

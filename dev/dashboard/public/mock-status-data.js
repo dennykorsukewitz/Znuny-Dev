@@ -88,7 +88,21 @@ function mockDbService(name, label, shared, running, health, dockerStatus, ports
         health: health,
         docker_status: dockerStatus,
         ports: ports,
+        image: mockServiceImage(name),
     };
+}
+
+function mockServiceImage(name) {
+    if (name.indexOf("mariadb") !== -1) {
+        return "mariadb:10.11";
+    }
+    if (name.indexOf("mysql") !== -1) {
+        return "mysql:8.0";
+    }
+    if (name.indexOf("postgresql") !== -1) {
+        return "postgres:15";
+    }
+    return "";
 }
 
 function mockSeleniumService(running) {
@@ -101,9 +115,9 @@ function mockSeleniumService(running) {
         health: running ? "healthy" : "stopped",
         docker_status: running ? "Up 4 hours (healthy)" : "",
         ports: running
-            ? "127.0.0.1:4444->4444/tcp, 127.0.0.1:7900->7900/tcp"
+            ? "127.0.0.1:4444->4444/tcp, 127.0.0.1:5900->5900/tcp"
             : "",
-        url: "http://127.0.0.1:7900/",
+        image: "selenium/standalone-chrome:3.141.59-oxygen",
     };
 }
 

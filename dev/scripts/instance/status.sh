@@ -341,6 +341,34 @@ _service_label() {
     printf '%s · %s' "$engine" "$slug"
 }
 
+# Image the container was started from. Absent containers use the compose default.
+_service_image() {
+    local name="$1"
+    local image=""
+    image=$(docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null | tr -d '\n\r' || true)
+    if [ -n "$image" ]; then
+        printf '%s' "$image"
+        return 0
+    fi
+    case "$name" in
+        znuny-selenium)
+            local major="3"
+            local major_file="${ZNUNY_DEV_DIR:-}/dev/docker/.selenium-major"
+            if [ -n "${ZNUNY_DEV_DIR:-}" ] && [ -f "$major_file" ]; then
+                major=$(tr -d '[:space:]' < "$major_file")
+            fi
+            case "$major" in
+                4) printf 'selenium/standalone-chrome:4.49.0' ;;
+                *) printf 'selenium/standalone-chrome:3.141.59-oxygen' ;;
+            esac
+            ;;
+        *mariadb) printf 'mariadb:10.11' ;;
+        *mysql) printf 'mysql:8.0' ;;
+        *postgresql) printf 'postgres:15' ;;
+        *) printf '' ;;
+    esac
+}
+
 _print_one_service_json() {
     local name="$1"
     local kind="database"
@@ -357,6 +385,8 @@ _print_one_service_json() {
     local docker_status=""
     local ports=""
     local exists=false
+    local image=""
+    image=$(_service_image "$name")
 
     if printf '%s\n' "$_SJC_PS_ALL_NAMES" | grep -qxF "$name"; then
         exists=true
@@ -391,10 +421,16 @@ _print_one_service_json() {
     printf '"running":%s,' "$(_print_bool_json "$running")"
     printf '"health":"%s",' "$(json_escape_string "$health")"
     printf '"docker_status":"%s",' "$(json_escape_string "$docker_status")"
-    printf '"ports":"%s"' "$(json_escape_string "$ports")"
-    if [ "$kind" = "selenium" ]; then
-        printf ',"url":"http://127.0.0.1:7900/"'
-    fi
+    printf '"ports":"%s",' "$(json_escape_string "$ports")"
+    printf '"image":"%s"' "$(json_escape_string "$image")"
+    # Selenium 4 serves noVNC on 7900. Selenium 3 only has VNC on 5900.
+    case "$image" in
+        *:4.*)
+            if [ "$kind" = "selenium" ]; then
+                printf ',"url":"http://127.0.0.1:7900/"'
+            fi
+            ;;
+    esac
     printf '}'
 }
 

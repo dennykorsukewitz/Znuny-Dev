@@ -226,24 +226,26 @@ zd release 1.0.0
 
 Shared Chrome for browser unit tests. One container on `znuny-network`, hostname `selenium`, port `4444`. Dedicated instances are on their own network and cannot reach this hub.
 
+Default image is Selenium 3 (`selenium/standalone-chrome:3.141.59-oxygen`). Selenium 4 (`selenium/standalone-chrome:4.49.0`) uses the same container name when you ask for it. Only one of them runs.
+
 ```bash
 zd selenium start
+zd selenium start 3
+zd selenium start 4
 zd selenium status
 zd selenium stop
 zd selenium remove
 ```
 
-noVNC (watch the browser): `http://127.0.0.1:7900/`.
+Selenium 3 VNC: `vnc://127.0.0.1:5900/` (password `secret`). Selenium 4 noVNC: `http://127.0.0.1:7900/` (no password).
 
-Docker marks the container healthy when `http://localhost:4444/status` reports `ready`.
+Docker marks the container healthy when `/wd/hub/status` or `/status` reports `ready`.
 
-Per instance, set `ENABLE_SELENIUM=y` in `instances/<name>/<name>.env`, regenerate Compose, and recreate the instance. Startup then writes `SeleniumTestsConfig` and `TestHTTPHostname` (the app container name, port 80) into `Kernel/Config.pm`.
+Per instance, set `ENABLE_SELENIUM=y` in `instances/<name>/<name>.env`, regenerate Compose, and recreate the instance. Startup probes the hub and writes `SeleniumTestsConfig` and `TestHTTPHostname` (the app container name, port 80) into `Kernel/Config.pm`. Selenium 3 gets `chromeOptions`. Selenium 4 gets `goog:chromeOptions`. Recreate the instance after `zd selenium start 3` or `start 4` so that block matches the hub. `is_wd3` is not written: `Selenium::Remote::Driver` rejects that key in `new()`.
 
 ```bash
 zd unit dev Selenium/Agent/AgentTicketQueue.t
 ```
-
-`scripts/test/Selenium/Base/Selenium.t` forces the legacy WebDriver protocol and stays red against this Selenium 4 image.
 
 ---
 

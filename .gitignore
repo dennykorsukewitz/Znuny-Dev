@@ -28,6 +28,9 @@ instances/*
 # Docker volumes
 docker/volumes/
 
+# Last Selenium major chosen by `zd selenium start` (3 or 4).
+dev/docker/.selenium-major
+
 # Logs
 *.log
 logs/

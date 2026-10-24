@@ -6,8 +6,11 @@ All notable changes to the Znuny Development Environment will be documented in t
 
 ### Added
 
+- Dashboard service cards and the services table show the Docker image of each database and of Selenium.
+
 ### Changed
 
+- Shared Selenium defaults to `selenium/standalone-chrome:3.141.59-oxygen`. `zd selenium start 4` recreates the same hub as `selenium/standalone-chrome:4.49.0`. Instance startup writes `chromeOptions` or `goog:chromeOptions` from the running hub. `is_wd3` is not written, because `Selenium::Remote::Driver` rejects that key in `new()`.
 - Framework, tool, and package clones now take the full history of the selected branch (`git clone --branch <branch> --single-branch`) instead of a shallow `--depth 1` checkout. `CLONE_DEPTH` is no longer used.
 - `zd dbupgrade` and `zd codeupgrade` accept `--version X.Y.Z` and optional `pre`/`post` (same options as module-tools). Code upgrade also accepts the version as a positional argument; `codeupgrade` maps `--version` to module-tools’ positional version. Module-tools arguments are passed with safe shell quoting in the container.
 - Thanks to Erwin Liem (@el) for contributing version support for `zd dbupgrade` and `zd codeupgrade`.

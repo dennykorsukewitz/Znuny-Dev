@@ -1,93 +1,39 @@
-<svg width="100%" height="100%" viewBox="0 0 1440 789" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;">
-    <rect id="ArtBoard1" x="0" y="0" width="1440" height="788.775" style="fill:none;"/>
-    <g id="ArtBoard11" serif:id="ArtBoard1">
-        <g>
-            <clipPath id="_clip1">
-                <rect x="0" y="0" width="1440" height="1283"/>
-            </clipPath>
-            <g clip-path="url(#_clip1)">
-                <g opacity="0.22">
-                    <path d="M1148,469L1282,469" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                </g>
-                <g opacity="0.22">
-                    <path d="M193,124L327,124" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                </g>
-                <g transform="matrix(1,0,0,1,678,0)">
-                    <g opacity="0.22">
-                        <path d="M193,124L327,124" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                    </g>
-                </g>
-                <g opacity="0.22">
-                    <path d="M1176,309L1310,309" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                </g>
-                <g opacity="0.22">
-                    <path d="M422,376L486,376" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                </g>
-                <g transform="matrix(1,0,0,1,678,0)">
-                    <g opacity="0.22">
-                        <path d="M422,376L486,376" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                    </g>
-                </g>
-                <g opacity="0.22">
-                    <path d="M97,317L161,317" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                </g>
-                <g transform="matrix(1,0,0,1,678,0)">
-                    <g opacity="0.22">
-                        <path d="M97,317L161,317" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                    </g>
-                </g>
-                <g opacity="0.22">
-                    <path d="M1334,61L1386,61" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                </g>
-                <g transform="matrix(1,0,0,1,-292.234,29.224)">
-                    <g opacity="0.22">
-                        <path d="M1356,663L1490,663" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                    </g>
-                </g>
-                <g opacity="0.22">
-                    <path d="M150,548L284,548" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                </g>
-                <g transform="matrix(1,0,0,1,678,0)">
-                    <g opacity="0.22">
-                        <path d="M150,548L284,548" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                    </g>
-                </g>
-                <path d="M-24,376L110,376" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-opacity:0.22;stroke-width:5px;"/>
-                <g transform="matrix(1,0,0,1,678,0)">
-                    <path d="M-24,376L110,376" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-opacity:0.22;stroke-width:5px;"/>
-                </g>
-                <g opacity="0.22">
-                    <path d="M43,66L177,66" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                </g>
-                <g transform="matrix(1,0,0,1,678,0)">
-                    <g opacity="0.22">
-                        <path d="M43,66L177,66" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                    </g>
-                </g>
-                <g opacity="0.22">
-                    <path d="M1014,388L1148,388" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                </g>
-                <g transform="matrix(1,0,0,1,-50,0)">
-                    <g opacity="0.22">
-                        <path d="M51,663L185,663" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                    </g>
-                </g>
-                <g transform="matrix(1,0,0,1,371,0)">
-                    <g opacity="0.22">
-                        <path d="M51,663L185,663" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-width:5px;"/>
-                    </g>
-                </g>
-                <path d="M1282,193L1416,193" style="fill:none;fill-rule:nonzero;stroke:rgb(197,200,217);stroke-opacity:0.22;stroke-width:5px;"/>
-                <path d="M1183,124L1529,124" style="fill:none;fill-rule:nonzero;stroke:rgb(75,79,88);stroke-opacity:0.3;stroke-width:45px;"/>
-                <path d="M-89,497L257,497" style="fill:none;fill-rule:nonzero;stroke:rgb(75,79,88);stroke-opacity:0.3;stroke-width:45px;"/>
-                <g transform="matrix(1,0,0,1,586.333,105.573)">
-                    <path d="M-89,497L257,497" style="fill:none;fill-rule:nonzero;stroke:rgb(75,79,88);stroke-opacity:0.3;stroke-width:45px;"/>
-                </g>
-                <path d="M-55,278L291,278" style="fill:none;fill-rule:nonzero;stroke:rgb(75,79,88);stroke-opacity:0.3;stroke-width:45px;"/>
-                <g transform="matrix(1,0,0,1,777,0)">
-                    <path d="M-55,278L291,278" style="fill:none;fill-rule:nonzero;stroke:rgb(75,79,88);stroke-opacity:0.3;stroke-width:45px;"/>
-                </g>
-            </g>
-        </g>
+<svg width="100%" height="100%" viewBox="0 0 1440 789" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <rect x="0" y="0" width="1440" height="789" fill="none"/>
+  <clipPath id="versa-clip">
+    <rect x="0" y="0" width="1440" height="1283"/>
+  </clipPath>
+  <g clip-path="url(#versa-clip)">
+    <!-- Thin bars. Height 5px, so the radius stays small or the ends turn into pills. -->
+    <g fill="rgb(197,200,217)" opacity="0.22">
+      <rect x="1145.5" y="466.5" width="139" height="5" rx="1.5"/>
+      <rect x="190.5" y="121.5" width="139" height="5" rx="1.5"/>
+      <rect x="868.5" y="121.5" width="139" height="5" rx="1.5"/>
+      <rect x="1173.5" y="306.5" width="139" height="5" rx="1.5"/>
+      <rect x="419.5" y="373.5" width="69" height="5" rx="1.5"/>
+      <rect x="1097.5" y="373.5" width="69" height="5" rx="1.5"/>
+      <rect x="94.5" y="314.5" width="69" height="5" rx="1.5"/>
+      <rect x="772.5" y="314.5" width="69" height="5" rx="1.5"/>
+      <rect x="1331.5" y="58.5" width="57" height="5" rx="1.5"/>
+      <rect x="1061.3" y="689.7" width="139" height="5" rx="1.5"/>
+      <rect x="147.5" y="545.5" width="139" height="5" rx="1.5"/>
+      <rect x="825.5" y="545.5" width="139" height="5" rx="1.5"/>
+      <rect x="-26.5" y="373.5" width="139" height="5" rx="1.5"/>
+      <rect x="651.5" y="373.5" width="139" height="5" rx="1.5"/>
+      <rect x="40.5" y="63.5" width="139" height="5" rx="1.5"/>
+      <rect x="718.5" y="63.5" width="139" height="5" rx="1.5"/>
+      <rect x="1011.5" y="385.5" width="139" height="5" rx="1.5"/>
+      <rect x="-1.5" y="660.5" width="139" height="5" rx="1.5"/>
+      <rect x="419.5" y="660.5" width="139" height="5" rx="1.5"/>
+      <rect x="1279.5" y="190.5" width="139" height="5" rx="1.5"/>
     </g>
+    <!-- Thick bars, 45px. Corner radius matches the buttons (6px). -->
+    <g fill="rgb(75,79,88)" opacity="0.3">
+      <rect x="1160.5" y="101.5" width="391" height="45" rx="6"/>
+      <rect x="-111.5" y="474.5" width="391" height="45" rx="6"/>
+      <rect x="474.8" y="580.1" width="391" height="45" rx="6"/>
+      <rect x="-77.5" y="255.5" width="391" height="45" rx="6"/>
+      <rect x="699.5" y="255.5" width="391" height="45" rx="6"/>
+    </g>
+  </g>
 </svg>

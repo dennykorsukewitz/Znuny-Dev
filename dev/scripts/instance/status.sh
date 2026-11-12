@@ -524,7 +524,7 @@ _emit_link_rows() {
     fi
 
     if command -v node >/dev/null 2>&1; then
-        LINK_ROOT="$framework_dir" LINK_HOST="${packages_dir:-}" LINK_TOOLS="${tools_dir:-}" LINK_TOOL_IDS="${DEV_TOOL_IDS:-Fred,ZnunyCodePolicy}" node <<'EOF'
+        LINK_ROOT="$framework_dir" LINK_HOST="${packages_dir:-}" LINK_TOOLS="${tools_dir:-}" LINK_TOOL_IDS="${DEV_TOOL_IDS:-Fred,ZnunyCodePolicy,module-tools}" node <<'EOF'
 const fs = require("fs");
 const path = require("path");
 const root = process.env.LINK_ROOT || "";
@@ -536,7 +536,7 @@ const seen = new Set();
 const seenTools = new Set();
 const nameRe = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,179}$/;
 const toolAllow = {};
-String(process.env.LINK_TOOL_IDS || "Fred,ZnunyCodePolicy").split(",").forEach(function (part) {
+String(process.env.LINK_TOOL_IDS || "Fred,ZnunyCodePolicy,module-tools").split(",").forEach(function (part) {
     var toolName = part.trim();
     if (nameRe.test(toolName)) {
         toolAllow[toolName] = 1;
@@ -614,7 +614,7 @@ EOF
     fi
 
     find "$framework_dir" -name .git -prune -o -type l -exec readlink {} + 2>/dev/null \
-        | awk -v host="$packages_dir" -v tools="$tools_dir" -v tool_ids="${DEV_TOOL_IDS:-Fred,ZnunyCodePolicy}" '
+        | awk -v host="$packages_dir" -v tools="$tools_dir" -v tool_ids="${DEV_TOOL_IDS:-Fred,ZnunyCodePolicy,module-tools}" '
             function tool_ok(name,   n, i, part) {
                 n = split(tool_ids, parts, ",")
                 for (i = 1; i <= n; i++) {
@@ -701,7 +701,7 @@ _print_linked_packages_json() {
 
 _dev_tool_ids() {
     REPLY_DEV_TOOL_IDS=()
-    local raw="${DEV_TOOL_IDS:-Fred,ZnunyCodePolicy}"
+    local raw="${DEV_TOOL_IDS:-Fred,ZnunyCodePolicy,module-tools}"
     local part rest
     rest="$raw"
     while [ -n "$rest" ]; do

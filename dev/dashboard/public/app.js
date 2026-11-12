@@ -96,7 +96,7 @@
         },
         packages: {
             view: "Linked packages and tools. Instance is stopped, so this list is read-only",
-            manage: "Link or unlink packages, Fred, and ZnunyCodePolicy",
+            manage: "Link or unlink packages and dev tools",
             apply:
                 "Apply link and unlink changes",
             filter: "Filter the package list",

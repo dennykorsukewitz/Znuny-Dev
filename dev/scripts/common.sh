@@ -307,6 +307,17 @@ load_environment() {
         source "$my_env"
     fi
 
+    # DEV_TOOL_IDS always comes from the root .env. my.env must not override it.
+    if [ -f "$env_file" ]; then
+        local dotenv_tool_ids
+        dotenv_tool_ids=$(grep '^DEV_TOOL_IDS=' "$env_file" 2>/dev/null | tail -n 1 | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+        if [ -n "$dotenv_tool_ids" ]; then
+            export DEV_TOOL_IDS="$dotenv_tool_ids"
+        else
+            unset DEV_TOOL_IDS
+        fi
+    fi
+
     # .env often contains absolute host paths. Inside Docker they are invisible; restore a usable root
     # (dashboard: preferred_root=/znuny-dev) before applying layout fallbacks (same idea as status-json).
     if [ -n "$preferred_root" ] && [ -d "$preferred_root" ]; then
@@ -371,9 +382,8 @@ load_environment() {
 
 # Default DEV_TOOL_IDS when .env has no such key. Does not create .env.
 _ensure_dev_tool_ids() {
-    local default_ids="Fred,ZnunyCodePolicy"
+    local default_ids="Fred,ZnunyCodePolicy,module-tools"
     local env_file=""
-    local my_env=""
 
     if [ -n "${DEV_TOOL_IDS:-}" ]; then
         return 0
@@ -381,13 +391,9 @@ _ensure_dev_tool_ids() {
 
     if [ -n "${ZNUNY_DEV_DIR:-}" ]; then
         env_file="$ZNUNY_DEV_DIR/.env"
-        my_env="$ZNUNY_DEV_DIR/configs/instance/my.env"
     fi
 
     if [ -n "$env_file" ] && [ -f "$env_file" ] && grep -q '^DEV_TOOL_IDS=' "$env_file"; then
-        return 0
-    fi
-    if [ -n "$my_env" ] && [ -f "$my_env" ] && grep -q '^DEV_TOOL_IDS=' "$my_env"; then
         return 0
     fi
 

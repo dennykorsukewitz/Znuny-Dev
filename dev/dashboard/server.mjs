@@ -39,7 +39,7 @@ const FRAMEWORK_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 /** Package directory under packages/ — same charset status.sh `_package_name_ok` allows. */
 const PACKAGE_NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._+-]{0,179}$/;
 const PACKAGE_LIST_MAX = 80;
-const DEFAULT_DEV_TOOL_IDS = "Fred,ZnunyCodePolicy";
+const DEFAULT_DEV_TOOL_IDS = "Fred,ZnunyCodePolicy,module-tools";
 const OPENER_PORT = Number(process.env.OPENER_PORT || 9998);
 const OPENER_HOST = process.env.OPENER_HOST || "host.docker.internal";
 
@@ -317,17 +317,11 @@ function readEnvAssignment(filePath, key) {
 
 function configuredDevToolIdSet() {
     const root = getZnunyDevDir();
-    const fromMy = readEnvAssignment(
-        path.join(root, "configs", "instance", "my.env"),
-        "DEV_TOOL_IDS",
-    );
     const fromDot = readEnvAssignment(path.join(root, ".env"), "DEV_TOOL_IDS");
     const raw =
-        fromMy !== undefined
-            ? fromMy
-            : fromDot !== undefined
-              ? fromDot
-              : process.env.DEV_TOOL_IDS || DEFAULT_DEV_TOOL_IDS;
+        fromDot !== undefined
+            ? fromDot
+            : process.env.DEV_TOOL_IDS || DEFAULT_DEV_TOOL_IDS;
     const ids = new Set();
     for (const part of String(raw).split(",")) {
         const name = part.trim();
